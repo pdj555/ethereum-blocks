@@ -122,28 +122,3 @@ Each entry should print in order of the lowest index that from address appears. 
 
 This method will be graded based on output, so be careful about capitalization and whitespace. Notice there is a space before and after the arrow when printing out to addresses. You can check this method yourself by editing Driver.java to call the method on Block 15049314 and comparing your output to the sample output. It will be graded based off the output for Block 15049311. 
 
-## Grading
-
-Plagiarism will not be tolerated under any circumstances. Participating students will be penalized depending on the degree of plagiarism. It includes “No-code” sharing among the students. It can lead to academic misconduct reporting to the authority if identical code is found among the students.
-
-You will be graded on: 
-* Zylabs Submission: 80 points possible
-* at least 10 github commits: 10 points possible
-* generated Javadocs: 10 points possible
-* make sure Javadocs generates in the `doc` folder (this should be default)
-
-Submit your project before the due date/time. No late submissions allowed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
