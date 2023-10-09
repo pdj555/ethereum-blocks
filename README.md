@@ -1,4 +1,4 @@
-# Project 4: Ethereum Blocks
+# Ethereum Blocks
 
 A blockchain is a database of transactions that is updated and shared across many computers in a network. Every time a new set of transactions is added, it’s called a “block” - hence the name blockchain. Most blockchains are public, and you can only add data, not remove. If someone wanted to alter any of the information or cheat the system, they’d need to do so on the majority of computers on the network. 
 
