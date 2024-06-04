@@ -4,10 +4,6 @@ A blockchain is a database of transactions that is updated and shared across man
 
 For this project, we will be using a dataset of 100 blocks in the Ethereum blockchain, as well as a new dataset of transactions corresponding to the first 15 blocks in the original dataset.
 
-You will be updating your Blocks.java class as well as implementing the new Transaction.java class to accomplish the tasks laid out by this README and Driver.java.
-
-There will be a template for Blocks.java provided in your repo that is caught up through project 2 if you were unable to complete it. 
-
 ## Transaction UML
 
 <img src=./imgs/TransactionUML.PNG width=50% height=50%>
@@ -46,8 +42,6 @@ Feel free to add your own helper methods as needed.
 
 ### Constructors
 
-Same as Project 2:
-
 `Blocks()`: Initialize no fields. When printed using the toString() method it should return "Empty Block" exactly.
 
 `Blocks(int number)`: Initialize the Block number. When printed using the toString() method it should return "Block Number: `number`" exactly.
@@ -60,8 +54,6 @@ Updated for Project 4:
 
 ### Getters
 
-Same as Project 2:
-
 `getNumber()`: Should return the Block number.
 
 `getMiner()`: Should return the miner address.
@@ -70,15 +62,11 @@ Same as Project 2:
 
 `getDate()`: Should return the String representation of the date / time of timestamp.
 
-New / Updated for Project 4:
-
 `getTransactionCount()`: Should return the transactionCount. This was previously getTransactions().
 
 `getTransactions()`: Should return a copy of the transactions ArrayList. 
 
 ### Other Methods
-
-Same as Project 2:
 
 `calUniqMiners()`: Should print to output the number of unique miners in the data, and a pair of lines for each one giving its miner address and the frequency at which it appears.
 
@@ -92,9 +80,7 @@ Same as Project 2:
 
 `sortBlocksByNumber()`: Should sort your blocks ArrayList in ascending order based on Block number. This can be done by implementing the comparable interface and overriding the compareTo method. 
 
-`readFile(String filename)`: Same as project 2.
-
-New for Project 4:
+`readFile(String filename)`: Reads file with filename. 
 
 `readTransactions(String filename)`: This method should read certain columns from the data file in order to fill the transactions ArrayList with Transaction objects by using the Transaction constructor. You should read the block number, transaction index, gas limit, gas price, from address, and to address. They are columns 4, 5, 9, 10, 6, and 7 respectively in the data file "ethereumtransactions1.csv". You can see more information about the data here: https://ethereum-etl.readthedocs.io/en/latest/schema/ under the section transactions.csv. Further, there are duplicate entries, out of order entries, and entries for other Blocks in the data. You must only read transactions that apply to the specific Block you are constructing, there should NOT be duplicates present in your ArrayList, and the ArrayList should be in sorted order based on the Transaction index. (Hint: use a Set)
 
