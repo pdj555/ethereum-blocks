@@ -8,8 +8,6 @@ For this project, we will be using a dataset of 100 blocks in the Ethereum block
 
 <img src=./imgs/TransactionUML.PNG width=50% height=50%>
 
-Feel free to add your own helper methods as needed.
-
 ## Transaction Methods
 
 `Transaction(int number, int index, int gasLimit, long gasPrice, String fromAdr, String toAdr)`: Initialize the class fields `blockNumber`, `index`, `gasLimit`, `gasPrice`, `fromAdr`, `toAdr`. 
@@ -35,8 +33,6 @@ Feel free to add your own helper methods as needed.
 ## Blocks UML 
 
 <img src=./imgs/BlocksUML.PNG width=50% height=50%>
-
-Feel free to add your own helper methods as needed.
 
 ## Blocks Methods
 
