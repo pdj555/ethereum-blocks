@@ -17,8 +17,37 @@ public class Transaction implements Comparable<Transaction>{
 	 * @param gasPrice The price per unit of work done
 	 * @param fromAdr The original location of the transaction
 	 * @param toAdr Where the transaction went from the original location
+	 * @throws IllegalArgumentException if any parameter is invalid
 	 */
 	public Transaction(int number, int index, int gasLimit, long gasPrice, String fromAdr, String toAdr) {
+		// Validate inputs
+		if (number < 0) {
+			throw new IllegalArgumentException("Block number cannot be negative");
+		}
+		if (index < 0) {
+			throw new IllegalArgumentException("Transaction index cannot be negative");
+		}
+		if (gasLimit < 0) {
+			throw new IllegalArgumentException("Gas limit cannot be negative");
+		}
+		if (gasPrice < 0) {
+			throw new IllegalArgumentException("Gas price cannot be negative");
+		}
+		if (fromAdr == null || fromAdr.trim().isEmpty()) {
+			throw new IllegalArgumentException("From address cannot be null or empty");
+		}
+		if (toAdr == null || toAdr.trim().isEmpty()) {
+			throw new IllegalArgumentException("To address cannot be null or empty");
+		}
+		
+		// Validate Ethereum address format (basic check)
+		if (!fromAdr.startsWith("0x") || fromAdr.length() != 42) {
+			throw new IllegalArgumentException("Invalid from address format. Ethereum addresses should start with '0x' and be 42 characters long");
+		}
+		if (!toAdr.startsWith("0x") || toAdr.length() != 42) {
+			throw new IllegalArgumentException("Invalid to address format. Ethereum addresses should start with '0x' and be 42 characters long");
+		}
+		
 		this.blockNumber = number;
 		this.index = index;
 		this.gasLimit = gasLimit;
