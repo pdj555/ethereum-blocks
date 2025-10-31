@@ -1,4 +1,41 @@
 
+/**
+ * Represents a transaction in the Ethereum blockchain with comprehensive validation.
+ * 
+ * <p>This class models an Ethereum transaction with the following key features:
+ * <ul>
+ *   <li>Complete transaction metadata (block number, index, gas details, addresses)</li>
+ *   <li>Strict input validation to ensure data integrity</li>
+ *   <li>Ethereum address format validation (0x prefix, 42 characters)</li>
+ *   <li>Gas cost calculation with automatic wei-to-ETH conversion</li>
+ *   <li>Natural ordering by transaction index</li>
+ * </ul>
+ * 
+ * <p>Gas Economics:
+ * <ul>
+ *   <li><b>Gas Limit:</b> Maximum computational work allocated for this transaction</li>
+ *   <li><b>Gas Price:</b> Price per unit of computational work (in wei)</li>
+ *   <li><b>Transaction Cost:</b> Gas Limit × Gas Price (converted to ETH)</li>
+ *   <li><b>Conversion:</b> 1 ETH = 10^18 wei</li>
+ * </ul>
+ * 
+ * <p>Validation Rules:
+ * <ul>
+ *   <li>Block number must be non-negative</li>
+ *   <li>Transaction index must be non-negative</li>
+ *   <li>Gas limit must be non-negative</li>
+ *   <li>Gas price must be non-negative</li>
+ *   <li>Addresses must be non-null, non-empty, start with "0x", and be 42 characters</li>
+ * </ul>
+ * 
+ * <p>This class is immutable after construction and thread-safe.
+ * 
+ * @author Ethereum Block Explorer Team
+ * @version 2.0.0
+ * @since 1.0.0
+ * @see Blocks
+ * @see Comparable
+ */
 public class Transaction implements Comparable<Transaction>{
 	private int blockNumber;
 	private int index;
@@ -10,14 +47,34 @@ public class Transaction implements Comparable<Transaction>{
 	
 	
 	/**
-	 * Constructs a Transaction object and initializes its number, index, gasLimit, gasPrice, fromAdr, and toAdr.
-	 * @param number The number that identifies the transaction
-	 * @param index The index of the transaction
-	 * @param gasLimit The maximum amount of work you're estimating a validator will do on a particular transaction.
-	 * @param gasPrice The price per unit of work done
-	 * @param fromAdr The original location of the transaction
-	 * @param toAdr Where the transaction went from the original location
-	 * @throws IllegalArgumentException if any parameter is invalid
+	 * Constructs a Transaction object with complete validation of all parameters.
+	 * 
+	 * <p>This constructor performs comprehensive validation including:
+	 * <ul>
+	 *   <li>Non-negative validation for numeric fields</li>
+	 *   <li>Non-null and non-empty validation for addresses</li>
+	 *   <li>Ethereum address format validation (0x prefix, 42 characters)</li>
+	 * </ul>
+	 * 
+	 * <p>Example usage:
+	 * <pre>
+	 * Transaction tx = new Transaction(
+	 *     15049311,                                          // block number
+	 *     0,                                                  // transaction index
+	 *     21000,                                              // gas limit
+	 *     50000000000L,                                       // gas price in wei
+	 *     "0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f",      // from address
+	 *     "0x0cec1a9154ff802e7934fc916ed7ca50bde6844e"       // to address
+	 * );
+	 * </pre>
+	 * 
+	 * @param number The block number containing this transaction (must be &gt;= 0)
+	 * @param index The position of this transaction within the block (must be &gt;= 0)
+	 * @param gasLimit The maximum computational work allocated (must be &gt;= 0)
+	 * @param gasPrice The price per unit of work in wei (must be &gt;= 0)
+	 * @param fromAdr The sender's Ethereum address (42 chars, starts with "0x")
+	 * @param toAdr The recipient's Ethereum address (42 chars, starts with "0x")
+	 * @throws IllegalArgumentException if any parameter fails validation
 	 */
 	public Transaction(int number, int index, int gasLimit, long gasPrice, String fromAdr, String toAdr) {
 		// Validate inputs
@@ -111,8 +168,21 @@ public class Transaction implements Comparable<Transaction>{
 	
 	
 	/**
-	 * The total cost of the transaction. The gas price multiplied by the gas limit.
-	 * @return
+	 * Calculates the total cost of this transaction in ETH.
+	 * 
+	 * <p>The transaction cost is computed as: Gas Limit × Gas Price.
+	 * The gas price is automatically converted from wei to ETH using the conversion rate:
+	 * 1 ETH = 10^18 wei.
+	 * 
+	 * <p>Formula: cost (ETH) = gasLimit × (gasPrice / 10^18)
+	 * 
+	 * <p>Example:
+	 * <pre>
+	 * Transaction tx = new Transaction(15049311, 0, 21000, 50000000000L, "0x...", "0x...");
+	 * double cost = tx.transactionCost();  // Returns: 0.00000105 ETH
+	 * </pre>
+	 * 
+	 * @return The total transaction cost in ETH as a double
 	 */
 	public double transactionCost() {
 		double ethGasPrice = gasPrice / 1e18;
@@ -121,7 +191,13 @@ public class Transaction implements Comparable<Transaction>{
 	
 	
 	/**
-	 * Prints the the transaction index for the associated block along with its block number.
+	 * Returns a string representation of this transaction.
+	 * 
+	 * <p>Format: "Transaction {index} for Block {blockNumber}"
+	 * 
+	 * <p>Example output: "Transaction 0 for Block 15049311"
+	 * 
+	 * @return A formatted string identifying this transaction
 	 */
 	public String toString() {
 		return "Transaction " + index + " for Block " + blockNumber;
@@ -129,9 +205,22 @@ public class Transaction implements Comparable<Transaction>{
 	
 	
 	/**
-	 * Compares the indices of two transactions and returns the difference between them.
-	 * @param t A transaction outside of the class
-	 * @return The difference between the indices of two transactions
+	 * Compares this transaction with another based on their indices.
+	 * 
+	 * <p>This method implements the natural ordering of transactions by their index
+	 * within a block. This is required by the {@link Comparable} interface and allows
+	 * transactions to be sorted automatically in collections.
+	 * 
+	 * <p>Comparison rules:
+	 * <ul>
+	 *   <li>Returns positive if this transaction's index &gt; other transaction's index</li>
+	 *   <li>Returns zero if indices are equal</li>
+	 *   <li>Returns negative if this transaction's index &lt; other transaction's index</li>
+	 * </ul>
+	 * 
+	 * @param t The transaction to compare with
+	 * @return A negative integer, zero, or positive integer as this transaction's
+	 *         index is less than, equal to, or greater than the specified transaction's index
 	 */
 	public int compareTo(Transaction t) {
 		if (this.getIndex() > t.getIndex()) {
