@@ -188,7 +188,13 @@ public class EthereumBlockExplorer {
     
     private static void viewUniqueMiners() {
         System.out.println("\n===== UNIQUE MINERS =====");
-        Blocks.calUniqMiners();
+        try {
+            Blocks.calUniqMiners();
+        } catch (FileNotFoundException e) {
+            System.err.println("Error: Data file not found - " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error reading data: " + e.getMessage());
+        }
     }
     
     private static void compareBlocks() {
