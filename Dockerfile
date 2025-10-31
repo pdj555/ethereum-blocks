@@ -9,8 +9,8 @@ COPY src ./src
 COPY ethereumP1data.csv .
 COPY ethereumtransactions1.csv .
 
-# Build the application
-RUN mvn clean package -DskipTests
+# Build the application (skip javadoc to avoid cert issues in docker)
+RUN mvn clean package -DskipTests -Dmaven.javadoc.skip=true
 
 # Runtime stage
 FROM eclipse-temurin:11-jre-alpine
