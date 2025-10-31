@@ -1,3 +1,48 @@
+# Ethereum Blocks - Production Ready Edition
+
+> **🚀 Production Version 2.0 Available!**  
+> This project has been upgraded to a production-ready application with enterprise features.
+
+## Quick Links
+- [**Production README**](README-PRODUCTION.md) - Complete feature overview and usage
+- [**Installation Guide**](INSTALLATION.md) - Detailed setup instructions
+- [**Deployment Checklist**](DEPLOYMENT-CHECKLIST.md) - Pre-deployment verification
+- [**Security Policy**](SECURITY.md) - Security best practices
+- [**Improvements**](IMPROVEMENTS.md) - Performance optimizations
+
+## Quick Start
+
+### Run with Java
+```bash
+# Build
+mvn clean package
+
+# Run
+java -jar target/ethereum-explorer.jar
+```
+
+### Run with Docker
+```bash
+# Build image
+docker build -f Dockerfile.simple -t ethereum-explorer:2.0.0 .
+
+# Run
+docker run -it --rm ethereum-explorer:2.0.0
+```
+
+## Production Features
+- ✅ Maven build system with dependency management
+- ✅ Professional logging (SLF4J + Logback)
+- ✅ Docker containerization
+- ✅ CI/CD pipeline (GitHub Actions)
+- ✅ Comprehensive JavaDoc documentation
+- ✅ Code quality tools (Checkstyle, SpotBugs)
+- ✅ Health check and startup scripts
+- ✅ Configuration management
+- ✅ Production deployment guides
+
+---
+
 # Ethereum Blocks
 
 A blockchain is a database of transactions that is updated and shared across many computers in a network. Every time a new set of transactions is added, it’s called a “block” - hence the name blockchain. Most blockchains are public, and you can only add data, not remove. If someone wanted to alter any of the information or cheat the system, they’d need to do so on the majority of computers on the network. 
