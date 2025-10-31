@@ -77,8 +77,7 @@
                     <source>11</source>
                     <target>11</target>
                     <excludes>
-                        <exclude>**/TestBlocks.java</exclude>
-                        <exclude>**/TestTransaction.java</exclude>
+                        <exclude>test/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -91,6 +90,7 @@
                 <configuration>
                     <includes>
                         <include>**/*Test.java</include>
+                        <include>**/Test*.java</include>
                     </includes>
                 </configuration>
             </plugin>

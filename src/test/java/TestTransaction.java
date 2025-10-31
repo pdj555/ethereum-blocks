@@ -23,8 +23,8 @@ class TestTransaction {
 		int index = 0;
 		int gas = 10000;
 		long price = 10000000000L;
-		String from = "0x";
-		String to = "0x";
+		String from = "0x1234567890123456789012345678901234567890";
+		String to = "0x0987654321098765432109876543210987654321";
 		double cost = 0.0001;
 		Transaction t = new Transaction(number, index, gas, price, from, to);
 		assertEquals(cost, t.transactionCost());
@@ -36,8 +36,8 @@ class TestTransaction {
 		int index = 0;
 		int gas = 5;
 		long price = 100;
-		String from = "0x89abcdef";
-		String to = "0xaabb";
+		String from = "0x1234567890123456789012345678901234567890";
+		String to = "0x0987654321098765432109876543210987654321";
 		
 		Transaction t = new Transaction(number, index, gas, price, from, to);
 		System.out.println(t);
@@ -55,8 +55,8 @@ class TestTransaction {
 		int index = 0;
 		int gas = 5;
 		long price = 100;
-		String from = "0x89abcdef";
-		String to = "0xaabb";
+		String from = "0x1234567890123456789012345678901234567890";
+		String to = "0x0987654321098765432109876543210987654321";
 		
 		Transaction t = new Transaction(number, index, gas, price, from, to);
 		assertEquals(number, t.getBlockNumber());
