@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  ethereum-explorer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ethereum-block-explorer:2.0.0
+    container_name: ethereum-explorer
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    restart: unless-stopped
