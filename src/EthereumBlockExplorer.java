@@ -4,13 +4,62 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
- * Main application for exploring Ethereum blockchain data.
- * Provides a user-friendly command-line interface for various blockchain operations.
+ * Main application for exploring Ethereum blockchain data with an interactive CLI.
+ * 
+ * <p>This is a production-ready command-line application that provides comprehensive
+ * blockchain exploration capabilities through an intuitive menu-driven interface.
+ * 
+ * <p>Key Features:
+ * <ul>
+ *   <li>Interactive menu system for easy navigation</li>
+ *   <li>View detailed block information and metadata</li>
+ *   <li>Browse and analyze transactions by block</li>
+ *   <li>Calculate average transaction costs</li>
+ *   <li>Compare multiple blocks (time, transactions, etc.)</li>
+ *   <li>Analyze unique miners and their frequencies</li>
+ *   <li>Group transactions by sender address</li>
+ *   <li>Reload data without restarting the application</li>
+ * </ul>
+ * 
+ * <p>Usage:
+ * <pre>
+ * java -jar ethereum-explorer.jar
+ * </pre>
+ * 
+ * <p>Data Requirements:
+ * The application requires two CSV data files in the current directory:
+ * <ul>
+ *   <li>ethereumP1data.csv - Block metadata</li>
+ *   <li>ethereumtransactions1.csv - Transaction details</li>
+ * </ul>
+ * 
+ * <p>Production Features:
+ * <ul>
+ *   <li>Robust error handling with user-friendly messages</li>
+ *   <li>Input validation to prevent crashes</li>
+ *   <li>Graceful degradation when data is unavailable</li>
+ *   <li>Data reload capability without restart</li>
+ * </ul>
+ * 
+ * @author Ethereum Block Explorer Team
+ * @version 2.0.0
+ * @since 2.0.0
+ * @see Blocks
+ * @see Transaction
  */
 public class EthereumBlockExplorer {
     private static Scanner scanner = new Scanner(System.in);
     private static ArrayList<Blocks> blocks = null;
     
+    /**
+     * Main entry point for the Ethereum Block Explorer application.
+     * 
+     * <p>Initializes the application, loads blockchain data, and enters the main
+     * interactive menu loop. The application continues running until the user
+     * chooses to exit.
+     * 
+     * @param args Command-line arguments (currently not used)
+     */
     public static void main(String[] args) {
         System.out.println("===========================================");
         System.out.println("   Ethereum Block Explorer v2.0");
@@ -188,7 +237,13 @@ public class EthereumBlockExplorer {
     
     private static void viewUniqueMiners() {
         System.out.println("\n===== UNIQUE MINERS =====");
-        Blocks.calUniqMiners();
+        try {
+            Blocks.calUniqMiners();
+        } catch (FileNotFoundException e) {
+            System.err.println("Error: Data file not found - " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error reading data: " + e.getMessage());
+        }
     }
     
     private static void compareBlocks() {
