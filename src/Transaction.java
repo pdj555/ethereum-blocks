@@ -52,12 +52,18 @@ public class Transaction implements Comparable<Transaction>{
 	 * <p>This constructor performs comprehensive validation including:
 	 * <ul>
 	 *   <li>Non-negative validation for numeric fields</li>
-	 *   <li>Non-null and non-empty validation for addresses</li>
-	 *   <li>Ethereum address format validation (0x prefix, 42 characters)</li>
+	 *   <li>Non-null and non-empty validation for from address</li>
+	 *   <li>Ethereum address format validation for from address (0x prefix, 42 characters)</li>
+	 *   <li>Optional to address validation (can be empty for contract creation transactions)</li>
 	 * </ul>
+	 * 
+	 * <p><b>Note on Contract Creation:</b> In Ethereum, contract creation transactions have
+	 * an empty or null "to" address. This constructor accepts empty/null to addresses to
+	 * support this use case.
 	 * 
 	 * <p>Example usage:
 	 * <pre>
+	 * // Regular transaction
 	 * Transaction tx = new Transaction(
 	 *     15049311,                                          // block number
 	 *     0,                                                  // transaction index
@@ -66,6 +72,16 @@ public class Transaction implements Comparable<Transaction>{
 	 *     "0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f",      // from address
 	 *     "0x0cec1a9154ff802e7934fc916ed7ca50bde6844e"       // to address
 	 * );
+	 * 
+	 * // Contract creation transaction
+	 * Transaction contractTx = new Transaction(
+	 *     15049311,                                          // block number
+	 *     5,                                                  // transaction index
+	 *     500000,                                             // gas limit
+	 *     50000000000L,                                       // gas price in wei
+	 *     "0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f",      // from address
+	 *     ""                                                  // empty for contract creation
+	 * );
 	 * </pre>
 	 * 
 	 * @param number The block number containing this transaction (must be &gt;= 0)
@@ -73,7 +89,7 @@ public class Transaction implements Comparable<Transaction>{
 	 * @param gasLimit The maximum computational work allocated (must be &gt;= 0)
 	 * @param gasPrice The price per unit of work in wei (must be &gt;= 0)
 	 * @param fromAdr The sender's Ethereum address (42 chars, starts with "0x")
-	 * @param toAdr The recipient's Ethereum address (42 chars, starts with "0x")
+	 * @param toAdr The recipient's Ethereum address (42 chars starting with "0x", or empty for contract creation)
 	 * @throws IllegalArgumentException if any parameter fails validation
 	 */
 	public Transaction(int number, int index, int gasLimit, long gasPrice, String fromAdr, String toAdr) {
@@ -93,16 +109,21 @@ public class Transaction implements Comparable<Transaction>{
 		if (fromAdr == null || fromAdr.trim().isEmpty()) {
 			throw new IllegalArgumentException("From address cannot be null or empty");
 		}
-		if (toAdr == null || toAdr.trim().isEmpty()) {
-			throw new IllegalArgumentException("To address cannot be null or empty");
-		}
 		
 		// Validate Ethereum address format (basic check)
 		if (!fromAdr.startsWith("0x") || fromAdr.length() != 42) {
 			throw new IllegalArgumentException("Invalid from address format. Ethereum addresses should start with '0x' and be 42 characters long");
 		}
-		if (!toAdr.startsWith("0x") || toAdr.length() != 42) {
-			throw new IllegalArgumentException("Invalid to address format. Ethereum addresses should start with '0x' and be 42 characters long");
+		
+		// Note: toAdr can be null or empty for contract creation transactions
+		// Only validate format if toAdr is provided
+		if (toAdr != null && !toAdr.trim().isEmpty()) {
+			if (!toAdr.startsWith("0x") || toAdr.length() != 42) {
+				throw new IllegalArgumentException("Invalid to address format. Ethereum addresses should start with '0x' and be 42 characters long");
+			}
+		} else {
+			// Set to empty string for consistency if null
+			toAdr = "";
 		}
 		
 		this.blockNumber = number;
