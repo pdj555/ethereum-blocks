@@ -7,7 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class TestTransaction {
+public class TestTransaction {
 
 	private final PrintStream standardOut = System.out;
 	private final ByteArrayOutputStream outputStreamCaptor = new ByteArrayOutputStream();
@@ -23,11 +23,11 @@ class TestTransaction {
 		int index = 0;
 		int gas = 10000;
 		long price = 10000000000L;
-		String from = "0x";
-		String to = "0x";
+		String from = "0x0000000000000000000000000000000000000000";
+		String to = "0x1111111111111111111111111111111111111111";
 		double cost = 0.0001;
 		Transaction t = new Transaction(number, index, gas, price, from, to);
-		assertEquals(cost, t.transactionCost());
+		assertEquals(cost, t.transactionCost(), 1e-12);
 	}
 	
 	@Test
@@ -36,12 +36,28 @@ class TestTransaction {
 		int index = 0;
 		int gas = 5;
 		long price = 100;
-		String from = "0x89abcdef";
-		String to = "0xaabb";
+		String from = "0x89abcdef00000000000000000000000000000000";
+		String to = "0xaabb000000000000000000000000000000000000";
 		
 		Transaction t = new Transaction(number, index, gas, price, from, to);
 		System.out.println(t);
 		assertTrue(outputStreamCaptor.toString().contains("Transaction " + 0 + " for Block " + 01234567));
+	}
+
+	@Test
+	void testContractCreationTransaction() {
+		Transaction t = new Transaction(
+			1,
+			0,
+			21000,
+			1L,
+			"0x0000000000000000000000000000000000000000",
+			""
+		);
+
+		assertTrue(t.isContractCreation());
+		assertEquals("", t.getToAddress());
+		assertEquals("(contract creation)", t.getToAddressDisplay());
 	}
 	
 	@AfterEach
@@ -55,8 +71,8 @@ class TestTransaction {
 		int index = 0;
 		int gas = 5;
 		long price = 100;
-		String from = "0x89abcdef";
-		String to = "0xaabb";
+		String from = "0x89abcdef00000000000000000000000000000000";
+		String to = "0xaabb000000000000000000000000000000000000";
 		
 		Transaction t = new Transaction(number, index, gas, price, from, to);
 		assertEquals(number, t.getBlockNumber());

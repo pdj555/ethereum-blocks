@@ -53,6 +53,21 @@ This document outlines the high-impact, focused improvements made to the Ethereu
 - **Implementation**: Defensive copying in getter methods
 - **Benefits**: Prevents external modification of internal data structures
 
+### 8. ✅ More Complete Transaction Loading (Contract Creation Support)
+- **Impact**: Improves dataset fidelity (transactions with an empty `to_address` now load correctly)
+- **Implementation**: Allowed contract-creation transactions where `to_address` is missing/empty; added display helpers
+- **Benefits**: Fewer “missing transactions” vs metadata counts and better exploration accuracy
+
+### 9. ✅ CLI Polish (Better Output, Fewer Warnings)
+- **Impact**: Cleaner, more readable interactive experience
+- **Implementation**:
+  - Quiet data loading by default (no warning spam)
+  - Load summary report after startup/reload
+  - Transaction table view with shortened addresses
+  - Dataset summary menu option
+  - Address search across loaded transactions (`create` supported for contract creation)
+- **Benefits**: Faster comprehension and a calmer, more professional UI
+
 ## Performance Metrics
 
 ### Before Improvements:
@@ -69,14 +84,14 @@ This document outlines the high-impact, focused improvements made to the Ethereu
 
 ### Running the New CLI Application:
 ```bash
-javac -cp src src/*.java
-java -cp src EthereumBlockExplorer
+mvn -DskipTests package
+java -jar target/ethereum-blocks-*.jar
 ```
 
 ### Running the Original Driver:
 ```bash
-javac -cp src src/Transaction.java src/Blocks.java src/Driver.java
-java -cp src Driver
+mvn -DskipTests package
+java -cp target/ethereum-blocks-*.jar Driver
 ```
 
 ## Code Quality Improvements

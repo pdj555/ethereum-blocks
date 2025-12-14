@@ -1,5 +1,11 @@
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 public class Transaction implements Comparable<Transaction>{
+	public static final long WEI_PER_ETH = 1_000_000_000_000_000_000L;
+	public static final String CONTRACT_CREATION_TO_ADDRESS = "";
+
 	private int blockNumber;
 	private int index;
 	private int gasLimit;
@@ -36,24 +42,25 @@ public class Transaction implements Comparable<Transaction>{
 		if (fromAdr == null || fromAdr.trim().isEmpty()) {
 			throw new IllegalArgumentException("From address cannot be null or empty");
 		}
-		if (toAdr == null || toAdr.trim().isEmpty()) {
-			throw new IllegalArgumentException("To address cannot be null or empty");
+
+		String normalizedFrom = fromAdr.trim();
+		String normalizedTo = (toAdr == null) ? CONTRACT_CREATION_TO_ADDRESS : toAdr.trim();
+
+		if (!isValidHexAddress(normalizedFrom)) {
+			throw new IllegalArgumentException("Invalid from address format: " + normalizedFrom);
 		}
-		
-		// Validate Ethereum address format (basic check)
-		if (!fromAdr.startsWith("0x") || fromAdr.length() != 42) {
-			throw new IllegalArgumentException("Invalid from address format. Ethereum addresses should start with '0x' and be 42 characters long");
-		}
-		if (!toAdr.startsWith("0x") || toAdr.length() != 42) {
-			throw new IllegalArgumentException("Invalid to address format. Ethereum addresses should start with '0x' and be 42 characters long");
+
+		// Contract creation transactions have an empty to_address in this dataset.
+		if (!normalizedTo.isEmpty() && !isValidHexAddress(normalizedTo)) {
+			throw new IllegalArgumentException("Invalid to address format: " + normalizedTo);
 		}
 		
 		this.blockNumber = number;
 		this.index = index;
 		this.gasLimit = gasLimit;
 		this.gasPrice = gasPrice;
-		this.fromAdr = fromAdr;
-		this.toAdr = toAdr;
+		this.fromAdr = normalizedFrom;
+		this.toAdr = normalizedTo;
 	}
 	
 	
@@ -108,6 +115,14 @@ public class Transaction implements Comparable<Transaction>{
 	public String getToAddress() {
 		return toAdr;
 	}
+
+	public boolean isContractCreation() {
+		return toAdr == null || toAdr.isEmpty();
+	}
+
+	public String getToAddressDisplay() {
+		return isContractCreation() ? "(contract creation)" : toAdr;
+	}
 	
 	
 	/**
@@ -115,14 +130,16 @@ public class Transaction implements Comparable<Transaction>{
 	 * @return
 	 */
 	public double transactionCost() {
-		double ethGasPrice = gasPrice / 1e18;
-		return gasLimit * ethGasPrice;
+		BigDecimal weiCost = BigDecimal.valueOf(gasPrice).multiply(BigDecimal.valueOf(gasLimit));
+		BigDecimal ethCost = weiCost.divide(BigDecimal.valueOf(WEI_PER_ETH), 18, RoundingMode.HALF_UP);
+		return ethCost.doubleValue();
 	}
 	
 	
 	/**
 	 * Prints the the transaction index for the associated block along with its block number.
 	 */
+	@Override
 	public String toString() {
 		return "Transaction " + index + " for Block " + blockNumber;
 	}
@@ -133,15 +150,24 @@ public class Transaction implements Comparable<Transaction>{
 	 * @param t A transaction outside of the class
 	 * @return The difference between the indices of two transactions
 	 */
+	@Override
 	public int compareTo(Transaction t) {
-		if (this.getIndex() > t.getIndex()) {
-			return 1;
+		return Integer.compare(this.getIndex(), t.getIndex());
+	}
+
+	private static boolean isValidHexAddress(String value) {
+		if (value == null) {
+			return false;
 		}
-		else if (this.getIndex() == t.getIndex()) {
-			return 0;
+		String trimmed = value.trim();
+		if (!trimmed.startsWith("0x") || trimmed.length() != 42) {
+			return false;
 		}
-		else {
-			return -1;
+		for (int i = 2; i < trimmed.length(); i++) {
+			if (Character.digit(trimmed.charAt(i), 16) < 0) {
+				return false;
+			}
 		}
+		return true;
 	}
 }

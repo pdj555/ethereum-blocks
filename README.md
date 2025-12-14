@@ -4,6 +4,27 @@ A blockchain is a database of transactions that is updated and shared across man
 
 For this project, we will be using a dataset of 100 blocks in the Ethereum blockchain, as well as a new dataset of transactions corresponding to the first 15 blocks in the original dataset.
 
+## Quickstart
+
+Run from the repository root (the CSV files are loaded via relative paths).
+
+```bash
+mvn test
+mvn -DskipTests package
+java -jar target/ethereum-blocks-*.jar
+```
+
+Optional (enables the “Ask AI” menu option):
+```bash
+export OPENAI_API_KEY="..."
+export OPENAI_MODEL="gpt-4.1-mini"  # optional
+```
+
+## CLI Tips
+
+- Use menu option `10` to search transactions by address across loaded blocks (use `create` to find contract-creation transactions with an empty `to_address`).
+- Use `--blocks` / `--transactions` at launch, or menu option `7` to reload different CSV files.
+
 ## Transaction UML
 
 <img src=./imgs/TransactionUML.PNG width=50% height=50%>
@@ -103,4 +124,3 @@ The line "Total cost of transactions: 0.01429558 ETH" means that both of the tra
 Each entry should print in order of the lowest index that from address appears. For example, the from address "0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f" appears in the transaction with index 0. The entry after that has the from address "0xf1bb7079ce7002eef428e30124247b6b88080bdb" which corresponds to the transaction with index 1. They should appear in order of the first appearance of the from address. So if a from address appears in the transaction with index 2 and in the transaction with index 102, it should be listed as the third entry printed out by this method, and not the 103rd. This same logic applies to the order the to addresses should be listed in. As shown above, since the to address "0x0c..." has a lower index than "0x88...", so it is listed first. 
 
 This method will be graded based on output, so be careful about capitalization and whitespace. Notice there is a space before and after the arrow when printing out to addresses. You can check this method yourself by editing Driver.java to call the method on Block 15049314 and comparing your output to the sample output. It will be graded based off the output for Block 15049311. 
-
