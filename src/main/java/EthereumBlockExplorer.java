@@ -314,7 +314,11 @@ public class EthereumBlockExplorer {
 
         if (promptYesNo("\nShow full list? (y/n) [n]: ", false)) {
             System.out.println();
-            Blocks.calUniqMiners();
+            try {
+                Blocks.calUniqMiners();
+            } catch (FileNotFoundException | IOException e) {
+                System.err.println("Error: " + e.getMessage());
+            }
         }
     }
     
