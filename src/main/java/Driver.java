@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class Driver {
-	public static void main (String[] args) throws FileNotFoundException, IOException {
+	public static void main(String[] args) throws FileNotFoundException, IOException {
 		
 		// read file and initialize transactions to each Block
-		Blocks.readFile("ethereumP1data.csv");
+		Blocks.readFile(Blocks.DEFAULT_BLOCKS_FILE);
 		Blocks.sortBlocksByNumber();
 		ArrayList<Blocks> blocks = Blocks.getBlocks();
 		

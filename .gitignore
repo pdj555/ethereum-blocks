@@ -1,0 +1,17 @@
+# Build output
+target/
+bin/
+*.class
+
+# IDEs
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# OS / misc
+.DS_Store
+
+# Tooling
+.agent/
