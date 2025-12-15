@@ -316,7 +316,7 @@ public class EthereumBlockExplorer {
             System.out.println();
             try {
                 Blocks.calUniqMiners();
-            } catch (FileNotFoundException | IOException e) {
+            } catch (IOException e) {
                 System.err.println("Error: " + e.getMessage());
             }
         }
