@@ -715,7 +715,7 @@ public class Blocks implements Comparable<Blocks> {
 			
 			for (Transaction t : transactionsForAddress) {
 				totalCost += t.transactionCost();
-				System.out.println(" -> " + t.getToAddress());
+				System.out.println(" -> " + t.getToAddressDisplay());
 			}
 			
 			System.out.println("Total cost of transactions: " + String.format(Locale.US, "%.8f", totalCost) + " ETH");
