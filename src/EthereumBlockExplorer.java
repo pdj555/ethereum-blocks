@@ -48,9 +48,16 @@ public class EthereumBlockExplorer {
                     }
                     printBlockDetails(Integer.parseInt(args[1]));
                     break;
+                case "address":
+                    if (args.length < 2) {
+                        System.out.println("Usage: java -cp src EthereumBlockExplorer address <0xAddress>");
+                        return;
+                    }
+                    Insights.printAddressIntel(blocks, args[1], 5);
+                    break;
                 default:
                     System.out.println("Unknown command: " + command);
-                    System.out.println("Available commands: dashboard, brief, report [file], block <blockNumber>");
+                    System.out.println("Available commands: dashboard, brief, report [file], block <blockNumber>, address <0xAddress>");
             }
         } catch (NumberFormatException e) {
             System.out.println("Invalid numeric argument.");
@@ -98,6 +105,9 @@ public class EthereumBlockExplorer {
                     viewActionBrief();
                     break;
                 case 10:
+                    viewAddressIntel();
+                    break;
+                case 11:
                     reloadData();
                     break;
                 case 0:
@@ -108,7 +118,7 @@ public class EthereumBlockExplorer {
                     System.out.println("\nInvalid choice. Please try again.");
             }
 
-            if (running && choice >= 1 && choice <= 10) {
+            if (running && choice >= 1 && choice <= 11) {
                 System.out.println("\nPress Enter to continue...");
                 scanner.nextLine();
             }
@@ -126,7 +136,8 @@ public class EthereumBlockExplorer {
         System.out.println("7. View Analytics Dashboard");
         System.out.println("8. Export Lean Markdown Report");
         System.out.println("9. View Action Brief");
-        System.out.println("10. Reload Data");
+        System.out.println("10. Address Intel");
+        System.out.println("11. Reload Data");
         System.out.println("0. Exit");
         System.out.println("===============================");
         System.out.print("Enter your choice: ");
@@ -321,6 +332,12 @@ public class EthereumBlockExplorer {
 
     private static void viewActionBrief() {
         Insights.printActionBrief(blocks, 5);
+    }
+
+    private static void viewAddressIntel() {
+        System.out.print("\nEnter Ethereum address (0x...): ");
+        String address = scanner.nextLine().trim();
+        Insights.printAddressIntel(blocks, address, 5);
     }
 
     private static void writeReport(String filePath) throws IOException {
