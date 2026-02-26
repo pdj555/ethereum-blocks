@@ -42,6 +42,12 @@ Run a decisive action brief (fast, executive summary + next moves):
 java -cp src EthereumBlockExplorer brief
 ```
 
+Get instant intelligence on any wallet in the dataset (counterparties, net flow, hot blocks):
+
+```bash
+java -cp src EthereumBlockExplorer address 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f
+```
+
 
 ## Transaction UML
 
