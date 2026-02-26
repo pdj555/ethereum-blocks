@@ -80,6 +80,108 @@ public final class Insights {
         System.out.println(buildActionBrief(blocks, topN));
     }
 
+    public static void printAddressIntel(ArrayList<Blocks> blocks, String address, int topN) {
+        System.out.println(buildAddressIntel(blocks, address, topN));
+    }
+
+    public static String buildAddressIntel(ArrayList<Blocks> blocks, String rawAddress, int topN) {
+        if (blocks == null || blocks.isEmpty()) {
+            return "No block data loaded.";
+        }
+        if (rawAddress == null || rawAddress.trim().isEmpty()) {
+            return "Address is required.";
+        }
+
+        String address = rawAddress.trim().toLowerCase();
+        if (!address.startsWith("0x") || address.length() != 42) {
+            return "Invalid Ethereum address. Expected 0x + 40 hex chars.";
+        }
+
+        int inboundCount = 0;
+        int outboundCount = 0;
+        double inboundEth = 0.0;
+        double outboundEth = 0.0;
+        int firstBlock = Integer.MAX_VALUE;
+        int lastBlock = Integer.MIN_VALUE;
+        Map<String, Integer> counterparties = new HashMap<>();
+        Map<Integer, Integer> activityByBlock = new HashMap<>();
+
+        for (Blocks block : blocks) {
+            for (Transaction tx : block.getTransactions()) {
+                String from = tx.getFromAddress().toLowerCase();
+                String to = tx.getToAddress().toLowerCase();
+                boolean isOutbound = from.equals(address);
+                boolean isInbound = to.equals(address);
+
+                if (!isInbound && !isOutbound) {
+                    continue;
+                }
+
+                firstBlock = Math.min(firstBlock, block.getNumber());
+                lastBlock = Math.max(lastBlock, block.getNumber());
+                activityByBlock.put(block.getNumber(), activityByBlock.getOrDefault(block.getNumber(), 0) + 1);
+
+                if (isOutbound) {
+                    outboundCount++;
+                    outboundEth += tx.transactionCost();
+                    counterparties.put(to, counterparties.getOrDefault(to, 0) + 1);
+                }
+                if (isInbound) {
+                    inboundCount++;
+                    inboundEth += tx.transactionCost();
+                    counterparties.put(from, counterparties.getOrDefault(from, 0) + 1);
+                }
+            }
+        }
+
+        int totalTouches = inboundCount + outboundCount;
+        if (totalTouches == 0) {
+            return "No transactions found for address " + address + " in loaded blocks.";
+        }
+
+        List<Map.Entry<String, Integer>> topCounterparties = counterparties.entrySet()
+            .stream()
+            .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+            .limit(topN)
+            .collect(Collectors.toList());
+
+        List<Map.Entry<Integer, Integer>> busiestBlocks = activityByBlock.entrySet()
+            .stream()
+            .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+            .limit(topN)
+            .collect(Collectors.toList());
+
+        StringBuilder out = new StringBuilder();
+        out.append("\n========== ADDRESS INTEL ==========");
+        out.append("\nAddress: ").append(address);
+        out.append("\nTouches (in + out): ").append(totalTouches);
+        out.append("\nInbound tx: ").append(inboundCount)
+            .append(String.format(" (%.8f ETH)", inboundEth));
+        out.append("\nOutbound tx: ").append(outboundCount)
+            .append(String.format(" (%.8f ETH)", outboundEth));
+        out.append("\nNet flow (in - out): ").append(String.format("%.8f ETH", inboundEth - outboundEth));
+        out.append("\nActive range: block ").append(firstBlock).append(" -> ").append(lastBlock);
+
+        out.append("\n\nTop counterparties:");
+        for (int i = 0; i < topCounterparties.size(); i++) {
+            Map.Entry<String, Integer> cp = topCounterparties.get(i);
+            out.append("\n").append(i + 1).append(". ").append(cp.getKey()).append(" (").append(cp.getValue()).append(" interactions)");
+        }
+
+        out.append("\n\nBusiest blocks:");
+        for (int i = 0; i < busiestBlocks.size(); i++) {
+            Map.Entry<Integer, Integer> hit = busiestBlocks.get(i);
+            out.append("\n").append(i + 1).append(". Block ").append(hit.getKey()).append(" (").append(hit.getValue()).append(" tx)");
+        }
+
+        out.append("\n\nAction:\n");
+        out.append("1) Investigate top counterparties for clustering patterns.\n");
+        out.append("2) Alert on activity spikes in busiest blocks.\n");
+        out.append("3) Compare net flow trend against future block windows.\n");
+        out.append("===================================\n");
+        return out.toString();
+    }
+
     public static String buildActionBrief(ArrayList<Blocks> blocks, int topN) {
         if (blocks == null || blocks.isEmpty()) {
             return "No block data loaded.";
