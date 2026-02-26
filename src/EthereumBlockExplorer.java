@@ -188,7 +188,11 @@ public class EthereumBlockExplorer {
     
     private static void viewUniqueMiners() {
         System.out.println("\n===== UNIQUE MINERS =====");
-        Blocks.calUniqMiners();
+        try {
+            Blocks.calUniqMiners();
+        } catch (Exception e) {
+            System.err.println("\nError: " + e.getMessage());
+        }
     }
     
     private static void compareBlocks() {

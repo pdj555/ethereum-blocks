@@ -53,6 +53,19 @@ This document outlines the high-impact, focused improvements made to the Ethereu
 - **Implementation**: Defensive copying in getter methods
 - **Benefits**: Prevents external modification of internal data structures
 
+### 8. ✅ Massive Throughput Upgrade - Single-Pass Transaction Cache
+- **Impact**: Eliminated repeated full-file scans when constructing block objects
+- **Implementation**: Added a static transaction cache that loads `ethereumtransactions1.csv` once and indexes by block number + transaction index
+- **Benefits**: Data load time drops dramatically because transaction parsing is now O(total transactions) once, not O(blocks × total transactions)
+
+### 9. ✅ Reliability Fixes in Core Analytics
+- **Impact**: Prevented edge-case failures and made analytics more intuitive
+- **Implementation**:
+  - `avgTransactionCost()` now returns `0.0` for blocks with no transactions (no divide-by-zero)
+  - `transactionDiff()` now works regardless of argument order
+  - `sortBlocksByNumber()` now uses the correct default dataset path
+- **Benefits**: Better production behavior with less surprising runtime output
+
 ## Performance Metrics
 
 ### Before Improvements:
