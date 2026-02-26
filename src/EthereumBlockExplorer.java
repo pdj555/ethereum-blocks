@@ -35,6 +35,9 @@ public class EthereumBlockExplorer {
                 case "dashboard":
                     Insights.printDashboard(blocks, 5);
                     break;
+                case "brief":
+                    Insights.printActionBrief(blocks, 5);
+                    break;
                 case "report":
                     writeReport(args.length >= 2 ? args[1] : "ethereum-report.md");
                     break;
@@ -47,7 +50,7 @@ public class EthereumBlockExplorer {
                     break;
                 default:
                     System.out.println("Unknown command: " + command);
-                    System.out.println("Available commands: dashboard, report [file], block <blockNumber>");
+                    System.out.println("Available commands: dashboard, brief, report [file], block <blockNumber>");
             }
         } catch (NumberFormatException e) {
             System.out.println("Invalid numeric argument.");
@@ -92,6 +95,9 @@ public class EthereumBlockExplorer {
                     exportReport();
                     break;
                 case 9:
+                    viewActionBrief();
+                    break;
+                case 10:
                     reloadData();
                     break;
                 case 0:
@@ -102,7 +108,7 @@ public class EthereumBlockExplorer {
                     System.out.println("\nInvalid choice. Please try again.");
             }
 
-            if (running && choice >= 1 && choice <= 9) {
+            if (running && choice >= 1 && choice <= 10) {
                 System.out.println("\nPress Enter to continue...");
                 scanner.nextLine();
             }
@@ -119,7 +125,8 @@ public class EthereumBlockExplorer {
         System.out.println("6. View Transactions by Address");
         System.out.println("7. View Analytics Dashboard");
         System.out.println("8. Export Lean Markdown Report");
-        System.out.println("9. Reload Data");
+        System.out.println("9. View Action Brief");
+        System.out.println("10. Reload Data");
         System.out.println("0. Exit");
         System.out.println("===============================");
         System.out.print("Enter your choice: ");
@@ -310,6 +317,10 @@ public class EthereumBlockExplorer {
         } catch (IOException e) {
             System.err.println("Failed to write report: " + e.getMessage());
         }
+    }
+
+    private static void viewActionBrief() {
+        Insights.printActionBrief(blocks, 5);
     }
 
     private static void writeReport(String filePath) throws IOException {
