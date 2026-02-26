@@ -1,13 +1,41 @@
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Lean analytics layer that turns raw block data into actionable summary insights.
  */
 public final class Insights {
     private Insights() {}
+
+    public static final class BlockCostStat {
+        private final int blockNumber;
+        private final int txCount;
+        private final double avgCostEth;
+
+        public BlockCostStat(int blockNumber, int txCount, double avgCostEth) {
+            this.blockNumber = blockNumber;
+            this.txCount = txCount;
+            this.avgCostEth = avgCostEth;
+        }
+
+        public int getBlockNumber() {
+            return blockNumber;
+        }
+
+        public int getTxCount() {
+            return txCount;
+        }
+
+        public double getAvgCostEth() {
+            return avgCostEth;
+        }
+    }
 
     public static void printDashboard(ArrayList<Blocks> blocks, int topN) {
         if (blocks == null || blocks.isEmpty()) {
@@ -44,7 +72,56 @@ public final class Insights {
         printTopMiners(minerFrequency, topN);
         printTopBlocksByTransactionCount(blocks, topN);
         printTopBlocksByAverageCost(blocks, topN);
+        printPotentialOutlierBlocksByCost(blocks, topN);
         System.out.println("========================================\n");
+    }
+
+    public static String buildReport(ArrayList<Blocks> blocks, int topN) {
+        if (blocks == null || blocks.isEmpty()) {
+            return "# Ethereum Report\n\nNo block data loaded.\n";
+        }
+
+        int totalBlocks = blocks.size();
+        long totalTransactions = 0L;
+        Map<String, Integer> minerFrequency = new HashMap<>();
+        double totalCostAcrossAllTransactions = 0.0;
+        long totalKnownTransactions = 0L;
+        Set<String> uniqueAddresses = new LinkedHashSet<>();
+
+        for (Blocks block : blocks) {
+            totalTransactions += block.getTransactionCount();
+            minerFrequency.put(block.getMiner(), minerFrequency.getOrDefault(block.getMiner(), 0) + 1);
+
+            ArrayList<Transaction> txs = block.getTransactions();
+            totalKnownTransactions += txs.size();
+            for (Transaction tx : txs) {
+                totalCostAcrossAllTransactions += tx.transactionCost();
+                uniqueAddresses.add(tx.getFromAddress());
+                uniqueAddresses.add(tx.getToAddress());
+            }
+        }
+
+        double avgTxPerBlock = (double) totalTransactions / totalBlocks;
+        double avgKnownTxCost = totalKnownTransactions == 0 ? 0.0 : totalCostAcrossAllTransactions / totalKnownTransactions;
+
+        StringBuilder out = new StringBuilder();
+        out.append("# Ethereum Blocks: Lean Report\n\n");
+        out.append("## Core KPIs\n");
+        out.append("- Blocks loaded: ").append(totalBlocks).append("\n");
+        out.append("- Unique miners: ").append(minerFrequency.size()).append("\n");
+        out.append("- Total transactions (metadata): ").append(totalTransactions).append("\n");
+        out.append(String.format("- Avg transactions / block: %.2f%n", avgTxPerBlock));
+        out.append(String.format("- Avg known transaction cost: %.8f ETH%n", avgKnownTxCost));
+        out.append("- Unique addresses seen in loaded transactions: ").append(uniqueAddresses.size()).append("\n\n");
+
+        out.append("## Top Miners\n");
+        appendTopMiners(out, minerFrequency, topN);
+        out.append("\n## Highest-Cost Blocks\n");
+        appendTopCostBlocks(out, blocks, topN);
+        out.append("\n## Potential Cost Outliers (z-score >= 1.5)\n");
+        appendCostOutliers(out, blocks, topN);
+
+        return out.toString();
     }
 
     private static void printTopMiners(Map<String, Integer> minerFrequency, int topN) {
@@ -83,6 +160,87 @@ public final class Insights {
         for (int i = 0; i < Math.min(topN, activeBlocks.size()); i++) {
             Blocks block = activeBlocks.get(i);
             System.out.printf("%d. Block %d  (%.8f ETH)%n", i + 1, block.getNumber(), block.avgTransactionCost());
+        }
+    }
+
+    private static void printPotentialOutlierBlocksByCost(ArrayList<Blocks> blocks, int topN) {
+        List<BlockCostStat> outliers = findCostOutliers(blocks, topN);
+        System.out.println("\nPotential cost outlier blocks:");
+        if (outliers.isEmpty()) {
+            System.out.println("(none)");
+            return;
+        }
+        for (int i = 0; i < outliers.size(); i++) {
+            BlockCostStat stat = outliers.get(i);
+            System.out.printf("%d. Block %d  (%.8f ETH avg, %d tx)%n", i + 1, stat.getBlockNumber(), stat.getAvgCostEth(), stat.getTxCount());
+        }
+    }
+
+    private static List<BlockCostStat> findCostOutliers(ArrayList<Blocks> blocks, int limit) {
+        ArrayList<BlockCostStat> stats = new ArrayList<>();
+        for (Blocks block : blocks) {
+            ArrayList<Transaction> txs = block.getTransactions();
+            if (!txs.isEmpty()) {
+                stats.add(new BlockCostStat(block.getNumber(), txs.size(), block.avgTransactionCost()));
+            }
+        }
+        if (stats.size() < 3) {
+            return new ArrayList<>();
+        }
+
+        double mean = stats.stream().mapToDouble(BlockCostStat::getAvgCostEth).average().orElse(0.0);
+        double variance = stats.stream()
+            .mapToDouble(s -> {
+                double delta = s.getAvgCostEth() - mean;
+                return delta * delta;
+            })
+            .average()
+            .orElse(0.0);
+        double std = Math.sqrt(variance);
+        if (std == 0.0) {
+            return new ArrayList<>();
+        }
+
+        return stats.stream()
+            .filter(s -> (s.getAvgCostEth() - mean) / std >= 1.5)
+            .sorted(Comparator.comparingDouble(BlockCostStat::getAvgCostEth).reversed())
+            .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    private static void appendTopMiners(StringBuilder out, Map<String, Integer> minerFrequency, int topN) {
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(minerFrequency.entrySet());
+        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+        for (int i = 0; i < Math.min(topN, sorted.size()); i++) {
+            Map.Entry<String, Integer> entry = sorted.get(i);
+            out.append(i + 1).append(". ").append(entry.getKey()).append(" (blocks: ").append(entry.getValue()).append(")\n");
+        }
+    }
+
+    private static void appendTopCostBlocks(StringBuilder out, ArrayList<Blocks> blocks, int topN) {
+        ArrayList<Blocks> active = new ArrayList<>();
+        for (Blocks block : blocks) {
+            if (!block.getTransactions().isEmpty()) {
+                active.add(block);
+            }
+        }
+        active.sort((a, b) -> Double.compare(b.avgTransactionCost(), a.avgTransactionCost()));
+
+        for (int i = 0; i < Math.min(topN, active.size()); i++) {
+            Blocks block = active.get(i);
+            out.append(String.format("%d. Block %d (avg cost: %.8f ETH, tx: %d)%n", i + 1, block.getNumber(), block.avgTransactionCost(), block.getTransactions().size()));
+        }
+    }
+
+    private static void appendCostOutliers(StringBuilder out, ArrayList<Blocks> blocks, int topN) {
+        List<BlockCostStat> outliers = findCostOutliers(blocks, topN);
+        if (outliers.isEmpty()) {
+            out.append("- none\n");
+            return;
+        }
+        for (int i = 0; i < outliers.size(); i++) {
+            BlockCostStat stat = outliers.get(i);
+            out.append(String.format("%d. Block %d (%.8f ETH avg, tx: %d)%n", i + 1, stat.getBlockNumber(), stat.getAvgCostEth(), stat.getTxCount()));
         }
     }
 }
