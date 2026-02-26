@@ -4,14 +4,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.TimeZone;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.text.SimpleDateFormat;
 
 
@@ -22,6 +21,8 @@ public class Blocks implements Comparable<Blocks> {
 	private int transactionCount;	// Transaction count
 	private static ArrayList<Blocks> blocks = null;
 	private static Map<Integer, Blocks> blockMap = new HashMap<>();  // For O(1) lookups
+	private static final Map<Integer, ArrayList<Transaction>> transactionsByBlock = new HashMap<>();
+	private static String cachedTransactionsFile = null;
 	private StringBuilder returnString = new StringBuilder();
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z");
 	private Date date;				// date in the format of "dateFormat
@@ -135,41 +136,17 @@ public class Blocks implements Comparable<Blocks> {
 			readFile("ethereumP1data.txt");
 		}
 		
-		// initialize ArrayLists to store addresses and frequencies
-		ArrayList<String> uniqMiners = new ArrayList<String>();
-		ArrayList<Integer> uniqMinersFreq = new ArrayList<Integer>();
-		// holds each miner address
-		String miner;
-		// loop through all Blocks
-		for (int i = 0; i < blocks.size(); ++i)
-		{
-			miner = blocks.get(i).getMiner();
-			// enter if the miner is new
-			if (!(uniqMiners.contains(miner)))
-			{
-				// add the miner and add the frequency of 1
-				uniqMiners.add(miner);
-				uniqMinersFreq.add(1);
-			}
-			// otherwise increment the frequency of that miner
-			else
-			{
-				for (int j = 0; j < uniqMiners.size(); ++j)
-				{
-					if (uniqMiners.get(j).equals(miner))
-					{
-						uniqMinersFreq.set(j, uniqMinersFreq.get(j) + 1);
-					}
-				}
-			}
+		Map<String, Integer> uniqMinersFreq = new LinkedHashMap<>();
+		for (Blocks block : blocks) {
+			String miner = block.getMiner();
+			uniqMinersFreq.put(miner, uniqMinersFreq.getOrDefault(miner, 0) + 1);
 		}
 
 		// print according to output
-		System.out.println("Number of unique Miners: " + uniqMiners.size() + "\n");
+		System.out.println("Number of unique Miners: " + uniqMinersFreq.size() + "\n");
 		System.out.println("Each unique Miner and its frequency:");
-		for (int i = 0; i < uniqMiners.size(); ++i)
-		{
-			System.out.println("Miner Address: " + uniqMiners.get(i) + "\nMiner Frequency: " + uniqMinersFreq.get(i) + "\n");
+		for (Map.Entry<String, Integer> entry : uniqMinersFreq.entrySet()) {
+			System.out.println("Miner Address: " + entry.getKey() + "\nMiner Frequency: " + entry.getValue() + "\n");
 		}
 	}
 	
@@ -318,11 +295,9 @@ public class Blocks implements Comparable<Blocks> {
 	 */
 	public static void sortBlocksByNumber() throws FileNotFoundException, IOException {
 		if (blocks==null) {
-			readFile("ethereumP1.txt");
+			readFile("ethereumP1data.txt");
 		}
-		else {
-			Collections.sort(blocks);
-		}
+		Collections.sort(blocks);
 	}
 	
 	
@@ -427,9 +402,11 @@ public class Blocks implements Comparable<Blocks> {
 		if ((indexA < 0) || (indexB < 0)) {
 			return -1;
 		}
-		// make sure first comes before second
-		if (indexA >= indexB) {
-			return -1;
+		// normalize order to keep API easy to use
+		if (indexA > indexB) {
+			int temp = indexA;
+			indexA = indexB;
+			indexB = temp;
 		}
 		
 		// for loop to count the transactions
@@ -450,44 +427,13 @@ public class Blocks implements Comparable<Blocks> {
 	 * @throws IOException
 	 */
 	private void readTransactions(String filename) throws FileNotFoundException, IOException, NullPointerException {
-		
-		
-		File file = new File(filename);
-		
-		BufferedReader reader = new BufferedReader(new FileReader(file));
-		
-		String[] fileData = null;
-		String line;
-		
-		TreeSet<Transaction> tS = new TreeSet<Transaction>();
-		
-		while ((line = reader.readLine()) != null) {
-			
-			fileData = line.trim().split(",");
-			
-			int tranNumber = Integer.parseInt(fileData[3]);
-			int tranIndex = Integer.parseInt(fileData[4]);
-			int tranGasLimit = Integer.parseInt(fileData[8]);
-			long tranGasPrice = (long)Double.parseDouble(fileData[9]);
-			String tranFromAdr = fileData[5];
-			String tranToAdr = fileData[6];
-			
-			try {
-				Transaction nT = new Transaction(tranNumber, tranIndex, tranGasLimit, tranGasPrice, tranFromAdr, tranToAdr);
-				
-				if (nT.getBlockNumber() == this.getNumber()) {
-					tS.add(nT);
-				}
-			} catch (IllegalArgumentException e) {
-				// Skip invalid transactions
-				System.err.println("Warning: Skipping invalid transaction: " + e.getMessage());
-			}
+		ensureTransactionCacheLoaded(filename);
+		ArrayList<Transaction> blockTransactions = transactionsByBlock.get(this.getNumber());
+		if (blockTransactions == null) {
+			transactions = new ArrayList<>();
+			return;
 		}
-		
-		transactions = new ArrayList<>(tS);
-		
-		reader.close();
-		
+		transactions = new ArrayList<>(blockTransactions);
 	}
 	
 	
@@ -496,6 +442,9 @@ public class Blocks implements Comparable<Blocks> {
 	 * @return The average transaction cost
 	 */
 	public double avgTransactionCost() {
+		if (transactions == null || transactions.isEmpty()) {
+			return 0.0;
+		}
 		double totalCost = 0.0;
 		int numTrans = transactions.size();
 		
@@ -512,7 +461,7 @@ public class Blocks implements Comparable<Blocks> {
 	 */
 	public void uniqFromTo() {
 		// Use LinkedHashMap to maintain insertion order (based on first appearance)
-		Map<String, ArrayList<Transaction>> fromAddressMap = new HashMap<>();
+		Map<String, ArrayList<Transaction>> fromAddressMap = new LinkedHashMap<>();
 		Map<String, Integer> firstAppearance = new HashMap<>();
 		
 		// Group transactions by from address in O(n) time
@@ -554,6 +503,54 @@ public class Blocks implements Comparable<Blocks> {
 			System.out.println();
 		}
 		
+	}
+
+	private static void ensureTransactionCacheLoaded(String filename) throws IOException {
+		if (filename == null || filename.trim().isEmpty()) {
+			throw new IllegalArgumentException("Transaction filename cannot be null or empty");
+		}
+
+		if (filename.equals(cachedTransactionsFile) && !transactionsByBlock.isEmpty()) {
+			return;
+		}
+
+		File file = new File(filename);
+		if (!file.exists()) {
+			throw new FileNotFoundException("File not found: " + filename);
+		}
+
+		Map<Integer, TreeMap<Integer, Transaction>> indexedTransactionsByBlock = new HashMap<>();
+		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				String[] fileData = line.trim().split(",");
+				if (fileData.length < 10) {
+					continue;
+				}
+
+				try {
+					int tranNumber = Integer.parseInt(fileData[3]);
+					int tranIndex = Integer.parseInt(fileData[4]);
+					int tranGasLimit = Integer.parseInt(fileData[8]);
+					long tranGasPrice = (long) Double.parseDouble(fileData[9]);
+					String tranFromAdr = fileData[5];
+					String tranToAdr = fileData[6];
+
+					Transaction nT = new Transaction(tranNumber, tranIndex, tranGasLimit, tranGasPrice, tranFromAdr, tranToAdr);
+					indexedTransactionsByBlock
+						.computeIfAbsent(tranNumber, k -> new TreeMap<>())
+						.putIfAbsent(tranIndex, nT);
+				} catch (RuntimeException e) {
+					// Skip malformed rows.
+				}
+			}
+		}
+
+		transactionsByBlock.clear();
+		for (Map.Entry<Integer, TreeMap<Integer, Transaction>> entry : indexedTransactionsByBlock.entrySet()) {
+			transactionsByBlock.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
+		}
+		cachedTransactionsFile = filename;
 	}
 
 }
