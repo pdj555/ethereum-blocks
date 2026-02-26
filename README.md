@@ -36,6 +36,13 @@ Generate a lean Markdown intelligence report (great for sharing):
 java -cp src EthereumBlockExplorer report ethereum-report.md
 ```
 
+Run a decisive action brief (fast, executive summary + next moves):
+
+```bash
+java -cp src EthereumBlockExplorer brief
+```
+
+
 ## Transaction UML
 
 <img src=./imgs/TransactionUML.PNG width=50% height=50%>
