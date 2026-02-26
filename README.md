@@ -30,6 +30,12 @@ Inspect a specific block directly:
 java -cp src EthereumBlockExplorer block 15049311
 ```
 
+Generate a lean Markdown intelligence report (great for sharing):
+
+```bash
+java -cp src EthereumBlockExplorer report ethereum-report.md
+```
+
 ## Transaction UML
 
 <img src=./imgs/TransactionUML.PNG width=50% height=50%>

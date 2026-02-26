@@ -1,5 +1,8 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -32,6 +35,9 @@ public class EthereumBlockExplorer {
                 case "dashboard":
                     Insights.printDashboard(blocks, 5);
                     break;
+                case "report":
+                    writeReport(args.length >= 2 ? args[1] : "ethereum-report.md");
+                    break;
                 case "block":
                     if (args.length < 2) {
                         System.out.println("Usage: java -cp src EthereumBlockExplorer block <blockNumber>");
@@ -41,7 +47,7 @@ public class EthereumBlockExplorer {
                     break;
                 default:
                     System.out.println("Unknown command: " + command);
-                    System.out.println("Available commands: dashboard, block <blockNumber>");
+                    System.out.println("Available commands: dashboard, report [file], block <blockNumber>");
             }
         } catch (NumberFormatException e) {
             System.out.println("Invalid numeric argument.");
@@ -52,7 +58,7 @@ public class EthereumBlockExplorer {
 
     private static void runInteractiveMode() {
         System.out.println("===========================================");
-        System.out.println("   Ethereum Block Explorer v3.0");
+        System.out.println("   Ethereum Block Explorer v4.0");
         System.out.println("===========================================");
 
         boolean running = true;
@@ -83,6 +89,9 @@ public class EthereumBlockExplorer {
                     viewDashboard();
                     break;
                 case 8:
+                    exportReport();
+                    break;
+                case 9:
                     reloadData();
                     break;
                 case 0:
@@ -93,7 +102,7 @@ public class EthereumBlockExplorer {
                     System.out.println("\nInvalid choice. Please try again.");
             }
 
-            if (running && choice >= 1 && choice <= 8) {
+            if (running && choice >= 1 && choice <= 9) {
                 System.out.println("\nPress Enter to continue...");
                 scanner.nextLine();
             }
@@ -109,7 +118,8 @@ public class EthereumBlockExplorer {
         System.out.println("5. Compare Blocks");
         System.out.println("6. View Transactions by Address");
         System.out.println("7. View Analytics Dashboard");
-        System.out.println("8. Reload Data");
+        System.out.println("8. Export Lean Markdown Report");
+        System.out.println("9. Reload Data");
         System.out.println("0. Exit");
         System.out.println("===============================");
         System.out.print("Enter your choice: ");
@@ -287,5 +297,24 @@ public class EthereumBlockExplorer {
 
     private static void viewDashboard() {
         Insights.printDashboard(blocks, 5);
+    }
+
+    private static void exportReport() {
+        System.out.print("\nOutput file [ethereum-report.md]: ");
+        String path = scanner.nextLine().trim();
+        if (path.isEmpty()) {
+            path = "ethereum-report.md";
+        }
+        try {
+            writeReport(path);
+        } catch (IOException e) {
+            System.err.println("Failed to write report: " + e.getMessage());
+        }
+    }
+
+    private static void writeReport(String filePath) throws IOException {
+        String report = Insights.buildReport(blocks, 5);
+        Files.writeString(Path.of(filePath), report, StandardCharsets.UTF_8);
+        System.out.println("Report generated: " + filePath);
     }
 }
