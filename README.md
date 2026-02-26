@@ -4,6 +4,32 @@ A blockchain is a database of transactions that is updated and shared across man
 
 For this project, we will be using a dataset of 100 blocks in the Ethereum blockchain, as well as a new dataset of transactions corresponding to the first 15 blocks in the original dataset.
 
+## Quick Start (Modern CLI)
+
+Compile core app:
+
+```bash
+javac -cp src src/Transaction.java src/Blocks.java src/Insights.java src/EthereumBlockExplorer.java
+```
+
+Run the interactive explorer:
+
+```bash
+java -cp src EthereumBlockExplorer
+```
+
+Run a zero-click analytics dashboard (fastest way to get value):
+
+```bash
+java -cp src EthereumBlockExplorer dashboard
+```
+
+Inspect a specific block directly:
+
+```bash
+java -cp src EthereumBlockExplorer block 15049311
+```
+
 ## Transaction UML
 
 <img src=./imgs/TransactionUML.PNG width=50% height=50%>
