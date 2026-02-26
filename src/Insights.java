@@ -76,6 +76,106 @@ public final class Insights {
         System.out.println("========================================\n");
     }
 
+    public static void printActionBrief(ArrayList<Blocks> blocks, int topN) {
+        System.out.println(buildActionBrief(blocks, topN));
+    }
+
+    public static String buildActionBrief(ArrayList<Blocks> blocks, int topN) {
+        if (blocks == null || blocks.isEmpty()) {
+            return "No block data loaded.";
+        }
+
+        Map<String, Integer> minerFrequency = new HashMap<>();
+        Map<String, Double> senderSpend = new HashMap<>();
+        long totalTransactions = 0L;
+        int busiestBlockNumber = -1;
+        int busiestBlockTx = -1;
+        int highestCostBlockNumber = -1;
+        double highestAvgCost = -1.0;
+        int knownTransactions = 0;
+
+        for (Blocks block : blocks) {
+            totalTransactions += block.getTransactionCount();
+            minerFrequency.put(block.getMiner(), minerFrequency.getOrDefault(block.getMiner(), 0) + 1);
+
+            if (block.getTransactionCount() > busiestBlockTx) {
+                busiestBlockTx = block.getTransactionCount();
+                busiestBlockNumber = block.getNumber();
+            }
+
+            ArrayList<Transaction> txs = block.getTransactions();
+            if (!txs.isEmpty()) {
+                double avgCost = block.avgTransactionCost();
+                if (avgCost > highestAvgCost) {
+                    highestAvgCost = avgCost;
+                    highestCostBlockNumber = block.getNumber();
+                }
+            }
+
+            for (Transaction tx : txs) {
+                senderSpend.put(tx.getFromAddress(), senderSpend.getOrDefault(tx.getFromAddress(), 0.0) + tx.transactionCost());
+                knownTransactions++;
+            }
+        }
+
+        List<Map.Entry<String, Integer>> topMiners = minerFrequency.entrySet()
+            .stream()
+            .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+            .collect(Collectors.toList());
+
+        List<Map.Entry<String, Double>> topSenders = senderSpend.entrySet()
+            .stream()
+            .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+            .limit(topN)
+            .collect(Collectors.toList());
+
+        double topMinerShare = topMiners.isEmpty() ? 0.0 : (double) topMiners.get(0).getValue() / blocks.size();
+        List<BlockCostStat> costOutliers = findCostOutliers(blocks, topN);
+
+        StringBuilder out = new StringBuilder();
+        out.append("\n========== ETHEREUM ACTION BRIEF ==========\n");
+        out.append("Mission: Identify concentration risk + cost hotspots fast.\n\n");
+        out.append("Core facts:\n");
+        out.append("- Blocks analyzed: ").append(blocks.size()).append("\n");
+        out.append("- Metadata transactions: ").append(totalTransactions).append("\n");
+        out.append("- Parsed transactions: ").append(knownTransactions).append("\n");
+        out.append(String.format("- Top miner concentration: %.2f%% (%s)%n",
+            topMinerShare * 100,
+            topMiners.isEmpty() ? "n/a" : topMiners.get(0).getKey()));
+        out.append("- Busiest block: ").append(busiestBlockNumber).append(" (").append(busiestBlockTx).append(" tx)\n");
+        out.append(String.format("- Highest avg-cost block: %d (%.8f ETH)\n\n", highestCostBlockNumber, Math.max(0.0, highestAvgCost)));
+
+        out.append("Strategic signals:\n");
+        if (topMinerShare >= 0.25) {
+            out.append("- ⚠ Miner concentration is high; monitor for centralization risk.\n");
+        } else {
+            out.append("- ✅ Miner concentration is healthy in this sample.\n");
+        }
+        if (!costOutliers.isEmpty()) {
+            out.append("- ⚠ Cost outlier blocks detected (potential volatility windows).\n");
+        } else {
+            out.append("- ✅ No major cost outliers detected.\n");
+        }
+
+        out.append("\nTop spenders (known transactions):\n");
+        if (topSenders.isEmpty()) {
+            out.append("- none\n");
+        } else {
+            for (int i = 0; i < topSenders.size(); i++) {
+                Map.Entry<String, Double> sender = topSenders.get(i);
+                out.append(String.format("%d. %s (%.8f ETH)%n", i + 1, sender.getKey(), sender.getValue()));
+            }
+        }
+
+        out.append("\nNext moves:\n");
+        out.append("1) Track top spender addresses block-over-block.\n");
+        out.append("2) Alert on avg-cost z-score >= 1.5 for early anomaly detection.\n");
+        out.append("3) Watch miner concentration > 25% as a governance risk threshold.\n");
+        out.append("===========================================\n");
+
+        return out.toString();
+    }
+
     public static String buildReport(ArrayList<Blocks> blocks, int topN) {
         if (blocks == null || blocks.isEmpty()) {
             return "# Ethereum Report\n\nNo block data loaded.\n";
@@ -120,6 +220,10 @@ public final class Insights {
         appendTopCostBlocks(out, blocks, topN);
         out.append("\n## Potential Cost Outliers (z-score >= 1.5)\n");
         appendCostOutliers(out, blocks, topN);
+        out.append("\n## Action Brief\n");
+        out.append("```text\n");
+        out.append(buildActionBrief(blocks, topN));
+        out.append("```\n");
 
         return out.toString();
     }
