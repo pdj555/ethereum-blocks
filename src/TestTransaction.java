@@ -11,61 +11,88 @@ class TestTransaction {
 
 	private final PrintStream standardOut = System.out;
 	private final ByteArrayOutputStream outputStreamCaptor = new ByteArrayOutputStream();
-	
+
+	// Valid 42-char Ethereum addresses for testing
+	private static final String TEST_FROM = "0x89abcdef0123456789abcdef0123456789abcdef";
+	private static final String TEST_TO   = "0x1234567890abcdef1234567890abcdef12345678";
+
 	@BeforeEach
 	public void setUp() {
 		System.setOut(new PrintStream(outputStreamCaptor));
 	}
-	
+
 	@Test
 	void testTransactionCost() {
 		int number = 1;
 		int index = 0;
 		int gas = 10000;
 		long price = 10000000000L;
-		String from = "0x";
-		String to = "0x";
 		double cost = 0.0001;
-		Transaction t = new Transaction(number, index, gas, price, from, to);
+		Transaction t = new Transaction(number, index, gas, price, TEST_FROM, TEST_TO);
 		assertEquals(cost, t.transactionCost());
 	}
-	
+
 	@Test
 	void testToString() {
-		int number = 01234567;
+		int number = 1234567;
 		int index = 0;
 		int gas = 5;
 		long price = 100;
-		String from = "0x89abcdef";
-		String to = "0xaabb";
-		
-		Transaction t = new Transaction(number, index, gas, price, from, to);
+
+		Transaction t = new Transaction(number, index, gas, price, TEST_FROM, TEST_TO);
 		System.out.println(t);
-		assertTrue(outputStreamCaptor.toString().contains("Transaction " + 0 + " for Block " + 01234567));
+		assertTrue(outputStreamCaptor.toString().contains("Transaction 0 for Block 1234567"));
 	}
-	
+
 	@AfterEach
 	public void tearDown() {
 		System.setOut(standardOut);
 	}
-	
+
 	@Test
 	void testConstructorAndGetters() {
-		int number = 01234567;
+		int number = 1234567;
 		int index = 0;
 		int gas = 5;
 		long price = 100;
-		String from = "0x89abcdef";
-		String to = "0xaabb";
-		
-		Transaction t = new Transaction(number, index, gas, price, from, to);
+
+		Transaction t = new Transaction(number, index, gas, price, TEST_FROM, TEST_TO);
 		assertEquals(number, t.getBlockNumber());
 		assertEquals(index, t.getIndex());
 		assertEquals(gas, t.getGasLimit());
 		assertEquals(price, t.getGasPrice());
-		assertEquals(from, t.getFromAddress());
-		assertEquals(to, t.getToAddress());
+		assertEquals(TEST_FROM, t.getFromAddress());
+		assertEquals(TEST_TO, t.getToAddress());
 	}
-	
 
+	@Test
+	void testInvalidAddressThrows() {
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, 100, 100L, "0x", "0x"));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, 100, 100L, "bad", TEST_TO));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, 100, 100L, TEST_FROM, ""));
+	}
+
+	@Test
+	void testNegativeValuesThrow() {
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(-1, 0, 100, 100L, TEST_FROM, TEST_TO));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, -1, 100, 100L, TEST_FROM, TEST_TO));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, -100, 100L, TEST_FROM, TEST_TO));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, 100, -100L, TEST_FROM, TEST_TO));
+	}
+
+	@Test
+	void testCompareTo() {
+		Transaction a = new Transaction(1, 5, 100, 100L, TEST_FROM, TEST_TO);
+		Transaction b = new Transaction(1, 10, 100, 100L, TEST_FROM, TEST_TO);
+		assertTrue(a.compareTo(b) < 0);
+		assertTrue(b.compareTo(a) > 0);
+		assertEquals(0, a.compareTo(a));
+	}
 }
