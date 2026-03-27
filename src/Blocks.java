@@ -30,7 +30,24 @@ public class Blocks implements Comparable<Blocks> {
 	
 	
 	/**
-	 * This constructs a Blocks object without initiating the number 
+	 * Resets all static state. Required for test isolation and data reload.
+	 */
+	public static void resetState() {
+		blocks = null;
+		blockMap.clear();
+		transactionsByBlock.clear();
+		cachedTransactionsFile = null;
+	}
+
+	/**
+	 * Returns the unix timestamp.
+	 */
+	public long getTimestamp() {
+		return this.timestamp;
+	}
+
+	/**
+	 * This constructs a Blocks object without initiating the number
 	 * and miner variables.
 	 */
 	public Blocks() {

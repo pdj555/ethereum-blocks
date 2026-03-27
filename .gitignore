@@ -1,0 +1,18 @@
+# Compiled class files
+bin/*.class
+bin/**/*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Reports
+ethereum-report.md
