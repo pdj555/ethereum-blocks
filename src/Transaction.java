@@ -1,3 +1,5 @@
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class Transaction implements Comparable<Transaction>{
 	private int blockNumber;
@@ -128,6 +130,21 @@ public class Transaction implements Comparable<Transaction>{
 	}
 	
 	
+	/**
+	 * Returns a structured Map of all transaction data for agent/JSON consumption.
+	 */
+	public Map<String, Object> toMap() {
+		Map<String, Object> map = new LinkedHashMap<>();
+		map.put("block_number", blockNumber);
+		map.put("index", index);
+		map.put("gas_limit", gasLimit);
+		map.put("gas_price", gasPrice);
+		map.put("from", fromAdr);
+		map.put("to", toAdr);
+		map.put("cost_eth", transactionCost());
+		return map;
+	}
+
 	/**
 	 * Compares the indices of two transactions and returns the difference between them.
 	 * @param t A transaction outside of the class
