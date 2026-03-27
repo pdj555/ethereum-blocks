@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
@@ -325,7 +326,21 @@ public final class Insights {
         out.append("\n## Action Brief\n");
         out.append("```text\n");
         out.append(buildActionBrief(blocks, topN));
-        out.append("```\n");
+        out.append("```\n\n");
+
+        // Network analysis summary
+        Map<String, Object> network = NetworkAnalyzer.analyzeNetwork(blocks, topN);
+        out.append("## Network Analysis\n");
+        out.append("- Total addresses in graph: ").append(network.getOrDefault("total_addresses", "N/A")).append("\n");
+        out.append("- Unique edges: ").append(network.getOrDefault("total_unique_edges", "N/A")).append("\n");
+        out.append(String.format("- Graph density: %.6f%n", ((Number) network.getOrDefault("graph_density", 0.0)).doubleValue()));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> flowConc = (Map<String, Object>) network.get("flow_concentration");
+        if (flowConc != null) {
+            out.append(String.format("- Top-%d flow share: %.2f%%%n", topN, ((Number) flowConc.getOrDefault("top_share", 0.0)).doubleValue() * 100));
+            out.append(String.format("- Gini coefficient: %.4f%n", ((Number) flowConc.getOrDefault("gini_coefficient", 0.0)).doubleValue()));
+        }
 
         return out.toString();
     }
