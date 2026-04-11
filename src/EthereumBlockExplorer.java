@@ -213,35 +213,7 @@ public class EthereumBlockExplorer {
     }
 
     private static void printHelp() {
-        System.out.println("Ethereum Block Explorer v5.0");
-        System.out.println();
-        System.out.println("Start with:");
-        System.out.println("  make help");
-        System.out.println("  make dashboard");
-        System.out.println();
-        System.out.println("Common commands:");
-        System.out.println("  dashboard                  Human-readable dashboard");
-        System.out.println("  block <number>             Block details");
-        System.out.println("  address <0xAddr>           Address intel");
-        System.out.println("  brief                      Action brief");
-        System.out.println("  miners                     Unique miner breakdown");
-        System.out.println("  network                    Network analysis");
-        System.out.println("  anomalies [z-threshold]    Anomaly analysis (default z=1.5)");
-        System.out.println("  report [file]              Save a markdown report");
-        System.out.println("  help                       Show this message");
-        System.out.println();
-        System.out.println("Advanced explorer commands:");
-        System.out.println("  overview                   Full system overview (default in --json mode)");
-        System.out.println("  blocks                     Block list");
-        System.out.println("  transactions <number>      Transactions for one block");
-        System.out.println("  network-address <0xAddr>   Network profile for one address");
-        System.out.println("  compare <blockA> <blockB>  Compare two blocks");
-        System.out.println();
-        System.out.println("Examples:");
-        System.out.println("  make dashboard");
-        System.out.println("  make block N=15049311");
-        System.out.println("  make run-json");
-        System.out.println("  make run");
+        System.out.print(buildHelpText());
     }
 
     private static void runInteractiveMode() {
@@ -253,30 +225,34 @@ public class EthereumBlockExplorer {
         while (running) {
             displayMenu();
             int choice = getMenuChoice();
+            boolean pauseAfterAction = true;
 
             switch (choice) {
                 case 1:  viewBlockDetails(); break;
                 case 2:  viewTransactionsByBlock(); break;
-                case 3:  calculateAverageTransactionCost(); break;
-                case 4:  viewUniqueMiners(); break;
-                case 5:  compareBlocks(); break;
-                case 6:  viewTransactionsByAddress(); break;
-                case 7:  viewDashboard(); break;
-                case 8:  exportReport(); break;
-                case 9:  viewActionBrief(); break;
-                case 10: viewAddressIntel(); break;
-                case 11: viewNetworkAnalysis(); break;
-                case 12: viewAnomalies(); break;
-                case 13: reloadData(); break;
+                case 3:  viewDashboard(); break;
+                case 4:  viewAddressIntel(); break;
+                case 5:  viewUniqueMiners(); break;
+                case 6:  viewActionBrief(); break;
+                case 7:  viewNetworkAnalysis(); break;
+                case 8:  viewAnomalies(); break;
+                case 9:  compareBlocks(); break;
+                case 10: exportReport(); break;
+                case 11:
+                    pauseAfterAction = false;
+                    runAdvancedMenu();
+                    break;
                 case 0:
                     running = false;
+                    pauseAfterAction = false;
                     System.out.println("\nThank you for using Ethereum Block Explorer!");
                     break;
                 default:
-                    System.out.println("\nChoose a menu number from 0 to 13.");
+                    pauseAfterAction = false;
+                    System.out.println("\nChoose a menu number from 0 to 11.");
             }
 
-            if (running && choice >= 1 && choice <= 13) {
+            if (running && pauseAfterAction) {
                 System.out.println("\nPress Enter to continue...");
                 scanner.nextLine();
             }
@@ -284,23 +260,38 @@ public class EthereumBlockExplorer {
     }
 
     private static void displayMenu() {
-        System.out.println("\n========== EXPLORER MENU ==========");
-        System.out.println("1.  block         View one block");
-        System.out.println("2.  transactions  View one block's transactions");
-        System.out.println("3.  avg cost      View average transaction cost");
-        System.out.println("4.  miners        View the unique miner breakdown");
-        System.out.println("5.  compare       Compare two blocks");
-        System.out.println("6.  sender groups Group transactions by sender");
-        System.out.println("7.  dashboard     View the dashboard");
-        System.out.println("8.  report        Write a markdown report");
-        System.out.println("9.  brief         View the action brief");
-        System.out.println("10. address       View address intel");
-        System.out.println("11. network       View network analysis");
-        System.out.println("12. anomalies     View anomaly analysis");
-        System.out.println("13. reload        Reload the dataset");
-        System.out.println("0.  Exit");
-        System.out.println("================================");
+        System.out.print(buildMainMenuText());
         System.out.print("Choose a menu item: ");
+    }
+
+    private static void runAdvancedMenu() {
+        boolean inAdvancedMenu = true;
+        while (inAdvancedMenu) {
+            System.out.print(buildAdvancedMenuText());
+            System.out.print("Choose an advanced item: ");
+
+            int choice = getMenuChoice();
+            switch (choice) {
+                case 1:
+                    calculateAverageTransactionCost();
+                    break;
+                case 2:
+                    viewTransactionsByAddress();
+                    break;
+                case 3:
+                    reloadData();
+                    break;
+                case 0:
+                    inAdvancedMenu = false;
+                    continue;
+                default:
+                    System.out.println("\nChoose an advanced menu number from 0 to 3.");
+                    continue;
+            }
+
+            System.out.println("\nPress Enter to continue...");
+            scanner.nextLine();
+        }
     }
 
     private static int getMenuChoice() {
@@ -547,5 +538,68 @@ public class EthereumBlockExplorer {
 
     private static boolean isProbablyEthereumAddress(String value) {
         return value != null && value.startsWith("0x") && value.length() == 42;
+    }
+
+    static String buildHelpText() {
+        return String.join(System.lineSeparator(),
+            "Ethereum Block Explorer v5.0",
+            "",
+            "Start with:",
+            "  make help",
+            "  make dashboard",
+            "",
+            "Supported commands:",
+            "  make build                Compile the explorer into bin/",
+            "  make run                  Open the interactive menu (secondary surface)",
+            "  make run-json             Print the JSON overview",
+            "  make dashboard            Print the human-readable dashboard",
+            "  make block N=15049311     Inspect one block in JSON",
+            "  make address ADDR=0x...   Inspect one address in JSON",
+            "  make brief                Print the action brief",
+            "  make network              Print the network analysis in JSON",
+            "  make anomalies            Print anomaly analysis in JSON",
+            "  make miners               Print the unique miner breakdown in JSON",
+            "  make test                 Run the existing JUnit suite",
+            "  make report               Write ethereum-report.md",
+            "  make clean                Remove compiled explorer artifacts",
+            "",
+            "Requirements:",
+            "  - A working Java runtime",
+            "  - A JDK with javac",
+            "  - curl for the one-file JUnit test runner download",
+            "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv",
+            "");
+    }
+
+    static String buildMainMenuText() {
+        return String.join(System.lineSeparator(),
+            "",
+            "========== EXPLORER MENU ==========",
+            "1.  block         View one block",
+            "2.  transactions  View one block's transactions",
+            "3.  dashboard     View the dashboard",
+            "4.  address       View address intel",
+            "5.  miners        View the unique miner breakdown",
+            "6.  brief         View the action brief",
+            "7.  network       View network analysis",
+            "8.  anomalies     View anomaly analysis",
+            "9.  compare       Compare two blocks",
+            "10. report        Write a markdown report",
+            "11. more          Open advanced explorer tools",
+            "0.  Exit",
+            "================================",
+            "");
+    }
+
+    static String buildAdvancedMenuText() {
+        return String.join(System.lineSeparator(),
+            "",
+            "========== ADVANCED MENU ==========",
+            "1.  average cost           View average transaction cost",
+            "2.  transactions by sender Group transactions by sender",
+            "3.  reload dataset         Reload the CSV dataset",
+            "0.  Back",
+            "=================================",
+            "");
     }
 }

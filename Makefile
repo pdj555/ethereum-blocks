@@ -1,10 +1,11 @@
-SHELL := /bin/zsh
+SHELL := /bin/sh
 .DEFAULT_GOAL := help
 
 # Ethereum Block Explorer v5.0
 
 SRCDIR   = src
 BINDIR   = bin
+TOOLSDIR = tools
 MAIN     = EthereumBlockExplorer
 JAVA     = java -cp $(BINDIR)
 JAVAC    = javac -d $(BINDIR) -sourcepath $(SRCDIR)
@@ -12,11 +13,10 @@ SOURCES  = $(shell find $(SRCDIR) -name '*.java' ! -name 'Test*.java' ! -name 'D
 TEST_SOURCES = $(shell find $(SRCDIR) -name 'Test*.java')
 TEST_BINDIR = $(BINDIR)/test-classes
 JUNIT_VERSION = 1.10.2
-JUNIT_JAR = $(BINDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
-JUNIT_URL = https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$(JUNIT_VERSION)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
+JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 
-.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java test download-junit
+.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -43,7 +43,6 @@ help:
 	@echo "Requirements:"
 	@echo "  - A working Java runtime"
 	@echo "  - A JDK with javac"
-	@echo "  - curl for the one-file JUnit test runner download"
 	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
 
 build: compile
@@ -62,18 +61,13 @@ compile: check-java
 	@mkdir -p $(BINDIR)
 	@$(JAVAC) $(SOURCES)
 
-download-junit:
-	@mkdir -p $(BINDIR)
+check-junit:
 	@if [ ! -f "$(JUNIT_JAR)" ]; then \
-		if ! command -v curl >/dev/null 2>&1; then \
-			echo "curl not available. Install curl, then rerun 'make test'."; \
-			exit 1; \
-		fi; \
-		echo "Downloading JUnit $(JUNIT_VERSION)..."; \
-		curl -fsSL "$(JUNIT_URL)" -o "$(JUNIT_JAR)"; \
+		echo "Vendored JUnit runner missing at $(JUNIT_JAR). Restore it from git, then rerun 'make test'."; \
+		exit 1; \
 	fi
 
-test: compile download-junit
+test: compile check-junit
 	@rm -rf $(TEST_BINDIR)
 	@mkdir -p $(TEST_BINDIR)
 	@javac -cp "$(JUNIT_JAR):$(BINDIR)" -d $(TEST_BINDIR) $(TEST_SOURCES)

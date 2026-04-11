@@ -56,6 +56,8 @@ The supported entrypoint is the explorer CLI via `make` targets.
 | `make run-json` | Print the JSON overview |
 | `make clean` | Remove compiled explorer artifacts |
 
+`make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
+
 ## Interactive Menu
 
 The interactive menu is available, but it is a secondary surface:
