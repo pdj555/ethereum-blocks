@@ -16,7 +16,7 @@ JUNIT_VERSION = 1.10.2
 JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 
-.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test ui ui-build ui-serve ui-clean check-python check-ui-data
+.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test ui ui-build ui-serve ui-clean ui-smoke check-python check-ui-data
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -105,6 +105,13 @@ ui-serve: check-python ui-build
 
 ui-clean:
 	@rm -rf web/dist
+
+ui-smoke: ui-build
+	@if [ ! -d node_modules/playwright ]; then \
+		echo "Browser smoke dependencies missing. Run 'npm install', then rerun 'make ui-smoke'."; \
+		exit 1; \
+	fi
+	@node scripts/ui_smoke.mjs
 
 run: compile
 	@$(JAVA) $(MAIN)

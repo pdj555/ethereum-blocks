@@ -18,8 +18,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
       - name: Show supported commands
         run: make help
+
+      - name: Install browser smoke dependencies
+        run: npm ci
+
+      - name: Install Chromium for Playwright smoke tests
+        run: npx playwright install --with-deps chromium
 
       - name: Run JUnit suite
         run: make test
@@ -50,3 +62,9 @@ jobs:
           assert data["block_number"] == 15049311
           assert "miner" in data
           PY
+
+      - name: Build browser UI
+        run: make ui-build
+
+      - name: Smoke test browser UI
+        run: make ui-smoke

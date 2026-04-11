@@ -10,13 +10,14 @@ import java.util.Scanner;
 /**
  * Main application for exploring Ethereum blockchain data.
  *
- * Supports three modes:
- *   1. Interactive (human) mode - menu-driven terminal UI
- *   2. Command mode - single-shot CLI commands for scripts
- *   3. Agent mode (--json) - structured JSON output for AI agents and pipelines
+ * Supports four modes:
+ *   1. Browser mode via `make ui` - static explorer built from the CSV sample
+ *   2. Interactive (human) mode - menu-driven terminal UI via `make run`
+ *   3. Command mode - single-shot CLI commands for scripts and make targets
+ *   4. JSON mode (--json) - structured output for agents and pipelines
  *
- * Agent mode is the primary interface. Every command returns machine-parseable JSON
- * when --json is passed as the first argument.
+ * The supported product surface is the browser explorer plus the make-first CLI.
+ * JSON mode remains the machine-readable path for automation.
  */
 public class EthereumBlockExplorer {
     private static Scanner scanner = new Scanner(System.in);
@@ -461,11 +462,14 @@ public class EthereumBlockExplorer {
         return String.join(System.lineSeparator(),
             "Ethereum Block Explorer v5.0",
             "",
-            "Start with:",
+            "Start here:",
+            "  make ui                   Open the visual explorer at http://localhost:4173",
             "  make dashboard            Fastest way to inspect the dataset",
             "  make help                 See every supported command",
             "",
             "Commands:",
+            "  make ui                   Build and serve the browser UI",
+            "  make ui-build             Prepare the static web files in web/dist/",
             "  make dashboard            Print the human-readable dashboard",
             "  make block N=15049311     Inspect one block in JSON",
             "  make address ADDR=0x...   Inspect one address in JSON",
@@ -480,12 +484,14 @@ public class EthereumBlockExplorer {
             "  make test                 Run the existing JUnit suite",
             "  make build                Compile the explorer into bin/",
             "  make clean                Remove compiled explorer artifacts",
+            "  make ui-clean             Remove generated web preview files",
             "",
             "Requirements:",
             "  - A working Java runtime",
             "  - A JDK with javac",
             "  - The vendored JUnit runner in tools/",
             "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv",
+            "  - Python 3 to serve the browser UI with 'make ui'",
             "");
     }
 

@@ -25,4 +25,5 @@ web/dist/
 .vercel/
 output/playwright/
 .playwright-cli/
+node_modules/
 .vercel

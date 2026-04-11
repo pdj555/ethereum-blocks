@@ -1,6 +1,6 @@
 # Ethereum Block Explorer
 
-Explore a 100-block Ethereum dataset from the terminal with fast block, address, dashboard, network, anomaly, and report workflows.
+Explore a 100-block Ethereum dataset in a lean browser UI, with fast block, address, dashboard, network, anomaly, and report workflows.
 
 This repo expects a working Java runtime and JDK, plus the dataset files [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv) in the repo root.
 
