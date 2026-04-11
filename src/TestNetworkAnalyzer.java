@@ -110,6 +110,18 @@ class TestNetworkAnalyzer {
     }
 
     @Test
+    void testAddressNetworkProfileRejectsBlankAddress() {
+        Map<String, Object> result = NetworkAnalyzer.addressNetworkProfile(blocks, "   ", 5);
+        assertEquals("address_required", result.get("error"));
+    }
+
+    @Test
+    void testAddressNetworkProfileRejectsInvalidAddressFormat() {
+        Map<String, Object> result = NetworkAnalyzer.addressNetworkProfile(blocks, "bad_address", 5);
+        assertEquals("invalid_address_format", result.get("error"));
+    }
+
+    @Test
     void testNullBlocksReturnsError() {
         Map<String, Object> result = NetworkAnalyzer.analyzeNetwork(null, 5);
         assertEquals("no_data", result.get("error"));

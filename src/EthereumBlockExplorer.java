@@ -127,7 +127,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "compare":
                     if (args.length < 3) {
-                        outputError("Expected: compare <blockA> <blockB>. Try: java -cp bin EthereumBlockExplorer compare 15049311 15049321.");
+                        outputError("Expected: compare <blockA> <blockB>. Run 'make help' to see the supported explorer commands.");
                         return;
                     }
                     outputResult(AgentAPI.compareBlocks(blocks, Integer.parseInt(args[1]), Integer.parseInt(args[2])));
@@ -144,7 +144,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "transactions":
                     if (args.length < 2) {
-                        outputError("Expected: transactions <blockNumber>. Try: java -cp bin EthereumBlockExplorer transactions 15049311.");
+                        outputError("Expected: transactions <blockNumber>. Run 'make help' to see the supported explorer commands.");
                         return;
                     }
                     if (jsonMode) {
@@ -219,30 +219,29 @@ public class EthereumBlockExplorer {
         System.out.println("  make help");
         System.out.println("  make dashboard");
         System.out.println();
-        System.out.println("Direct JVM usage:");
-        System.out.println("  java -cp bin EthereumBlockExplorer [--json] <command> [args]");
-        System.out.println();
-        System.out.println("Commands:");
-        System.out.println("  overview                   Full system overview (default in --json mode)");
+        System.out.println("Common commands:");
         System.out.println("  dashboard                  Human-readable dashboard");
         System.out.println("  block <number>             Block details");
-        System.out.println("  blocks                     Block list");
-        System.out.println("  transactions <number>      Transactions for one block");
         System.out.println("  address <0xAddr>           Address intel");
         System.out.println("  brief                      Action brief");
         System.out.println("  miners                     Unique miner breakdown");
         System.out.println("  network                    Network analysis");
-        System.out.println("  network-address <0xAddr>   Network profile for one address");
         System.out.println("  anomalies [z-threshold]    Anomaly analysis (default z=1.5)");
-        System.out.println("  compare <blockA> <blockB>  Compare two blocks");
         System.out.println("  report [file]              Save a markdown report");
         System.out.println("  help                       Show this message");
+        System.out.println();
+        System.out.println("Advanced explorer commands:");
+        System.out.println("  overview                   Full system overview (default in --json mode)");
+        System.out.println("  blocks                     Block list");
+        System.out.println("  transactions <number>      Transactions for one block");
+        System.out.println("  network-address <0xAddr>   Network profile for one address");
+        System.out.println("  compare <blockA> <blockB>  Compare two blocks");
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  make dashboard");
         System.out.println("  make block N=15049311");
-        System.out.println("  java -cp bin EthereumBlockExplorer --json overview");
-        System.out.println("  java -cp bin EthereumBlockExplorer brief");
+        System.out.println("  make run-json");
+        System.out.println("  make run");
     }
 
     private static void runInteractiveMode() {
@@ -286,19 +285,19 @@ public class EthereumBlockExplorer {
 
     private static void displayMenu() {
         System.out.println("\n========== EXPLORER MENU ==========");
-        System.out.println("1.  Block Details");
-        System.out.println("2.  Block Transactions");
-        System.out.println("3.  Average Transaction Cost");
-        System.out.println("4.  Miner Breakdown");
-        System.out.println("5.  Compare Blocks");
-        System.out.println("6.  Grouped Transactions by Address");
-        System.out.println("7.  Dashboard");
-        System.out.println("8.  Export Report");
-        System.out.println("9.  Action Brief");
-        System.out.println("10. Address Intel");
-        System.out.println("11. Network Analysis");
-        System.out.println("12. Anomalies");
-        System.out.println("13. Reload Data");
+        System.out.println("1.  block         View one block");
+        System.out.println("2.  transactions  View one block's transactions");
+        System.out.println("3.  avg cost      View average transaction cost");
+        System.out.println("4.  miners        View the unique miner breakdown");
+        System.out.println("5.  compare       Compare two blocks");
+        System.out.println("6.  sender groups Group transactions by sender");
+        System.out.println("7.  dashboard     View the dashboard");
+        System.out.println("8.  report        Write a markdown report");
+        System.out.println("9.  brief         View the action brief");
+        System.out.println("10. address       View address intel");
+        System.out.println("11. network       View network analysis");
+        System.out.println("12. anomalies     View anomaly analysis");
+        System.out.println("13. reload        Reload the dataset");
         System.out.println("0.  Exit");
         System.out.println("================================");
         System.out.print("Choose a menu item: ");
@@ -321,14 +320,14 @@ public class EthereumBlockExplorer {
             if (jsonMode) {
                 System.out.println("{\"error\": \"data_file_not_found\", \"file\": \"" + Blocks.DEFAULT_BLOCKS_FILE + "\"}");
             } else {
-                System.err.println("Error: Missing dataset '" + Blocks.DEFAULT_BLOCKS_FILE + "'. Keep it in the repo root, then rerun 'make dashboard'.");
+                System.err.println("Error: Missing dataset files. Keep '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "' in the repo root, then rerun 'make help' or your command.");
             }
             System.exit(1);
         } catch (IOException e) {
             if (jsonMode) {
                 System.out.println("{\"error\": \"io_error\", \"message\": \"" + e.getMessage() + "\"}");
             } else {
-                System.err.println("Error: Could not read '" + Blocks.DEFAULT_BLOCKS_FILE + "'. Check the file and rerun 'make dashboard'.");
+                System.err.println("Error: Could not read the dataset files. Check '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "', then rerun 'make help' or your command.");
             }
             System.exit(1);
         }
@@ -509,8 +508,12 @@ public class EthereumBlockExplorer {
     }
 
     private static void viewAddressIntel() {
-        System.out.print("\nEnter Ethereum address (0x...): ");
+        System.out.print("\nEnter an Ethereum address such as 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f: ");
         String address = scanner.nextLine().trim();
+        if (!isProbablyEthereumAddress(address)) {
+            System.out.println("\nEnter a 42-character Ethereum address that starts with 0x, for example 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.");
+            return;
+        }
         Insights.printAddressIntel(blocks, address, 5);
     }
 
@@ -540,5 +543,9 @@ public class EthereumBlockExplorer {
         } else {
             System.out.println("Saved report to: " + filePath);
         }
+    }
+
+    private static boolean isProbablyEthereumAddress(String value) {
+        return value != null && value.startsWith("0x") && value.length() == 42;
     }
 }

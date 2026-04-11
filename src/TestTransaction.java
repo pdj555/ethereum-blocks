@@ -63,6 +63,7 @@ class TestTransaction {
 		assertEquals(price, t.getGasPrice());
 		assertEquals(TEST_FROM, t.getFromAddress());
 		assertEquals(TEST_TO, t.getToAddress());
+		assertFalse(t.isContractCreation());
 	}
 
 	@Test
@@ -72,7 +73,15 @@ class TestTransaction {
 		assertThrows(IllegalArgumentException.class, () ->
 			new Transaction(1, 0, 100, 100L, "bad", TEST_TO));
 		assertThrows(IllegalArgumentException.class, () ->
-			new Transaction(1, 0, 100, 100L, TEST_FROM, ""));
+			new Transaction(1, 0, 100, 100L, TEST_FROM, "bad"));
+	}
+
+	@Test
+	void testContractCreationTransactionAllowsBlankRecipient() {
+		Transaction t = new Transaction(1, 0, 21000, 100L, TEST_FROM, "");
+		assertTrue(t.isContractCreation());
+		assertEquals(Transaction.CONTRACT_CREATION_RECIPIENT, t.getToAddress());
+		assertEquals(true, t.toMap().get("contract_creation"));
 	}
 
 	@Test

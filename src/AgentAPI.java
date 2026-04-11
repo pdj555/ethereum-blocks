@@ -222,14 +222,15 @@ public final class AgentAPI {
         result.put("block_a", blockA);
         result.put("block_b", blockB);
         result.put("block_diff", Math.abs(a.getNumber() - b.getNumber()));
-
-        long timeDiffSec = Math.abs(Long.parseLong(String.valueOf(a.getDate().hashCode())) -
-                Long.parseLong(String.valueOf(b.getDate().hashCode())));
-        // Use raw timestamps via reflection-free approach
-        int secDiff = (int) Math.abs(Blocks.blockDiff(a, b));
+        result.put("time_diff_seconds", Math.abs(a.getTimestamp() - b.getTimestamp()));
         result.put("tx_count_a", a.getTransactionCount());
         result.put("tx_count_b", b.getTransactionCount());
         result.put("tx_count_diff", Math.abs(a.getTransactionCount() - b.getTransactionCount()));
+        try {
+            result.put("transactions_between", Blocks.transactionDiff(a, b));
+        } catch (Exception e) {
+            result.put("transactions_between", -1);
+        }
         result.put("avg_cost_a_eth", a.avgTransactionCost());
         result.put("avg_cost_b_eth", b.avgTransactionCost());
         result.put("cost_diff_eth", Math.abs(a.avgTransactionCost() - b.avgTransactionCost()));
@@ -307,6 +308,7 @@ public final class AgentAPI {
             entry.put("index", tx.getIndex());
             entry.put("from", tx.getFromAddress());
             entry.put("to", tx.getToAddress());
+            entry.put("contract_creation", tx.isContractCreation());
             entry.put("gas_limit", tx.getGasLimit());
             entry.put("gas_price", tx.getGasPrice());
             entry.put("cost_eth", tx.transactionCost());

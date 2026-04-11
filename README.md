@@ -50,21 +50,11 @@ The supported entrypoint is the explorer CLI via `make` targets.
 | `make network` | Return network analysis in JSON |
 | `make anomalies` | Return anomaly analysis in JSON |
 | `make miners` | Return the unique miner breakdown in JSON |
+| `make test` | Run the existing JUnit suite |
 | `make report` | Write `ethereum-report.md` |
 | `make run` | Open the interactive menu |
 | `make run-json` | Print the JSON overview |
 | `make clean` | Remove compiled explorer artifacts |
-
-## Direct JVM Usage
-
-Use the `make` targets first. If you want the underlying JVM invocation directly:
-
-```bash
-make build
-java -cp bin EthereumBlockExplorer --json overview
-java -cp bin EthereumBlockExplorer block 15049311
-java -cp bin EthereumBlockExplorer brief
-```
 
 ## Interactive Menu
 

@@ -90,12 +90,12 @@ public final class Insights {
             return "No block data loaded.";
         }
         if (rawAddress == null || rawAddress.trim().isEmpty()) {
-            return "Address is required.";
+            return "Address is required. Enter a 42-character Ethereum address such as 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.";
         }
 
         String address = rawAddress.trim().toLowerCase();
         if (!address.startsWith("0x") || address.length() != 42) {
-            return "Invalid Ethereum address. Expected 0x + 40 hex chars.";
+            return "Invalid Ethereum address. Use 0x followed by 40 hex characters, for example 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.";
         }
 
         int inboundCount = 0;

@@ -2,12 +2,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Transaction implements Comparable<Transaction>{
+	public static final String CONTRACT_CREATION_RECIPIENT = "contract_creation";
+
 	private int blockNumber;
 	private int index;
 	private int gasLimit;
 	private long gasPrice;
 	private String fromAdr;
 	private String toAdr;
+	private boolean contractCreation;
 	
 	
 	
@@ -38,15 +41,13 @@ public class Transaction implements Comparable<Transaction>{
 		if (fromAdr == null || fromAdr.trim().isEmpty()) {
 			throw new IllegalArgumentException("From address cannot be null or empty");
 		}
-		if (toAdr == null || toAdr.trim().isEmpty()) {
-			throw new IllegalArgumentException("To address cannot be null or empty");
-		}
 		
 		// Validate Ethereum address format (basic check)
-		if (!fromAdr.startsWith("0x") || fromAdr.length() != 42) {
+		if (!isEthereumAddress(fromAdr)) {
 			throw new IllegalArgumentException("Invalid from address format. Ethereum addresses should start with '0x' and be 42 characters long");
 		}
-		if (!toAdr.startsWith("0x") || toAdr.length() != 42) {
+		boolean normalizedContractCreation = toAdr == null || toAdr.trim().isEmpty();
+		if (!normalizedContractCreation && !isEthereumAddress(toAdr)) {
 			throw new IllegalArgumentException("Invalid to address format. Ethereum addresses should start with '0x' and be 42 characters long");
 		}
 		
@@ -55,7 +56,12 @@ public class Transaction implements Comparable<Transaction>{
 		this.gasLimit = gasLimit;
 		this.gasPrice = gasPrice;
 		this.fromAdr = fromAdr;
-		this.toAdr = toAdr;
+		this.contractCreation = normalizedContractCreation;
+		this.toAdr = normalizedContractCreation ? CONTRACT_CREATION_RECIPIENT : toAdr;
+	}
+
+	private static boolean isEthereumAddress(String address) {
+		return address != null && address.startsWith("0x") && address.length() == 42;
 	}
 	
 	
@@ -110,6 +116,14 @@ public class Transaction implements Comparable<Transaction>{
 	public String getToAddress() {
 		return toAdr;
 	}
+
+	/**
+	 * Returns whether the transaction creates a contract instead of sending to an existing address.
+	 * @return true if this transaction creates a contract
+	 */
+	public boolean isContractCreation() {
+		return contractCreation;
+	}
 	
 	
 	/**
@@ -141,6 +155,7 @@ public class Transaction implements Comparable<Transaction>{
 		map.put("gas_price", gasPrice);
 		map.put("from", fromAdr);
 		map.put("to", toAdr);
+		map.put("contract_creation", contractCreation);
 		map.put("cost_eth", transactionCost());
 		return map;
 	}

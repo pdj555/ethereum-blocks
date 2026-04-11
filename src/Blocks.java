@@ -25,6 +25,8 @@ public class Blocks implements Comparable<Blocks> {
 	private static Map<Integer, Blocks> blockMap = new HashMap<>();  // For O(1) lookups
 	private static final Map<Integer, ArrayList<Transaction>> transactionsByBlock = new HashMap<>();
 	private static String cachedTransactionsFile = null;
+	private static int skippedTransactionRows = 0;
+	private static String transactionLoadWarning = null;
 	private StringBuilder returnString = new StringBuilder();
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z");
 	private Date date;				// date in the format of "dateFormat
@@ -39,6 +41,25 @@ public class Blocks implements Comparable<Blocks> {
 		blockMap.clear();
 		transactionsByBlock.clear();
 		cachedTransactionsFile = null;
+		skippedTransactionRows = 0;
+		transactionLoadWarning = null;
+	}
+
+	static int getSkippedTransactionRowCount() {
+		return skippedTransactionRows;
+	}
+
+	static String getTransactionLoadWarning() {
+		return transactionLoadWarning;
+	}
+
+	static ArrayList<Transaction> getCachedTransactionsForBlock(int blockNumber) {
+		ArrayList<Transaction> cached = transactionsByBlock.get(blockNumber);
+		return cached == null ? new ArrayList<>() : new ArrayList<>(cached);
+	}
+
+	static void loadTransactionCacheForFile(String filename) throws IOException {
+		ensureTransactionCacheLoaded(filename);
 	}
 
 	/**
@@ -246,7 +267,7 @@ public class Blocks implements Comparable<Blocks> {
 				
 				try {
 					// split each line along the commas
-					fileData = line.trim().split(",");
+					fileData = line.trim().split(",", -1);
 					
 					// Validate data
 					if (fileData.length < 18) {
@@ -538,12 +559,23 @@ public class Blocks implements Comparable<Blocks> {
 			throw new FileNotFoundException("File not found: " + filename);
 		}
 
+		skippedTransactionRows = 0;
+		transactionLoadWarning = null;
 		Map<Integer, TreeMap<Integer, Transaction>> indexedTransactionsByBlock = new HashMap<>();
 		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 			String line;
+			int lineNumber = 0;
+			int firstSkippedLine = -1;
+			String firstSkippedReason = null;
 			while ((line = reader.readLine()) != null) {
-				String[] fileData = line.trim().split(",");
+				lineNumber++;
+				String[] fileData = line.trim().split(",", -1);
 				if (fileData.length < 10) {
+					skippedTransactionRows++;
+					if (firstSkippedLine < 0) {
+						firstSkippedLine = lineNumber;
+						firstSkippedReason = "Expected at least 10 columns";
+					}
 					continue;
 				}
 
@@ -560,8 +592,19 @@ public class Blocks implements Comparable<Blocks> {
 						.computeIfAbsent(tranNumber, k -> new TreeMap<>())
 						.putIfAbsent(tranIndex, nT);
 				} catch (RuntimeException e) {
-					// Skip malformed rows.
+					skippedTransactionRows++;
+					if (firstSkippedLine < 0) {
+						firstSkippedLine = lineNumber;
+						firstSkippedReason = e.getMessage();
+					}
 				}
+			}
+
+			if (skippedTransactionRows > 0) {
+				String rowLabel = skippedTransactionRows == 1 ? "row" : "rows";
+				transactionLoadWarning = "Warning: Skipped " + skippedTransactionRows + " malformed transaction " + rowLabel
+					+ " while loading " + filename + ". First issue at line " + firstSkippedLine + ": " + firstSkippedReason + ".";
+				System.err.println(transactionLoadWarning);
 			}
 		}
 
