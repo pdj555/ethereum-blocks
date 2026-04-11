@@ -16,34 +16,41 @@ JUNIT_VERSION = 1.10.2
 JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 
-.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test
+.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test ui ui-build ui-serve ui-clean check-python check-ui-data
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
 	@echo ""
 	@echo "Start here:"
-	@echo "  make help                 Show the supported explorer commands"
+	@echo "  make ui                   Open the visual explorer at http://localhost:4173"
 	@echo "  make dashboard            Fastest way to inspect the dataset"
+	@echo "  make help                 See every supported command"
 	@echo ""
-	@echo "Supported commands:"
-	@echo "  make build                Compile the explorer into $(BINDIR)/"
-	@echo "  make run                  Open the interactive menu (secondary surface)"
-	@echo "  make run-json             Print the JSON overview"
+	@echo "Commands:"
+	@echo "  make ui                   Build and serve the browser UI"
+	@echo "  make ui-build             Prepare the static web files in web/dist/"
 	@echo "  make dashboard            Print the human-readable dashboard"
 	@echo "  make block N=15049311     Inspect one block in JSON"
 	@echo "  make address ADDR=0x...   Inspect one address in JSON"
-	@echo "  make brief                Print the action brief"
 	@echo "  make network              Print the network analysis in JSON"
+	@echo "  make report               Write ethereum-report.md"
+	@echo "  make run                  Open the small interactive menu"
+	@echo "  make help                 Show the command guide"
+	@echo "  make brief                Print the action brief"
 	@echo "  make anomalies            Print anomaly analysis in JSON"
 	@echo "  make miners               Print the unique miner breakdown in JSON"
+	@echo "  make run-json             Print the JSON overview"
 	@echo "  make test                 Run the existing JUnit suite"
-	@echo "  make report               Write ethereum-report.md"
+	@echo "  make build                Compile the explorer into $(BINDIR)/"
 	@echo "  make clean                Remove compiled explorer artifacts"
+	@echo "  make ui-clean             Remove generated web preview files"
 	@echo ""
 	@echo "Requirements:"
 	@echo "  - A working Java runtime"
 	@echo "  - A JDK with javac"
+	@echo "  - The vendored JUnit runner in $(TOOLSDIR)/"
 	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
+	@echo "  - Python 3 to serve the browser UI with 'make ui'"
 
 build: compile
 
@@ -73,11 +80,37 @@ test: compile check-junit
 	@javac -cp "$(JUNIT_JAR):$(BINDIR)" -d $(TEST_BINDIR) $(TEST_SOURCES)
 	@java -jar $(JUNIT_JAR) --class-path "$(BINDIR):$(TEST_BINDIR)" --scan-class-path
 
+check-python:
+	@if ! command -v python3 >/dev/null 2>&1; then \
+		echo "Python 3 not available. Install Python 3, then rerun 'make ui'."; \
+		exit 1; \
+	fi
+
+check-ui-data:
+	@if [ ! -f "ethereumP1data.csv" ] || [ ! -f "ethereumtransactions1.csv" ]; then \
+		echo "UI data files missing. Keep ethereumP1data.csv and ethereumtransactions1.csv in the repo root, then rerun 'make ui-build'."; \
+		exit 1; \
+	fi
+
+ui: ui-serve
+
+ui-build: check-ui-data
+	@rm -rf web/dist
+	@mkdir -p web/dist
+	@cp web/index.html web/app.css web/app.js web/favicon.svg ethereumP1data.csv ethereumtransactions1.csv web/dist/
+
+ui-serve: check-python ui-build
+	@echo "Serving visual explorer at http://localhost:4173"
+	@python3 -m http.server 4173 -d web/dist
+
+ui-clean:
+	@rm -rf web/dist
+
 run: compile
 	@$(JAVA) $(MAIN)
 
 run-json: compile
-	@$(JAVA) $(MAIN) --json overview
+	@$(JAVA) $(MAIN) --json
 
 dashboard: compile
 	@$(JAVA) $(MAIN) dashboard
@@ -109,3 +142,4 @@ clean:
 	@rm -rf $(BINDIR)
 	@find $(SRCDIR) -maxdepth 1 -name '*.class' -delete
 	@rm -f $(REPORT_FILE)
+	@rm -rf web/dist

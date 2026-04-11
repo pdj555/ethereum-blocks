@@ -19,3 +19,10 @@ Thumbs.db
 
 # Reports
 ethereum-report.md
+
+# Web preview output
+web/dist/
+.vercel/
+output/playwright/
+.playwright-cli/
+.vercel

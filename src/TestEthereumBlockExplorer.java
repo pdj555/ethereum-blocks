@@ -7,29 +7,32 @@ class TestEthereumBlockExplorer {
     @Test
     void testHelpTextStaysMakeFirst() {
         String help = EthereumBlockExplorer.buildHelpText();
-        assertTrue(help.contains("make help"));
         assertTrue(help.contains("make dashboard"));
-        assertTrue(help.contains("make run-json"));
+        assertTrue(help.contains("make help"));
+        assertTrue(help.contains("Commands:"));
+        assertTrue(help.contains("make brief"));
+        assertTrue(help.contains("make test"));
+        assertTrue(help.contains("vendored JUnit runner"));
         assertFalse(help.contains("java -cp"));
-        assertFalse(help.contains("network-address <0xAddr>"));
+        assertFalse(help.contains("curl"));
     }
 
     @Test
-    void testMainMenuUsesCanonicalVocabulary() {
+    void testMainMenuStaysUltraLean() {
         String menu = EthereumBlockExplorer.buildMainMenuText();
         assertTrue(menu.contains("dashboard"));
+        assertTrue(menu.contains("block"));
         assertTrue(menu.contains("address"));
-        assertTrue(menu.contains("more"));
-        assertFalse(menu.contains("avg cost"));
-        assertFalse(menu.contains("sender groups"));
-        assertFalse(menu.contains("reload"));
-    }
-
-    @Test
-    void testAdvancedMenuHoldsLegacyTools() {
-        String menu = EthereumBlockExplorer.buildAdvancedMenuText();
-        assertTrue(menu.contains("average cost"));
-        assertTrue(menu.contains("transactions by sender"));
-        assertTrue(menu.contains("reload dataset"));
+        assertTrue(menu.contains("network"));
+        assertTrue(menu.contains("report"));
+        assertTrue(menu.contains("help"));
+        assertTrue(menu.contains("address profile"));
+        assertFalse(menu.contains("more"));
+        assertFalse(menu.contains("advanced"));
+        assertFalse(menu.contains("intel"));
+        assertFalse(menu.contains("miners"));
+        assertFalse(menu.contains("brief"));
+        assertFalse(menu.contains("anomalies"));
+        assertFalse(menu.contains("compare"));
     }
 }

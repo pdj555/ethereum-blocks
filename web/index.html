@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethereum Blocks Explorer</title>
+  <meta
+    name="description"
+    content="Search a 100-block Ethereum sample in a lean browser UI. Inspect one block, trace one address, and jump between both in seconds."
+  >
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link rel="stylesheet" href="./app.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <img
+        class="hero-image"
+        src="https://images.unsplash.com/photo-1759836096317-e746643cc277?auto=format&fit=crop&w=1800&q=80"
+        alt="Server rack lights in a dark data center"
+      >
+      <div class="hero-scrim"></div>
+      <div class="hero-inner">
+        <p class="eyebrow">Ethereum block explorer</p>
+        <h1>See the block window, then jump straight to the address.</h1>
+        <p class="hero-copy">
+          Search one block or one address across the loaded sample. The summary stays visual. The details stay exact.
+        </p>
+
+        <form id="query-form" class="query-bar" novalidate>
+          <div class="mode-switch" role="tablist" aria-label="Search type">
+            <button
+              type="button"
+              class="mode-switch__item is-active"
+              data-mode="block"
+              aria-pressed="true"
+            >
+              Block
+            </button>
+            <button
+              type="button"
+              class="mode-switch__item"
+              data-mode="address"
+              aria-pressed="false"
+            >
+              Address
+            </button>
+          </div>
+
+          <label class="sr-only" for="query-input">Search query</label>
+          <input
+            id="query-input"
+            name="query"
+            type="text"
+            inputmode="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="15049311"
+          >
+
+          <button class="query-submit" type="submit">Inspect</button>
+        </form>
+
+        <p id="query-hint" class="query-hint">
+          Start with block 15049311 or paste an Ethereum address.
+        </p>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="summary-strip" class="summary-strip" aria-live="polite"></section>
+
+      <section class="workspace">
+        <section class="result-panel" aria-live="polite">
+          <div class="panel-header">
+            <div>
+              <p id="result-kicker" class="panel-kicker">Loading the sample...</p>
+              <h2 id="result-title">Preparing the explorer</h2>
+            </div>
+            <p id="result-meta" class="panel-meta"></p>
+          </div>
+          <div id="result-body" class="result-body"></div>
+        </section>
+
+        <aside class="side-rail">
+          <section class="rail-section">
+            <p class="rail-label">Snapshot</p>
+            <div id="snapshot-meta" class="snapshot-meta"></div>
+          </section>
+
+          <section class="rail-section">
+            <p class="rail-label">Top miners</p>
+            <div id="top-miners" class="action-list"></div>
+          </section>
+
+          <section class="rail-section">
+            <p class="rail-label">Hot blocks</p>
+            <div id="hot-blocks" class="action-list"></div>
+          </section>
+
+          <section class="rail-section">
+            <p class="rail-label">Active addresses</p>
+            <div id="active-addresses" class="action-list"></div>
+          </section>
+
+          <section class="rail-section">
+            <p class="rail-label">Network glance</p>
+            <div id="network-glance" class="glance-list"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Photo by <a href="https://unsplash.com/@hieu101193">Dao Hieu</a> on <a href="https://unsplash.com">Unsplash</a>.</p>
+    </footer>
+  </div>
+</body>
+</html>

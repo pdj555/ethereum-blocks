@@ -6,16 +6,22 @@ This repo expects a working Java runtime and JDK, plus the dataset files [`ether
 
 ## Start Here
 
-Discover the supported commands:
+Open the browser UI:
 
 ```bash
-make help
+make ui
 ```
 
 Get value immediately:
 
 ```bash
 make dashboard
+```
+
+See the supported commands:
+
+```bash
+make help
 ```
 
 Inspect one block:
@@ -38,25 +44,42 @@ make report
 
 ## Supported Commands
 
-The supported entrypoint is the explorer CLI via `make` targets.
-
 | Command | What it does |
 | --- | --- |
-| `make help` | Show the supported commands and runtime requirements |
+| `make ui` | Build and serve the browser explorer at `http://localhost:4173` |
+| `make ui-build` | Prepare the static browser files in `web/dist/` |
 | `make dashboard` | Print the fastest human-readable summary of the dataset |
 | `make block N=15049311` | Return one block in JSON |
 | `make address ADDR=0x...` | Return one address profile in JSON |
-| `make brief` | Print the action brief |
 | `make network` | Return network analysis in JSON |
+| `make report` | Write `ethereum-report.md` |
+| `make run` | Open the small interactive menu |
+| `make help` | Show the command guide and runtime requirements |
+| `make brief` | Print the action brief |
 | `make anomalies` | Return anomaly analysis in JSON |
 | `make miners` | Return the unique miner breakdown in JSON |
-| `make test` | Run the existing JUnit suite |
-| `make report` | Write `ethereum-report.md` |
-| `make run` | Open the interactive menu |
 | `make run-json` | Print the JSON overview |
+| `make test` | Run the existing JUnit suite |
+| `make build` | Compile the explorer into `bin/` |
 | `make clean` | Remove compiled explorer artifacts |
+| `make ui-clean` | Remove generated browser preview files |
 
 `make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
+
+## Browser UI
+
+The browser UI is a static surface built from the repo's CSV files:
+
+```bash
+make ui
+```
+
+Use it when you want one lean visual workspace for:
+
+- block lookup
+- address lookup
+- miner concentration glance
+- jumping between blocks and addresses without a backend
 
 ## Interactive Menu
 
@@ -67,12 +90,14 @@ make run
 ```
 
 Use it when you want to browse from the terminal instead of calling a specific command.
+It stays focused on the core jobs: dashboard, block, address, network, report, and help.
 
 ## Repo Notes
 
 - The default dataset contract is CSV-based: [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv).
 - [`src/Driver.java`](./src/Driver.java) is kept only as a legacy coursework demo. It is not part of the default build surface.
 - Generated artifacts such as `.class` files and Javadoc output are not part of the supported product surface.
+- [`vercel.json`](./vercel.json) builds the static browser UI into `web/dist/` for Vercel preview deployments.
 
 ## Legacy Reference
 

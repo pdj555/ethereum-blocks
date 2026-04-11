@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "rm -rf web/dist && mkdir -p web/dist && cp web/index.html web/app.css web/app.js web/favicon.svg ethereumP1data.csv ethereumtransactions1.csv web/dist/",
+  "outputDirectory": "web/dist",
+  "headers": [
+    {
+      "source": "/(.*)\\.(css|js)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31556952, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.csv",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ]
+}
