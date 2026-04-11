@@ -15,6 +15,8 @@ import java.text.SimpleDateFormat;
 
 
 public class Blocks implements Comparable<Blocks> {
+	static final String DEFAULT_BLOCKS_FILE = "ethereumP1data.csv";
+	static final String DEFAULT_TRANSACTIONS_FILE = "ethereumtransactions1.csv";
 	private int number;				// Block number
 	private String miner;			// Miner address
 	private long timestamp; 		// Unix timestamp
@@ -91,7 +93,7 @@ public class Blocks implements Comparable<Blocks> {
 		this.miner = miner;
 		this.timestamp = timestamp;
 		this.transactionCount = transactionCount;
-		readTransactions("ethereumtransactions1.csv");
+		readTransactions(DEFAULT_TRANSACTIONS_FILE);
 		returnString.append("Block Number: " + number + " Miner Address: " + miner);
 	}
 	
@@ -150,7 +152,7 @@ public class Blocks implements Comparable<Blocks> {
 		// if blocks ArrayList has not been read, do so now
 		if (blocks == null)
 		{
-			readFile("ethereumP1data.txt");
+			readFile(DEFAULT_BLOCKS_FILE);
 		}
 		
 		Map<String, Integer> uniqMinersFreq = new LinkedHashMap<>();
@@ -189,7 +191,7 @@ public class Blocks implements Comparable<Blocks> {
 	public static Blocks getBlockByNumber(int num) throws FileNotFoundException, IOException {
 		
 		if(blocks == null) {
-			Blocks.readFile("ethereumP1data.txt");
+			Blocks.readFile(DEFAULT_BLOCKS_FILE);
 		}
 		
 		// Use HashMap for O(1) lookup
@@ -312,7 +314,7 @@ public class Blocks implements Comparable<Blocks> {
 	 */
 	public static void sortBlocksByNumber() throws FileNotFoundException, IOException {
 		if (blocks==null) {
-			readFile("ethereumP1data.txt");
+			readFile(DEFAULT_BLOCKS_FILE);
 		}
 		Collections.sort(blocks);
 	}
@@ -391,7 +393,7 @@ public class Blocks implements Comparable<Blocks> {
 		// if blocks ArrayList has not been read, do so now and sort it
 		if (blocks == null)
 		{
-			readFile("ethereumP1data.txt");
+			readFile(DEFAULT_BLOCKS_FILE);
 			sortBlocksByNumber();
 		}
 		

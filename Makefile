@@ -1,24 +1,61 @@
-# Ethereum Block Explorer v5.0 — Agent-Native Edition
-# Build system for blockchain analytics engine
+SHELL := /bin/zsh
+.DEFAULT_GOAL := help
+
+# Ethereum Block Explorer v5.0
 
 SRCDIR   = src
 BINDIR   = bin
 MAIN     = EthereumBlockExplorer
 JAVA     = java -cp $(BINDIR)
 JAVAC    = javac -d $(BINDIR) -sourcepath $(SRCDIR)
+SOURCES  = $(shell find $(SRCDIR) -name '*.java' ! -name 'Test*.java' ! -name 'Driver.java')
 
-.PHONY: all clean run run-json dashboard network anomalies help
+.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java
 
-all: compile
+help:
+	@echo "Ethereum Block Explorer v5.0"
+	@echo ""
+	@echo "Start here:"
+	@echo "  make help                 Show the supported explorer commands"
+	@echo "  make dashboard            Fastest way to inspect the dataset"
+	@echo ""
+	@echo "Supported commands:"
+	@echo "  make build                Compile the explorer into $(BINDIR)/"
+	@echo "  make run                  Open the interactive menu (secondary surface)"
+	@echo "  make run-json             Print the JSON overview"
+	@echo "  make dashboard            Print the human-readable dashboard"
+	@echo "  make block N=15049311     Inspect one block in JSON"
+	@echo "  make address ADDR=0x...   Inspect one address in JSON"
+	@echo "  make brief                Print the action brief"
+	@echo "  make network              Print the network analysis in JSON"
+	@echo "  make anomalies            Print anomaly analysis in JSON"
+	@echo "  make miners               Print the unique miner breakdown in JSON"
+	@echo "  make report               Write ethereum-report.md"
+	@echo "  make clean                Remove compiled explorer artifacts"
+	@echo ""
+	@echo "Requirements:"
+	@echo "  - A working Java runtime"
+	@echo "  - A JDK with javac"
+	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
 
-compile:
+build: compile
+
+check-java:
+	@if ! command -v java >/dev/null 2>&1 || ! java -version >/dev/null 2>&1; then \
+		echo "Java runtime not available. Install a working Java runtime, then rerun 'make help'."; \
+		exit 1; \
+	fi
+	@if ! command -v javac >/dev/null 2>&1 || ! javac -version >/dev/null 2>&1; then \
+		echo "Java compiler not available. Install a JDK, then rerun 'make help'."; \
+		exit 1; \
+	fi
+
+compile: check-java
 	@mkdir -p $(BINDIR)
-	$(JAVAC) $(shell find $(SRCDIR) -name '*.java' ! -name 'Test*.java') 2>&1 | grep -v "^Note:" || true
+	$(JAVAC) $(SOURCES)
 
 run: compile
 	$(JAVA) $(MAIN)
-
-# ── Agent-Native Commands (JSON output) ──
 
 run-json: compile
 	$(JAVA) $(MAIN) --json overview
@@ -26,19 +63,22 @@ run-json: compile
 dashboard: compile
 	$(JAVA) $(MAIN) dashboard
 
+block: compile
+	@if [ -z "$(N)" ]; then echo "Missing block number. Try: make block N=15049311"; exit 1; fi
+	$(JAVA) $(MAIN) --json block $(N)
+
+address: compile
+	@if [ -z "$(ADDR)" ]; then echo "Missing address. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f"; exit 1; fi
+	$(JAVA) $(MAIN) --json address $(ADDR)
+
+brief: compile
+	$(JAVA) $(MAIN) brief
+
 network: compile
 	$(JAVA) $(MAIN) --json network
 
 anomalies: compile
 	$(JAVA) $(MAIN) --json anomalies
-
-block: compile
-	@if [ -z "$(N)" ]; then echo "Usage: make block N=15049311"; exit 1; fi
-	$(JAVA) $(MAIN) --json block $(N)
-
-address: compile
-	@if [ -z "$(ADDR)" ]; then echo "Usage: make address ADDR=0x..."; exit 1; fi
-	$(JAVA) $(MAIN) --json address $(ADDR)
 
 miners: compile
 	$(JAVA) $(MAIN) --json miners
@@ -46,23 +86,6 @@ miners: compile
 report: compile
 	$(JAVA) $(MAIN) report ethereum-report.md
 
-# ── Cleanup ──
-
 clean:
-	rm -rf $(BINDIR)/*.class
-
-help:
-	@echo "Ethereum Block Explorer v5.0 — Agent-Native Edition"
-	@echo ""
-	@echo "Build & Run:"
-	@echo "  make              Build all sources"
-	@echo "  make run          Interactive mode"
-	@echo "  make run-json     JSON overview (agent mode)"
-	@echo "  make dashboard    Human-readable dashboard"
-	@echo "  make network      Network graph analysis (JSON)"
-	@echo "  make anomalies    Anomaly detection (JSON)"
-	@echo "  make miners       Miner concentration analysis (JSON)"
-	@echo "  make block N=NUM  Block details (JSON)"
-	@echo "  make address ADDR=0x...  Address intel (JSON)"
-	@echo "  make report       Export markdown report"
-	@echo "  make clean        Remove compiled classes"
+	rm -rf $(BINDIR)
+	find $(SRCDIR) -maxdepth 1 -name '*.class' -delete

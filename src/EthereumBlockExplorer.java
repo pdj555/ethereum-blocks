@@ -84,7 +84,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "block":
                     if (args.length < 2) {
-                        outputError("Usage: block <blockNumber>");
+                        outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
                         return;
                     }
                     if (jsonMode) {
@@ -95,7 +95,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "address":
                     if (args.length < 2) {
-                        outputError("Usage: address <0xAddress>");
+                        outputError("Expected: address <0xAddress>. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.");
                         return;
                     }
                     if (jsonMode) {
@@ -116,7 +116,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "network-address":
                     if (args.length < 2) {
-                        outputError("Usage: network-address <0xAddress>");
+                        outputError("Expected: network-address <0xAddress>. Try the address command first, then rerun with --json if you need the network profile.");
                         return;
                     }
                     outputResult(NetworkAnalyzer.addressNetworkProfile(blocks, args[1], 10));
@@ -127,7 +127,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "compare":
                     if (args.length < 3) {
-                        outputError("Usage: compare <blockA> <blockB>");
+                        outputError("Expected: compare <blockA> <blockB>. Try: java -cp bin EthereumBlockExplorer compare 15049311 15049321.");
                         return;
                     }
                     outputResult(AgentAPI.compareBlocks(blocks, Integer.parseInt(args[1]), Integer.parseInt(args[2])));
@@ -144,7 +144,7 @@ public class EthereumBlockExplorer {
                     break;
                 case "transactions":
                     if (args.length < 2) {
-                        outputError("Usage: transactions <blockNumber>");
+                        outputError("Expected: transactions <blockNumber>. Try: java -cp bin EthereumBlockExplorer transactions 15049311.");
                         return;
                     }
                     if (jsonMode) {
@@ -157,10 +157,10 @@ public class EthereumBlockExplorer {
                     printHelp();
                     break;
                 default:
-                    outputError("Unknown command: " + command + ". Use 'help' for available commands.");
+                    outputError("Unknown command '" + command + "'. Run 'make help' to see the supported explorer commands.");
             }
         } catch (NumberFormatException e) {
-            outputError("Invalid numeric argument: " + e.getMessage());
+            outputError("Expected a numeric value such as 15049311. Run 'make help' to see command examples.");
         } catch (Exception e) {
             outputError(e.getMessage());
         }
@@ -179,7 +179,7 @@ public class EthereumBlockExplorer {
         if (jsonMode) {
             System.out.println("{\"error\": \"" + msg.replace("\"", "\\\"") + "\"}");
         } else {
-            System.out.println("Error: " + msg);
+            System.err.println("Error: " + msg);
         }
     }
 
@@ -213,40 +213,41 @@ public class EthereumBlockExplorer {
     }
 
     private static void printHelp() {
-        System.out.println("Ethereum Block Explorer v5.0 - Agent-Native Edition");
+        System.out.println("Ethereum Block Explorer v5.0");
         System.out.println();
-        System.out.println("Usage: java -cp bin EthereumBlockExplorer [--json] <command> [args]");
+        System.out.println("Start with:");
+        System.out.println("  make help");
+        System.out.println("  make dashboard");
+        System.out.println();
+        System.out.println("Direct JVM usage:");
+        System.out.println("  java -cp bin EthereumBlockExplorer [--json] <command> [args]");
         System.out.println();
         System.out.println("Commands:");
         System.out.println("  overview                   Full system overview (default in --json mode)");
-        System.out.println("  dashboard                  Analytics dashboard");
-        System.out.println("  brief                      Action brief with strategic signals");
+        System.out.println("  dashboard                  Human-readable dashboard");
         System.out.println("  block <number>             Block details");
-        System.out.println("  blocks                     List all blocks");
-        System.out.println("  transactions <number>      All transactions for a block");
-        System.out.println("  address <0xAddr>           Wallet intelligence");
-        System.out.println("  miners                     Miner concentration analysis");
-        System.out.println("  network                    Full network graph analysis");
-        System.out.println("  network-address <0xAddr>   Address network position");
-        System.out.println("  anomalies [z-threshold]    Anomaly detection (default z=1.5)");
+        System.out.println("  blocks                     Block list");
+        System.out.println("  transactions <number>      Transactions for one block");
+        System.out.println("  address <0xAddr>           Address intel");
+        System.out.println("  brief                      Action brief");
+        System.out.println("  miners                     Unique miner breakdown");
+        System.out.println("  network                    Network analysis");
+        System.out.println("  network-address <0xAddr>   Network profile for one address");
+        System.out.println("  anomalies [z-threshold]    Anomaly analysis (default z=1.5)");
         System.out.println("  compare <blockA> <blockB>  Compare two blocks");
-        System.out.println("  report [file]              Export markdown report");
+        System.out.println("  report [file]              Save a markdown report");
         System.out.println("  help                       Show this message");
         System.out.println();
-        System.out.println("Flags:");
-        System.out.println("  --json    Output structured JSON (agent/pipeline mode)");
-        System.out.println();
         System.out.println("Examples:");
-        System.out.println("  java -cp src EthereumBlockExplorer --json overview");
-        System.out.println("  java -cp src EthereumBlockExplorer --json block 15049311");
-        System.out.println("  java -cp src EthereumBlockExplorer --json network");
-        System.out.println("  java -cp src EthereumBlockExplorer --json anomalies 2.0");
+        System.out.println("  make dashboard");
+        System.out.println("  make block N=15049311");
+        System.out.println("  java -cp bin EthereumBlockExplorer --json overview");
+        System.out.println("  java -cp bin EthereumBlockExplorer brief");
     }
 
     private static void runInteractiveMode() {
         System.out.println("===========================================");
         System.out.println("   Ethereum Block Explorer v5.0");
-        System.out.println("   Agent-Native Edition");
         System.out.println("===========================================");
 
         boolean running = true;
@@ -273,7 +274,7 @@ public class EthereumBlockExplorer {
                     System.out.println("\nThank you for using Ethereum Block Explorer!");
                     break;
                 default:
-                    System.out.println("\nInvalid choice. Please try again.");
+                    System.out.println("\nChoose a menu number from 0 to 13.");
             }
 
             if (running && choice >= 1 && choice <= 13) {
@@ -284,23 +285,23 @@ public class EthereumBlockExplorer {
     }
 
     private static void displayMenu() {
-        System.out.println("\n========== MAIN MENU ==========");
-        System.out.println("1.  View Block Details");
-        System.out.println("2.  View Transactions by Block");
-        System.out.println("3.  Calculate Average Transaction Cost");
-        System.out.println("4.  View Unique Miners");
+        System.out.println("\n========== EXPLORER MENU ==========");
+        System.out.println("1.  Block Details");
+        System.out.println("2.  Block Transactions");
+        System.out.println("3.  Average Transaction Cost");
+        System.out.println("4.  Miner Breakdown");
         System.out.println("5.  Compare Blocks");
-        System.out.println("6.  View Transactions by Address");
-        System.out.println("7.  View Analytics Dashboard");
-        System.out.println("8.  Export Lean Markdown Report");
-        System.out.println("9.  View Action Brief");
+        System.out.println("6.  Grouped Transactions by Address");
+        System.out.println("7.  Dashboard");
+        System.out.println("8.  Export Report");
+        System.out.println("9.  Action Brief");
         System.out.println("10. Address Intel");
-        System.out.println("11. Network Graph Analysis");
-        System.out.println("12. Anomaly Detection");
+        System.out.println("11. Network Analysis");
+        System.out.println("12. Anomalies");
         System.out.println("13. Reload Data");
         System.out.println("0.  Exit");
-        System.out.println("===============================");
-        System.out.print("Enter your choice: ");
+        System.out.println("================================");
+        System.out.print("Choose a menu item: ");
     }
 
     private static int getMenuChoice() {
@@ -313,30 +314,30 @@ public class EthereumBlockExplorer {
 
     private static void loadData() {
         try {
-            Blocks.readFile("ethereumP1data.csv");
+            Blocks.readFile(Blocks.DEFAULT_BLOCKS_FILE);
             Blocks.sortBlocksByNumber();
             blocks = Blocks.getBlocks();
         } catch (FileNotFoundException e) {
             if (jsonMode) {
-                System.out.println("{\"error\": \"data_file_not_found\", \"file\": \"ethereumP1data.csv\"}");
+                System.out.println("{\"error\": \"data_file_not_found\", \"file\": \"" + Blocks.DEFAULT_BLOCKS_FILE + "\"}");
             } else {
-                System.err.println("Error: Data file not found. Please ensure 'ethereumP1data.csv' exists.");
+                System.err.println("Error: Missing dataset '" + Blocks.DEFAULT_BLOCKS_FILE + "'. Keep it in the repo root, then rerun 'make dashboard'.");
             }
             System.exit(1);
         } catch (IOException e) {
             if (jsonMode) {
                 System.out.println("{\"error\": \"io_error\", \"message\": \"" + e.getMessage() + "\"}");
             } else {
-                System.err.println("Error reading data file: " + e.getMessage());
+                System.err.println("Error: Could not read '" + Blocks.DEFAULT_BLOCKS_FILE + "'. Check the file and rerun 'make dashboard'.");
             }
             System.exit(1);
         }
     }
 
     private static void reloadData() {
-        System.out.println("Reloading blockchain data...");
+        System.out.println("Reloading " + Blocks.DEFAULT_BLOCKS_FILE + "...");
         loadData();
-        System.out.println("Loaded " + blocks.size() + " blocks.");
+        System.out.println("Loaded " + blocks.size() + " blocks from " + Blocks.DEFAULT_BLOCKS_FILE + ".");
     }
 
     private static void printBlockDetails(int blockNum) throws IOException {
@@ -350,7 +351,7 @@ public class EthereumBlockExplorer {
             System.out.printf("Average Transaction Cost: %.8f ETH%n", block.avgTransactionCost());
             System.out.println("=========================");
         } else {
-            System.out.println("\nBlock not found.");
+            System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
         }
     }
 
@@ -365,23 +366,23 @@ public class EthereumBlockExplorer {
             }
             System.out.println("Total: " + txs.size() + " transactions");
         } else {
-            System.out.println("Block not found.");
+            System.out.println("No block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
         }
     }
 
     private static void viewBlockDetails() {
-        System.out.print("\nEnter block number: ");
+        System.out.print("\nEnter a block number from the loaded dataset: ");
         try {
             printBlockDetails(Integer.parseInt(scanner.nextLine()));
         } catch (NumberFormatException e) {
-            System.out.println("\nInvalid block number.");
+            System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
+            System.err.println("\nError: Could not load block details. " + e.getMessage());
         }
     }
 
     private static void viewTransactionsByBlock() {
-        System.out.print("\nEnter block number: ");
+        System.out.print("\nEnter a block number from the loaded dataset: ");
         try {
             int blockNum = Integer.parseInt(scanner.nextLine());
             Blocks block = Blocks.getBlockByNumber(blockNum);
@@ -390,52 +391,52 @@ public class EthereumBlockExplorer {
                 System.out.println("\n===== TRANSACTIONS FOR BLOCK " + blockNum + " =====");
                 System.out.println("Total transactions: " + transactions.size());
                 if (!transactions.isEmpty()) {
-                    System.out.print("Show all transactions? (y/n): ");
+                    System.out.print("Show every transaction? [y/N]: ");
                     String showAll = scanner.nextLine().toLowerCase();
                     if (showAll.equals("y")) {
                         for (Transaction t : transactions) {
                             System.out.println(t);
                         }
                     } else {
-                        System.out.println("Showing first 10 transactions:");
+                        System.out.println("Showing the first 10 transactions. Enter 'y' next time to print the full block.");
                         for (int i = 0; i < Math.min(10, transactions.size()); i++) {
                             System.out.println(transactions.get(i));
                         }
                     }
                 }
             } else {
-                System.out.println("\nBlock not found.");
+                System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("\nInvalid block number.");
+            System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
+            System.err.println("\nError: Could not load block transactions. " + e.getMessage());
         }
     }
 
     private static void calculateAverageTransactionCost() {
-        System.out.print("\nEnter block number: ");
+        System.out.print("\nEnter a block number from the loaded dataset: ");
         try {
             int blockNum = Integer.parseInt(scanner.nextLine());
             Blocks block = Blocks.getBlockByNumber(blockNum);
             if (block != null) {
                 System.out.printf("\nAverage transaction cost for Block %d: %.8f ETH%n", blockNum, block.avgTransactionCost());
             } else {
-                System.out.println("\nBlock not found.");
+                System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("\nInvalid block number.");
+            System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
+            System.err.println("\nError: Could not calculate the average transaction cost. " + e.getMessage());
         }
     }
 
     private static void viewUniqueMiners() {
-        System.out.println("\n===== UNIQUE MINERS =====");
+        System.out.println("\n===== MINER BREAKDOWN =====");
         try {
             Blocks.calUniqMiners();
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
+            System.err.println("\nError: Could not build the miner breakdown. " + e.getMessage());
         }
     }
 
@@ -461,30 +462,30 @@ public class EthereumBlockExplorer {
                     System.out.println("\nCannot calculate transactions between blocks.");
                 }
             } else {
-                System.out.println("\nOne or both blocks not found.");
+                System.out.println("\nOne or both block numbers were not found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try known blocks such as 15049311 and 15049321.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("\nInvalid block number.");
+            System.out.println("\nEnter numeric block numbers such as 15049311 and 15049321.");
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
+            System.err.println("\nError: Could not compare those blocks. " + e.getMessage());
         }
     }
 
     private static void viewTransactionsByAddress() {
-        System.out.print("\nEnter block number: ");
+        System.out.print("\nEnter a block number to group transactions by sender address: ");
         try {
             int blockNum = Integer.parseInt(scanner.nextLine());
             Blocks block = Blocks.getBlockByNumber(blockNum);
             if (block != null) {
-                System.out.println("\n===== TRANSACTIONS BY ADDRESS =====");
+                System.out.println("\n===== GROUPED TRANSACTIONS BY ADDRESS =====");
                 block.uniqFromTo();
             } else {
-                System.out.println("\nBlock not found.");
+                System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("\nInvalid block number.");
+            System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage());
+            System.err.println("\nError: Could not group transactions for that block. " + e.getMessage());
         }
     }
 
@@ -499,7 +500,7 @@ public class EthereumBlockExplorer {
         try {
             writeReport(path);
         } catch (IOException e) {
-            System.err.println("Failed to write report: " + e.getMessage());
+            System.err.println("Error: Could not write the report to '" + path + "'. " + e.getMessage());
         }
     }
 
@@ -514,17 +515,21 @@ public class EthereumBlockExplorer {
     }
 
     private static void viewNetworkAnalysis() {
-        System.out.println("\n===== NETWORK GRAPH ANALYSIS =====");
+        System.out.println("\n===== NETWORK ANALYSIS =====");
         Map<String, Object> network = NetworkAnalyzer.analyzeNetwork(blocks, 10);
         printMap(network, 0);
     }
 
     private static void viewAnomalies() {
         System.out.print("\nZ-score threshold [1.5]: ");
-        String input = scanner.nextLine().trim();
-        double threshold = input.isEmpty() ? 1.5 : Double.parseDouble(input);
-        Map<String, Object> anomalies = AgentAPI.detectAnomalies(blocks, threshold);
-        printMap(anomalies, 0);
+        try {
+            String input = scanner.nextLine().trim();
+            double threshold = input.isEmpty() ? 1.5 : Double.parseDouble(input);
+            Map<String, Object> anomalies = AgentAPI.detectAnomalies(blocks, threshold);
+            printMap(anomalies, 0);
+        } catch (NumberFormatException e) {
+            System.out.println("\nEnter a numeric threshold such as 1.5 or 2.0.");
+        }
     }
 
     private static void writeReport(String filePath) throws IOException {
@@ -533,7 +538,7 @@ public class EthereumBlockExplorer {
         if (jsonMode) {
             System.out.println("{\"status\": \"ok\", \"file\": \"" + filePath + "\"}");
         } else {
-            System.out.println("Report generated: " + filePath);
+            System.out.println("Saved report to: " + filePath);
         }
     }
 }

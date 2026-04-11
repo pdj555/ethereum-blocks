@@ -1,6 +1,9 @@
-# Compiled class files
-bin/*.class
-bin/**/*.class
+# Compiled Java output
+*.class
+bin/
+
+# Generated docs
+doc/
 
 # IDE files
 .idea/
