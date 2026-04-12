@@ -29,7 +29,7 @@ class TestAgentAPI {
         assertEquals(100, overview.get("blocks_loaded"));
         assertTrue((int) overview.get("unique_miners") > 0);
         assertTrue((long) overview.get("total_transactions_metadata") > 0);
-        assertTrue((int) overview.get("parsed_transactions") > 0);
+        assertEquals(2735, overview.get("parsed_transactions"));
         assertNotNull(overview.get("top_miners"));
         assertNotNull(overview.get("concentration_risk"));
         assertNotNull(overview.get("cost_outliers"));
@@ -75,6 +75,8 @@ class TestAgentAPI {
     void testAddressIntelInvalidFormat() {
         Map<String, Object> result = AgentAPI.addressIntel(blocks, "bad_address", 5);
         assertEquals("invalid_address_format", result.get("error"));
+        Map<String, Object> nonHexResult = AgentAPI.addressIntel(blocks, "0x" + "z".repeat(40), 5);
+        assertEquals("invalid_address_format", nonHexResult.get("error"));
     }
 
     @Test
@@ -96,6 +98,17 @@ class TestAgentAPI {
     }
 
     @Test
+    void testCompareBlocksIncludesRealTimeAndBetweenCounts() {
+        Map<String, Object> result = AgentAPI.compareBlocks(blocks, 15049311, 15049321);
+        assertFalse(result.containsKey("error"));
+        assertEquals(10, result.get("block_diff"));
+        assertEquals(182L, result.get("time_diff_seconds"));
+        assertEquals(151, result.get("tx_count_diff"));
+        assertEquals(1587, result.get("transactions_between"));
+        assertEquals(false, result.get("same_miner"));
+    }
+
+    @Test
     void testListBlocks() {
         List<Map<String, Object>> list = AgentAPI.listBlocks(blocks);
         assertEquals(100, list.size());
@@ -114,5 +127,18 @@ class TestAgentAPI {
         assertNotNull(first.get("from"));
         assertNotNull(first.get("to"));
         assertNotNull(first.get("cost_eth"));
+        assertEquals(false, first.get("contract_creation"));
+    }
+
+    @Test
+    void testBlockTransactionsMarksContractCreationRows() {
+        List<Map<String, Object>> txs = AgentAPI.blockTransactions(blocks, 15049315);
+        Map<String, Object> contractCreationTx = txs.stream()
+            .filter(tx -> Boolean.TRUE.equals(tx.get("contract_creation")))
+            .findFirst()
+            .orElse(null);
+
+        assertNotNull(contractCreationTx);
+        assertEquals(Transaction.CONTRACT_CREATION_RECIPIENT, contractCreationTx.get("to"));
     }
 }
