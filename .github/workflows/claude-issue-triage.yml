@@ -1,0 +1,81 @@
+name: Claude Issue Triage
+
+# Every new issue is triaged in seconds, scored for revenue impact, labeled,
+# and assigned a crisp next action. No issue sits cold. Cold issues are
+# unclaimed revenue.
+
+on:
+  issues:
+    types: [opened, reopened]
+
+concurrency:
+  group: claude-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  triage:
+    name: Revenue triage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude triages the issue
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          model: claude-opus-4-6
+          timeout_minutes: "8"
+          direct_prompt: |
+            You are triaging a brand-new issue for the Ethereum Block
+            Explorer. Treat triage as a revenue control loop: decide fast,
+            label precisely, and point the next engineer at the money.
+
+            Do exactly this:
+
+            1. Read the issue title and body.
+            2. Read the repo README and Makefile so you understand the
+               revenue surfaces: browser UI (`make ui`), CLI JSON commands,
+               shareable report, Vercel deploy, and `make verify` gate.
+            3. Post ONE comment on the issue with this exact structure:
+
+               ## Triage
+               **Revenue impact:** P0 / P1 / P2 / P3
+                 - P0 = active revenue leak (broken UI, broken deploy, broken
+                   verify gate, data loss, security hole)
+                 - P1 = blocks a near-term revenue surface
+                 - P2 = unlocks revenue upside but not blocking
+                 - P3 = noise, taste, or out of scope
+
+               **Surface affected:** UI / CLI / Report / Deploy / CI / Docs / Other
+
+               **Type:** bug / feature / regression / question / revenue-opportunity
+
+               **Next action:** one sentence, concrete, file-level where
+               possible. Name the file or Make target to touch.
+
+               **Estimated time-to-cash:** immediate / next release / speculative
+
+            4. Apply labels using the GitHub tools. Create labels if they
+               do not exist. Always apply:
+                 - one priority label: `p0`, `p1`, `p2`, or `p3`
+                 - one surface label: `ui`, `cli`, `report`, `deploy`,
+                   `ci`, `docs`, or `other`
+                 - one type label: `bug`, `feature`, `regression`,
+                   `question`, or `revenue-opportunity`
+
+            Rules:
+            - Be blunt and professional. No filler. No emojis.
+            - If the issue is not actionable, label it `p3` and say so in
+               one sentence. Do not close it.
+            - If the issue describes a broken revenue surface, label it
+               `p0` and state the leak in the first line of the comment.
