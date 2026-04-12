@@ -86,12 +86,20 @@ public final class NetworkAnalyzer {
      */
     public static Map<String, Object> addressNetworkProfile(ArrayList<Blocks> blocks, String rawAddress, int topN) {
         Map<String, Object> result = new LinkedHashMap<>();
-        if (blocks == null || rawAddress == null) {
-            result.put("error", "invalid_input");
+        if (blocks == null || blocks.isEmpty()) {
+            result.put("error", "no_data");
+            return result;
+        }
+        if (rawAddress == null || rawAddress.trim().isEmpty()) {
+            result.put("error", "address_required");
             return result;
         }
 
         String address = rawAddress.trim().toLowerCase();
+        if (!EthereumAddressValidator.isValid(address)) {
+            result.put("error", "invalid_address_format");
+            return result;
+        }
         Map<String, Map<String, EdgeStats>> graph = new HashMap<>();
         Map<String, AddressStats> allStats = new HashMap<>();
 

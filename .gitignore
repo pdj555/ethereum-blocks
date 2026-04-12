@@ -1,6 +1,9 @@
-# Compiled class files
-bin/*.class
-bin/**/*.class
+# Compiled Java output
+*.class
+bin/
+
+# Generated docs
+doc/
 
 # IDE files
 .idea/
@@ -16,3 +19,11 @@ Thumbs.db
 
 # Reports
 ethereum-report.md
+
+# Web preview output
+web/dist/
+.vercel/
+output/playwright/
+.playwright-cli/
+node_modules/
+.vercel

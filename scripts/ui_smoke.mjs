@@ -1,0 +1,126 @@
+import { createReadStream, existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
+import http from "node:http";
+import { extname, normalize, resolve } from "node:path";
+import { chromium } from "playwright";
+
+const root = resolve(process.cwd(), "web/dist");
+const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
+
+function contentTypeFor(filePath) {
+  switch (extname(filePath)) {
+    case ".css":
+      return "text/css; charset=utf-8";
+    case ".js":
+      return "application/javascript; charset=utf-8";
+    case ".csv":
+      return "text/csv; charset=utf-8";
+    case ".svg":
+      return "image/svg+xml";
+    case ".html":
+    default:
+      return "text/html; charset=utf-8";
+  }
+}
+
+function startStaticServer(directory) {
+  const server = http.createServer(async (request, response) => {
+    const requestUrl = new URL(request.url || "/", "http://127.0.0.1");
+    let relativePath = decodeURIComponent(requestUrl.pathname);
+    if (relativePath === "/") {
+      relativePath = "/index.html";
+    }
+
+    const filePath = resolve(directory, "." + normalize(relativePath));
+    if (!filePath.startsWith(directory)) {
+      response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Forbidden");
+      return;
+    }
+
+    if (!existsSync(filePath)) {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Not found");
+      return;
+    }
+
+    const info = await stat(filePath);
+    response.writeHead(200, {
+      "Content-Length": info.size,
+      "Content-Type": contentTypeFor(filePath)
+    });
+    createReadStream(filePath).pipe(response);
+  });
+
+  return new Promise((resolveServer) => {
+    server.listen(0, "127.0.0.1", () => resolveServer(server));
+  });
+}
+
+function assertCondition(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+const server = await startStaticServer(root);
+const addressInfo = server.address();
+const baseUrl = `http://127.0.0.1:${addressInfo.port}`;
+const browser = await chromium.launch({ headless: true });
+const invalidAddress = `0x${"z".repeat(40)}`;
+
+try {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+
+  assertCondition(await page.title() === "Ethereum Block Explorer", "Unexpected browser title.");
+  await page.getByRole("heading", { name: "Block 15049311" }).waitFor();
+  assertCondition(
+    await page.getByText("100 loaded blocks").isVisible(),
+    "Overview summary did not render."
+  );
+
+  await page.getByRole("button", { name: "Address" }).click();
+  await page.getByLabel("Search query").fill(invalidAddress);
+  await page.getByRole("button", { name: "Inspect" }).click();
+  await page.getByText("Enter a full Ethereum address.").waitFor();
+  assertCondition(
+    await page.getByText("Enter a full Ethereum address.").isVisible(),
+    "Invalid address guidance did not render."
+  );
+  await page.getByText("Use 0x followed by 40 hex characters").waitFor();
+  assertCondition(
+    await page.getByText("Use 0x followed by 40 hex characters").isVisible(),
+    "Invalid address recovery copy did not render."
+  );
+  assertCondition(
+    !page.url().endsWith(`#address/${invalidAddress}`),
+    "Invalid address unexpectedly updated the URL hash."
+  );
+
+  await page.getByLabel("Search query").fill(defaultAddress);
+  await page.getByRole("button", { name: "Inspect" }).click();
+  await page.getByRole("heading", { name: /0x000000\.\.\.ede581/ }).waitFor();
+  assertCondition(
+    page.url().endsWith(`#address/${defaultAddress}`),
+    "Address navigation did not update the URL hash."
+  );
+  assertCondition(
+    await page.getByText("pure receiver").isVisible(),
+    "Address profile details did not render."
+  );
+
+  await page.getByRole("button", { name: "Block 15049319" }).first().click();
+  await page.getByRole("heading", { name: "Block 15049319" }).waitFor();
+  assertCondition(
+    page.url().endsWith("#block/15049319"),
+    "Block navigation from the address view did not update the URL hash."
+  );
+
+  console.log("UI smoke passed.");
+} finally {
+  await browser.close();
+  await new Promise((resolveClose, rejectClose) => {
+    server.close((error) => (error ? rejectClose(error) : resolveClose()));
+  });
+}

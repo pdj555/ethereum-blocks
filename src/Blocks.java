@@ -15,6 +15,8 @@ import java.text.SimpleDateFormat;
 
 
 public class Blocks implements Comparable<Blocks> {
+	static final String DEFAULT_BLOCKS_FILE = "ethereumP1data.csv";
+	static final String DEFAULT_TRANSACTIONS_FILE = "ethereumtransactions1.csv";
 	private int number;				// Block number
 	private String miner;			// Miner address
 	private long timestamp; 		// Unix timestamp
@@ -22,7 +24,10 @@ public class Blocks implements Comparable<Blocks> {
 	private static ArrayList<Blocks> blocks = null;
 	private static Map<Integer, Blocks> blockMap = new HashMap<>();  // For O(1) lookups
 	private static final Map<Integer, ArrayList<Transaction>> transactionsByBlock = new HashMap<>();
+	private static final ArrayList<String> loadWarnings = new ArrayList<>();
 	private static String cachedTransactionsFile = null;
+	private static int skippedTransactionRows = 0;
+	private static String transactionLoadWarning = null;
 	private StringBuilder returnString = new StringBuilder();
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z");
 	private Date date;				// date in the format of "dateFormat
@@ -36,7 +41,31 @@ public class Blocks implements Comparable<Blocks> {
 		blocks = null;
 		blockMap.clear();
 		transactionsByBlock.clear();
+		loadWarnings.clear();
 		cachedTransactionsFile = null;
+		skippedTransactionRows = 0;
+		transactionLoadWarning = null;
+	}
+
+	static int getSkippedTransactionRowCount() {
+		return skippedTransactionRows;
+	}
+
+	static String getTransactionLoadWarning() {
+		return transactionLoadWarning;
+	}
+
+	static ArrayList<String> getLoadWarnings() {
+		return new ArrayList<>(loadWarnings);
+	}
+
+	static ArrayList<Transaction> getCachedTransactionsForBlock(int blockNumber) {
+		ArrayList<Transaction> cached = transactionsByBlock.get(blockNumber);
+		return cached == null ? new ArrayList<>() : new ArrayList<>(cached);
+	}
+
+	static void loadTransactionCacheForFile(String filename) throws IOException {
+		ensureTransactionCacheLoaded(filename);
 	}
 
 	/**
@@ -91,7 +120,7 @@ public class Blocks implements Comparable<Blocks> {
 		this.miner = miner;
 		this.timestamp = timestamp;
 		this.transactionCount = transactionCount;
-		readTransactions("ethereumtransactions1.csv");
+		readTransactions(DEFAULT_TRANSACTIONS_FILE);
 		returnString.append("Block Number: " + number + " Miner Address: " + miner);
 	}
 	
@@ -143,14 +172,15 @@ public class Blocks implements Comparable<Blocks> {
 
 	
 	/**
-	 * Counts the number of unique miner addresses and prints the frequency that
-	 * that each miner address occurs in the data file.
+	 * Counts the number of unique miner addresses and returns a formatted
+	 * frequency breakdown.
+	 * @return Human-readable miner frequency report
 	 */
-	public static void calUniqMiners() throws FileNotFoundException, IOException {	
+	public static String calUniqMiners() throws FileNotFoundException, IOException {
 		// if blocks ArrayList has not been read, do so now
 		if (blocks == null)
 		{
-			readFile("ethereumP1data.txt");
+			readFile(DEFAULT_BLOCKS_FILE);
 		}
 		
 		Map<String, Integer> uniqMinersFreq = new LinkedHashMap<>();
@@ -159,12 +189,23 @@ public class Blocks implements Comparable<Blocks> {
 			uniqMinersFreq.put(miner, uniqMinersFreq.getOrDefault(miner, 0) + 1);
 		}
 
-		// print according to output
-		System.out.println("Number of unique Miners: " + uniqMinersFreq.size() + "\n");
-		System.out.println("Each unique Miner and its frequency:");
+		String lineSeparator = System.lineSeparator();
+		StringBuilder report = new StringBuilder();
+		report.append("Number of unique Miners: ")
+			.append(uniqMinersFreq.size())
+			.append(lineSeparator)
+			.append(lineSeparator)
+			.append("Each unique Miner and its frequency:");
 		for (Map.Entry<String, Integer> entry : uniqMinersFreq.entrySet()) {
-			System.out.println("Miner Address: " + entry.getKey() + "\nMiner Frequency: " + entry.getValue() + "\n");
+			report.append(lineSeparator)
+				.append("Miner Address: ")
+				.append(entry.getKey())
+				.append(lineSeparator)
+				.append("Miner Frequency: ")
+				.append(entry.getValue())
+				.append(lineSeparator);
 		}
+		return report.toString().trim();
 	}
 	
 	
@@ -189,7 +230,7 @@ public class Blocks implements Comparable<Blocks> {
 	public static Blocks getBlockByNumber(int num) throws FileNotFoundException, IOException {
 		
 		if(blocks == null) {
-			Blocks.readFile("ethereumP1data.txt");
+			Blocks.readFile(DEFAULT_BLOCKS_FILE);
 		}
 		
 		// Use HashMap for O(1) lookup
@@ -219,12 +260,15 @@ public class Blocks implements Comparable<Blocks> {
 		File file = new File(filename);
 		
 		if (!file.exists()) {
-			throw new FileNotFoundException("File not found: " + filename);
+			throw new FileNotFoundException(filename);
 		}
 		
 		if (!file.canRead()) {
 			throw new IOException("Cannot read file: " + filename);
 		}
+
+		loadWarnings.clear();
+		transactionLoadWarning = null;
 
 		// Use BufferedReader for better performance
 		BufferedReader reader = null;
@@ -244,11 +288,11 @@ public class Blocks implements Comparable<Blocks> {
 				
 				try {
 					// split each line along the commas
-					fileData = line.trim().split(",");
+					fileData = line.trim().split(",", -1);
 					
 					// Validate data
 					if (fileData.length < 18) {
-						System.err.println("Warning: Line " + lineNumber + " has insufficient data, skipping");
+						recordLoadWarning("Warning: Line " + lineNumber + " has insufficient data, skipping");
 						continue;
 					}
 
@@ -261,27 +305,31 @@ public class Blocks implements Comparable<Blocks> {
 					
 					// Validate parsed data
 					if (blockNumber < 0) {
-						System.err.println("Warning: Invalid block number at line " + lineNumber + ", skipping");
+						recordLoadWarning("Warning: Invalid block number at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					if (timestamp < 0) {
-						System.err.println("Warning: Invalid timestamp at line " + lineNumber + ", skipping");
+						recordLoadWarning("Warning: Invalid timestamp at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					if (transactionCount < 0) {
-						System.err.println("Warning: Invalid transaction count at line " + lineNumber + ", skipping");
+						recordLoadWarning("Warning: Invalid transaction count at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					b.add(new Blocks(blockNumber, minerAddress, timestamp, transactionCount));
 					
+				} catch (FileNotFoundException e) {
+					throw e;
+				} catch (IOException e) {
+					throw e;
 				} catch (NumberFormatException e) {
-					System.err.println("Warning: Invalid number format at line " + lineNumber + ": " + e.getMessage());
+					recordLoadWarning("Warning: Invalid number format at line " + lineNumber + ": " + e.getMessage());
 					continue;
 				} catch (Exception e) {
-					System.err.println("Warning: Error processing line " + lineNumber + ": " + e.getMessage());
+					recordLoadWarning("Warning: Error processing line " + lineNumber + ": " + e.getMessage());
 					continue;
 				}
 			}
@@ -290,7 +338,7 @@ public class Blocks implements Comparable<Blocks> {
 				try {
 					reader.close();
 				} catch (IOException e) {
-					System.err.println("Warning: Error closing file: " + e.getMessage());
+					recordLoadWarning("Warning: Error closing file: " + e.getMessage());
 				}
 			}
 		}
@@ -312,7 +360,7 @@ public class Blocks implements Comparable<Blocks> {
 	 */
 	public static void sortBlocksByNumber() throws FileNotFoundException, IOException {
 		if (blocks==null) {
-			readFile("ethereumP1data.txt");
+			readFile(DEFAULT_BLOCKS_FILE);
 		}
 		Collections.sort(blocks);
 	}
@@ -344,40 +392,39 @@ public class Blocks implements Comparable<Blocks> {
 	
 	
 	/**
-	 * This prints out the difference between the timestamps of the two blocks.
+	 * Builds a human-readable description of the time difference between two blocks.
 	 * @param first Represents one of the Blocks
 	 * @param second Represents the other Block
+	 * @return Human-readable time difference
 	 */
-	public static void timeDiff(Blocks first, Blocks second) {
+	public static String timeDiff(Blocks first, Blocks second) {
 		//make sure given Blocks aren't null
 		if ((first == null) || (second == null)) {
-			System.out.println("A given Block is null.");
+			return "A given Block is null.";
 		}
-		else {
-			String hours = " hours, ";
-			String minutes = " minutes, and ";
-			String seconds = " seconds.";
-			// use timestamps to find hours, minutes, seconds
-			int diffInSeconds = (int) Math.abs(first.timestamp - second.timestamp);
-			int diffInMinutes = diffInSeconds / 60;
-			int diffInHours = diffInMinutes / 60;
-			diffInSeconds = diffInSeconds % 60;
-			diffInMinutes = diffInMinutes % 60;
-			
-			if (diffInHours == 1) {
-				hours = " hour, ";
-			}
-			if (diffInMinutes == 1) {
-				minutes = " minute, and ";
-			}
-			if (diffInSeconds == 1) {
-				seconds = " second.";
-			}
-			
 
-			System.out.println("The difference in time between Block " + first.getNumber() + " and Block " + second.getNumber() + " is "
-					+ diffInHours + hours + diffInMinutes + minutes + diffInSeconds + seconds);
+		String hours = " hours, ";
+		String minutes = " minutes, and ";
+		String seconds = " seconds.";
+		// use timestamps to find hours, minutes, seconds
+		int diffInSeconds = (int) Math.abs(first.timestamp - second.timestamp);
+		int diffInMinutes = diffInSeconds / 60;
+		int diffInHours = diffInMinutes / 60;
+		diffInSeconds = diffInSeconds % 60;
+		diffInMinutes = diffInMinutes % 60;
+
+		if (diffInHours == 1) {
+			hours = " hour, ";
 		}
+		if (diffInMinutes == 1) {
+			minutes = " minute, and ";
+		}
+		if (diffInSeconds == 1) {
+			seconds = " second.";
+		}
+
+		return "The difference in time between Block " + first.getNumber() + " and Block " + second.getNumber() + " is "
+				+ diffInHours + hours + diffInMinutes + minutes + diffInSeconds + seconds;
 	}
 	
 	
@@ -391,7 +438,7 @@ public class Blocks implements Comparable<Blocks> {
 		// if blocks ArrayList has not been read, do so now and sort it
 		if (blocks == null)
 		{
-			readFile("ethereumP1data.txt");
+			readFile(DEFAULT_BLOCKS_FILE);
 			sortBlocksByNumber();
 		}
 		
@@ -473,13 +520,15 @@ public class Blocks implements Comparable<Blocks> {
 	
 	
 	/**
-	 * Finds every unique from address and keeps track of the Transaction involving that from address. It also
-	 * outputs the transactions that regard the from address along with the total cost.
+	 * Finds every unique from address and keeps track of the Transaction involving that
+	 * from address, then returns a formatted summary.
+	 * @return Human-readable grouped transaction summary
 	 */
-	public void uniqFromTo() {
+	public String uniqFromTo() {
 		// Use LinkedHashMap to maintain insertion order (based on first appearance)
 		Map<String, ArrayList<Transaction>> fromAddressMap = new LinkedHashMap<>();
 		Map<String, Integer> firstAppearance = new HashMap<>();
+		String lineSeparator = System.lineSeparator();
 		
 		// Group transactions by from address in O(n) time
 		for (int i = 0; i < transactions.size(); i++) {
@@ -499,11 +548,12 @@ public class Blocks implements Comparable<Blocks> {
 		ArrayList<String> sortedFromAddresses = new ArrayList<>(fromAddressMap.keySet());
 		sortedFromAddresses.sort((a, b) -> firstAppearance.get(a).compareTo(firstAppearance.get(b)));
 		
-		System.out.println("Each transaction by from address for Block " + number);
+		StringBuilder report = new StringBuilder();
+		report.append("Each transaction by from address for Block ").append(number);
 		
 		// Print transactions grouped by from address
 		for (String fromAddr : sortedFromAddresses) {
-			System.out.println("From " + fromAddr);
+			report.append(lineSeparator).append("From ").append(fromAddr);
 			
 			double totalCost = 0.0;
 			ArrayList<Transaction> transactionsForAddress = fromAddressMap.get(fromAddr);
@@ -513,13 +563,17 @@ public class Blocks implements Comparable<Blocks> {
 			
 			for (Transaction t : transactionsForAddress) {
 				totalCost += t.transactionCost();
-				System.out.println(" -> " + t.getToAddress());
+				report.append(lineSeparator).append(" -> ").append(t.getToAddress());
 			}
 			
-			System.out.println("Total cost of transactions: " + String.format("%.8f", totalCost) + " ETH");
-			System.out.println();
+			report.append(lineSeparator)
+				.append("Total cost of transactions: ")
+				.append(String.format("%.8f", totalCost))
+				.append(" ETH")
+				.append(lineSeparator);
 		}
-		
+
+		return report.toString().trim();
 	}
 
 	private static void ensureTransactionCacheLoaded(String filename) throws IOException {
@@ -533,15 +587,26 @@ public class Blocks implements Comparable<Blocks> {
 
 		File file = new File(filename);
 		if (!file.exists()) {
-			throw new FileNotFoundException("File not found: " + filename);
+			throw new FileNotFoundException(filename);
 		}
 
+		skippedTransactionRows = 0;
+		transactionLoadWarning = null;
 		Map<Integer, TreeMap<Integer, Transaction>> indexedTransactionsByBlock = new HashMap<>();
 		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 			String line;
+			int lineNumber = 0;
+			int firstSkippedLine = -1;
+			String firstSkippedReason = null;
 			while ((line = reader.readLine()) != null) {
-				String[] fileData = line.trim().split(",");
+				lineNumber++;
+				String[] fileData = line.trim().split(",", -1);
 				if (fileData.length < 10) {
+					skippedTransactionRows++;
+					if (firstSkippedLine < 0) {
+						firstSkippedLine = lineNumber;
+						firstSkippedReason = "Expected at least 10 columns";
+					}
 					continue;
 				}
 
@@ -558,8 +623,19 @@ public class Blocks implements Comparable<Blocks> {
 						.computeIfAbsent(tranNumber, k -> new TreeMap<>())
 						.putIfAbsent(tranIndex, nT);
 				} catch (RuntimeException e) {
-					// Skip malformed rows.
+					skippedTransactionRows++;
+					if (firstSkippedLine < 0) {
+						firstSkippedLine = lineNumber;
+						firstSkippedReason = e.getMessage();
+					}
 				}
+			}
+
+			if (skippedTransactionRows > 0) {
+				String rowLabel = skippedTransactionRows == 1 ? "row" : "rows";
+				transactionLoadWarning = "Warning: Skipped " + skippedTransactionRows + " malformed transaction " + rowLabel
+					+ " while loading " + filename + ". First issue at line " + firstSkippedLine + ": " + firstSkippedReason + ".";
+				recordLoadWarning(transactionLoadWarning);
 			}
 		}
 
@@ -568,6 +644,10 @@ public class Blocks implements Comparable<Blocks> {
 			transactionsByBlock.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
 		}
 		cachedTransactionsFile = filename;
+	}
+
+	private static void recordLoadWarning(String warning) {
+		loadWarnings.add(warning);
 	}
 
 }
