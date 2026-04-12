@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 
+const blocksFile = "ethereumP1data.csv";
 const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
 const reportFile = "ethereum-report.md";
 
@@ -26,6 +27,8 @@ function runMake(args) {
 }
 
 function expectMakeFailure(args, expectedText) {
+  const expectedTexts = Array.isArray(expectedText) ? expectedText : [expectedText];
+
   try {
     execFileSync("make", args, {
       encoding: "utf8",
@@ -33,14 +36,26 @@ function expectMakeFailure(args, expectedText) {
     });
   } catch (error) {
     const combinedOutput = `${error.stdout || ""}\n${error.stderr || ""}`;
-    assertCondition(
-      combinedOutput.includes(expectedText),
-      `make ${args.join(" ")} failed, but did not include:\n${expectedText}\n\nOutput was:\n${combinedOutput}`
-    );
+    expectedTexts.forEach(function (text) {
+      assertCondition(
+        combinedOutput.includes(text),
+        `make ${args.join(" ")} failed, but did not include:\n${text}\n\nOutput was:\n${combinedOutput}`
+      );
+    });
     return;
   }
 
   throw new Error(`make ${args.join(" ")} unexpectedly succeeded.`);
+}
+
+function withTemporarilyMissingFile(filename, runCheck) {
+  const backupFile = `${filename}.cli-smoke-backup`;
+  renameSync(filename, backupFile);
+  try {
+    runCheck();
+  } finally {
+    renameSync(backupFile, filename);
+  }
 }
 
 function parseJsonOutput(args) {
@@ -65,6 +80,12 @@ try {
   const overview = parseJsonOutput(["run-json"]);
   assertCondition(overview.blocks_loaded === 100, "Overview blocks_loaded mismatch.");
   assertCondition(Array.isArray(overview.top_miners), "Overview is missing top_miners.");
+  withTemporarilyMissingFile(blocksFile, function () {
+    expectMakeFailure(
+      ["run-json"],
+      ['"error": "data_file_not_found"', '"file": "ethereumP1data.csv"']
+    );
+  });
 
   const block = parseJsonOutput(["block", "N=15049311"]);
   assertCondition(block.block_number === 15049311, "Block lookup returned the wrong block.");

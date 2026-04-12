@@ -27,6 +27,10 @@ class TestEthereumBlockExplorer {
             "{\"error\": \"data_file_not_found\", \"file\": \"ethereumtransactions1.csv\"}",
             json
         );
+        assertEquals(
+            "{\"error\": \"data_file_not_found\", \"file\": \"ethereumP1data.csv\"}",
+            EthereumBlockExplorer.buildMissingDataErrorJson("ethereumP1data.csv")
+        );
     }
 
     @Test

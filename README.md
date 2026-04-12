@@ -67,7 +67,7 @@ make report
 | `make ui-clean` | Remove generated browser preview files |
 
 `make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
-`make cli-smoke` uses Node.js only. `make ui-smoke` uses Node.js plus Playwright after `npm ci`.
+`make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci`.
 
 ## Browser UI
 
