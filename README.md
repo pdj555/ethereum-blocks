@@ -61,7 +61,7 @@ make report
 | `make report` | Write `ethereum-report.md` |
 | `make run` | Open the small interactive menu |
 | `make brief` | Print the action brief |
-| `make anomalies` | Return anomaly analysis in JSON |
+| `make anomalies THRESHOLD=1.5` | Return anomaly analysis in JSON |
 | `make miners` | Return the unique miner breakdown in JSON |
 | `make run-json` | Print the JSON overview |
 | `make verify` | Run the same local health gate used by CI |
@@ -106,7 +106,6 @@ It stays focused on the core jobs: dashboard, block, address, network, report, a
 ## Repo Notes
 
 - The default dataset contract is CSV-based: [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv).
-- [`src/Driver.java`](./src/Driver.java) is kept only as a legacy coursework demo. It is not part of the default build surface.
 - Generated artifacts such as `.class` files and Javadoc output are not part of the supported product surface.
 - [`vercel.json`](./vercel.json) reuses `make ui-build` and publishes `web/dist/` for Vercel deployments.
 

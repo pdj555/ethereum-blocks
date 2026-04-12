@@ -119,6 +119,8 @@ class TestNetworkAnalyzer {
     void testAddressNetworkProfileRejectsInvalidAddressFormat() {
         Map<String, Object> result = NetworkAnalyzer.addressNetworkProfile(blocks, "bad_address", 5);
         assertEquals("invalid_address_format", result.get("error"));
+        Map<String, Object> nonHexResult = NetworkAnalyzer.addressNetworkProfile(blocks, "0x" + "z".repeat(40), 5);
+        assertEquals("invalid_address_format", nonHexResult.get("error"));
     }
 
     @Test

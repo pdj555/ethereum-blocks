@@ -3,6 +3,7 @@ import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "nod
 
 const blocksFile = "ethereumP1data.csv";
 const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
+const invalidAddress = `0x${"z".repeat(40)}`;
 const reportFile = "ethereum-report.md";
 
 function assertCondition(condition, message) {
@@ -96,6 +97,11 @@ try {
   const address = parseJsonOutput(["address", `ADDR=${defaultAddress}`]);
   assertCondition(address.address === defaultAddress, "Address lookup returned the wrong address.");
   assertCondition(typeof address.behavior_class === "string", "Address lookup is missing behavior_class.");
+  const invalidAddressResult = parseJsonOutput(["address", `ADDR=${invalidAddress}`]);
+  assertCondition(
+    invalidAddressResult.error === "invalid_address_format",
+    "Invalid address lookup did not return invalid_address_format."
+  );
   expectMakeFailure(
     ["address"],
     "Missing address. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f"
@@ -108,6 +114,11 @@ try {
   const anomalies = parseJsonOutput(["anomalies"]);
   assertCondition(Array.isArray(anomalies.cost_anomalies), "Anomalies output is missing cost_anomalies.");
   assertCondition(Array.isArray(anomalies.volume_anomalies), "Anomalies output is missing volume_anomalies.");
+  const invalidAnomalies = parseJsonOutput(["anomalies", "THRESHOLD=not-a-number"]);
+  assertCondition(
+    invalidAnomalies.error === "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=1.5.",
+    "Invalid anomalies threshold did not return the command-specific guidance."
+  );
 
   const miners = parseJsonOutput(["miners"]);
   assertCondition(typeof miners.unique_miners === "number", "Miner analysis is missing unique_miners.");

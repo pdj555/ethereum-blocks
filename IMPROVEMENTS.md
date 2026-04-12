@@ -19,8 +19,7 @@ make verify
 - `make dashboard` is the fastest human-readable value path.
 - `make ui` serves the browser explorer at `http://localhost:4173`.
 - `make verify` runs the same local health gate used by CI.
-
-`src/Driver.java` is retained only as a legacy coursework reference. It is not part of the default build surface.
+- `make anomalies THRESHOLD=1.5` is the supported way to override the anomaly z-score threshold.
 
 ## Key Improvements Landed
 
@@ -44,7 +43,6 @@ make verify
 - Added `make verify` so local verification and CI use the same contract.
 
 ### 5. Less Structural Drift
-- Excluded `Driver.java` from the default build.
 - Kept generated `.class` files and built browser artifacts out of the supported source surface.
 - Reused `make ui-build` in deployment paths so the browser build stays consistent locally and in Vercel.
 

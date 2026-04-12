@@ -68,12 +68,17 @@ class TestTransaction {
 
 	@Test
 	void testInvalidAddressThrows() {
+		String nonHexAddress = "0x" + "z".repeat(40);
 		assertThrows(IllegalArgumentException.class, () ->
 			new Transaction(1, 0, 100, 100L, "0x", "0x"));
 		assertThrows(IllegalArgumentException.class, () ->
 			new Transaction(1, 0, 100, 100L, "bad", TEST_TO));
 		assertThrows(IllegalArgumentException.class, () ->
 			new Transaction(1, 0, 100, 100L, TEST_FROM, "bad"));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, 100, 100L, nonHexAddress, TEST_TO));
+		assertThrows(IllegalArgumentException.class, () ->
+			new Transaction(1, 0, 100, 100L, TEST_FROM, nonHexAddress));
 	}
 
 	@Test

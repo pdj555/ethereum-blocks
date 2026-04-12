@@ -94,7 +94,7 @@ public final class Insights {
         }
 
         String address = rawAddress.trim().toLowerCase();
-        if (!address.startsWith("0x") || address.length() != 42) {
+        if (!EthereumAddressValidator.isValid(address)) {
             return "Invalid Ethereum address. Use 0x followed by 40 hex characters, for example 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.";
         }
 

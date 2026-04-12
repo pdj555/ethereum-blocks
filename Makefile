@@ -9,7 +9,7 @@ TOOLSDIR = tools
 MAIN     = EthereumBlockExplorer
 JAVA     = java -cp $(BINDIR)
 JAVAC    = javac -d $(BINDIR) -sourcepath $(SRCDIR)
-SOURCES  = $(shell find $(SRCDIR) -name '*.java' ! -name 'Test*.java' ! -name 'Driver.java')
+SOURCES  = $(shell find $(SRCDIR) -name '*.java' ! -name 'Test*.java')
 TEST_SOURCES = $(shell find $(SRCDIR) -name 'Test*.java')
 TEST_BINDIR = $(BINDIR)/test-classes
 JUNIT_VERSION = 1.10.2
@@ -37,7 +37,7 @@ help:
 	@echo "  make report               Write ethereum-report.md"
 	@echo "  make run                  Open the small interactive menu"
 	@echo "  make brief                Print the action brief"
-	@echo "  make anomalies            Print anomaly analysis in JSON"
+	@echo "  make anomalies THRESHOLD=1.5  Print anomaly analysis in JSON"
 	@echo "  make miners               Print the unique miner breakdown in JSON"
 	@echo "  make run-json             Print the JSON overview"
 	@echo "  make verify               Run the full local health gate"
@@ -154,7 +154,11 @@ network: compile
 	@$(JAVA) $(MAIN) --json network
 
 anomalies: compile
-	@$(JAVA) $(MAIN) --json anomalies
+	@if [ -n "$(THRESHOLD)" ]; then \
+		$(JAVA) $(MAIN) --json anomalies $(THRESHOLD); \
+	else \
+		$(JAVA) $(MAIN) --json anomalies; \
+	fi
 
 miners: compile
 	@$(JAVA) $(MAIN) --json miners

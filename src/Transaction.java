@@ -42,13 +42,12 @@ public class Transaction implements Comparable<Transaction>{
 			throw new IllegalArgumentException("From address cannot be null or empty");
 		}
 		
-		// Validate Ethereum address format (basic check)
-		if (!isEthereumAddress(fromAdr)) {
-			throw new IllegalArgumentException("Invalid from address format. Ethereum addresses should start with '0x' and be 42 characters long");
+		if (!EthereumAddressValidator.isValid(fromAdr)) {
+			throw new IllegalArgumentException("Invalid from address format. Use 0x followed by 40 hex characters.");
 		}
 		boolean normalizedContractCreation = toAdr == null || toAdr.trim().isEmpty();
-		if (!normalizedContractCreation && !isEthereumAddress(toAdr)) {
-			throw new IllegalArgumentException("Invalid to address format. Ethereum addresses should start with '0x' and be 42 characters long");
+		if (!normalizedContractCreation && !EthereumAddressValidator.isValid(toAdr)) {
+			throw new IllegalArgumentException("Invalid to address format. Use 0x followed by 40 hex characters.");
 		}
 		
 		this.blockNumber = number;
@@ -59,12 +58,6 @@ public class Transaction implements Comparable<Transaction>{
 		this.contractCreation = normalizedContractCreation;
 		this.toAdr = normalizedContractCreation ? CONTRACT_CREATION_RECIPIENT : toAdr;
 	}
-
-	private static boolean isEthereumAddress(String address) {
-		return address != null && address.startsWith("0x") && address.length() == 42;
-	}
-	
-	
 	/**
 	 * Returns the block's number
 	 * @return The block number

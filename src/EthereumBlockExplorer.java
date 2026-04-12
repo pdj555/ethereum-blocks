@@ -86,10 +86,17 @@ public class EthereumBlockExplorer {
                         outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
                         return;
                     }
+                    int blockNumber;
+                    try {
+                        blockNumber = Integer.parseInt(args[1]);
+                    } catch (NumberFormatException e) {
+                        outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
+                        return;
+                    }
                     if (jsonMode) {
-                        outputResult(AgentAPI.blockDetail(blocks, Integer.parseInt(args[1])));
+                        outputResult(AgentAPI.blockDetail(blocks, blockNumber));
                     } else {
-                        printBlockDetails(Integer.parseInt(args[1]));
+                        printBlockDetails(blockNumber);
                     }
                     break;
                 case "address":
@@ -114,7 +121,15 @@ public class EthereumBlockExplorer {
                     outputResult(NetworkAnalyzer.analyzeNetwork(blocks, 10));
                     break;
                 case "anomalies":
-                    double threshold = args.length >= 2 ? Double.parseDouble(args[1]) : 1.5;
+                    double threshold = 1.5;
+                    if (args.length >= 2) {
+                        try {
+                            threshold = Double.parseDouble(args[1]);
+                        } catch (NumberFormatException e) {
+                            outputError("Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=1.5.");
+                            return;
+                        }
+                    }
                     outputResult(AgentAPI.detectAnomalies(blocks, threshold));
                     break;
                 case "help":
@@ -123,8 +138,6 @@ public class EthereumBlockExplorer {
                 default:
                     outputError("Unknown command '" + command + "'. Run 'make help' to see the supported explorer commands.");
             }
-        } catch (NumberFormatException e) {
-            outputError("Expected a numeric value such as 15049311. Run 'make help' to see command examples.");
         } catch (Exception e) {
             if (!jsonMode && e.getMessage() != null && !e.getMessage().isBlank()) {
                 System.err.println("Details: " + e.getMessage());
@@ -264,7 +277,7 @@ public class EthereumBlockExplorer {
     }
 
     static boolean isEthereumAddress(String value) {
-        return value != null && value.matches("^0x[0-9a-fA-F]{40}$");
+        return EthereumAddressValidator.isValid(value);
     }
 
     private static String missingDatasetFile(FileNotFoundException exception) {
@@ -513,7 +526,7 @@ public class EthereumBlockExplorer {
             "  make report               Write ethereum-report.md",
             "  make run                  Open the small interactive menu",
             "  make brief                Print the action brief",
-            "  make anomalies            Print anomaly analysis in JSON",
+            "  make anomalies THRESHOLD=1.5  Print anomaly analysis in JSON",
             "  make miners               Print the unique miner breakdown in JSON",
             "  make run-json             Print the JSON overview",
             "  make verify               Run the full local health gate",

@@ -75,6 +75,8 @@ class TestAgentAPI {
     void testAddressIntelInvalidFormat() {
         Map<String, Object> result = AgentAPI.addressIntel(blocks, "bad_address", 5);
         assertEquals("invalid_address_format", result.get("error"));
+        Map<String, Object> nonHexResult = AgentAPI.addressIntel(blocks, "0x" + "z".repeat(40), 5);
+        assertEquals("invalid_address_format", nonHexResult.get("error"));
     }
 
     @Test

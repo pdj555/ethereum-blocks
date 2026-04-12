@@ -96,7 +96,7 @@ public final class NetworkAnalyzer {
         }
 
         String address = rawAddress.trim().toLowerCase();
-        if (!address.startsWith("0x") || address.length() != 42) {
+        if (!EthereumAddressValidator.isValid(address)) {
             result.put("error", "invalid_address_format");
             return result;
         }
