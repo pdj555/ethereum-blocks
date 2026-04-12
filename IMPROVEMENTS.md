@@ -1,113 +1,55 @@
-# Ethereum Block Explorer - High-Impact Improvements
+# Ethereum Block Explorer - Improvement Log
 
 ## Overview
-This document outlines the high-impact, focused improvements made to the Ethereum blockchain explorer project to enhance performance, reliability, and user experience.
 
-## Key Improvements Implemented
+This repo has been tightened around one supported product surface: a make-first explorer with a lean browser UI, a small interactive menu, and stable JSON outputs for automation.
 
-### 1. ✅ Performance Optimization - HashMap for O(1) Block Lookups
-- **Impact**: Reduced block lookup time from O(n) to O(1)
-- **Implementation**: Added a `HashMap<Integer, Blocks>` to store blocks by their number
-- **Benefits**: Instant block retrieval regardless of dataset size
+## Current Workflow
 
-### 2. ✅ File Reading Performance - BufferedReader
-- **Impact**: Improved file reading performance by ~30-50%
-- **Implementation**: Replaced Scanner with BufferedReader in both `readFile()` and `readTransactions()`
-- **Benefits**: Faster data loading, especially for large CSV files
+Use the repo through the supported make targets:
 
-### 3. ✅ Algorithm Optimization - uniqFromTo() Method
-- **Impact**: Reduced complexity from O(n²) to O(n)
-- **Implementation**: Used HashMap to group transactions by address in a single pass
-- **Benefits**: Dramatically faster execution for blocks with many transactions
-
-### 4. ✅ Comprehensive Exception Handling
-- **Impact**: Improved reliability and debugging
-- **Implementation**: 
-  - Input validation for file operations
-  - Graceful error handling with informative messages
-  - Try-with-resources pattern for proper resource management
-- **Benefits**: Better error recovery and user feedback
-
-### 5. ✅ Data Validation
-- **Impact**: Improved data integrity
-- **Implementation**:
-  - Transaction validation (negative values, null addresses, Ethereum address format)
-  - Block data validation during file reading
-  - Skipping invalid entries with warnings
-- **Benefits**: Prevents crashes from malformed data
-
-### 6. ✅ User-Friendly CLI Application
-- **Impact**: Enhanced user experience
-- **Implementation**: Created `EthereumBlockExplorer.java` with interactive menu system
-- **Features**:
-  - View block details
-  - Browse transactions
-  - Calculate average costs
-  - Compare blocks
-  - View unique miners
-  - Group transactions by address
-- **Benefits**: Intuitive interface for blockchain exploration
-
-### 7. ✅ Proper Encapsulation
-- **Impact**: Better code maintainability and security
-- **Implementation**: Defensive copying in getter methods
-- **Benefits**: Prevents external modification of internal data structures
-
-### 8. ✅ Massive Throughput Upgrade - Single-Pass Transaction Cache
-- **Impact**: Eliminated repeated full-file scans when constructing block objects
-- **Implementation**: Added a static transaction cache that loads `ethereumtransactions1.csv` once and indexes by block number + transaction index
-- **Benefits**: Data load time drops dramatically because transaction parsing is now O(total transactions) once, not O(blocks × total transactions)
-
-### 9. ✅ Reliability Fixes in Core Analytics
-- **Impact**: Prevented edge-case failures and made analytics more intuitive
-- **Implementation**:
-  - `avgTransactionCost()` now returns `0.0` for blocks with no transactions (no divide-by-zero)
-  - `transactionDiff()` now works regardless of argument order
-  - `sortBlocksByNumber()` now uses the correct default dataset path
-- **Benefits**: Better production behavior with less surprising runtime output
-
-## Performance Metrics
-
-### Before Improvements:
-- Block lookup: O(n) - up to 100 comparisons for 100 blocks
-- Transaction grouping: O(n²) - potentially thousands of operations
-- File reading: Scanner-based, slower for large files
-
-### After Improvements:
-- Block lookup: O(1) - instant retrieval
-- Transaction grouping: O(n) - single pass through transactions
-- File reading: BufferedReader - 30-50% faster
-
-## Usage
-
-### Running the New CLI Application:
 ```bash
-javac -cp src src/*.java
-java -cp src EthereumBlockExplorer
+make help
+make dashboard
+make ui
+make verify
 ```
 
-### Running the Original Driver:
-```bash
-javac -cp src src/Transaction.java src/Blocks.java src/Driver.java
-java -cp src Driver
-```
+- `make help` is the command guide and runtime checklist.
+- `make dashboard` is the fastest human-readable value path.
+- `make ui` serves the browser explorer at `http://localhost:4173`.
+- `make verify` runs the same local health gate used by CI.
 
-## Code Quality Improvements
+`src/Driver.java` is retained only as a legacy coursework reference. It is not part of the default build surface.
 
-1. **Error Handling**: Comprehensive try-catch blocks with meaningful error messages
-2. **Input Validation**: All user inputs and file data are validated
-3. **Resource Management**: Proper closing of file handles
-4. **Code Organization**: Cleaner separation of concerns
-5. **Performance**: Optimized algorithms and data structures
+## Key Improvements Landed
 
-## Future Enhancements (Not Yet Implemented)
+### 1. Fast Block and Transaction Access
+- Added indexed block lookup so common explorer queries stay constant-time.
+- Added a transaction cache keyed by block number so repeated block construction does not rescan the transaction CSV.
 
-- Configuration file support for customizable settings
-- Additional JavaDoc documentation
-- Database integration for larger datasets
-- Web-based interface
-- Real-time blockchain data fetching
+### 2. Safer Data Loading
+- Standardized the default dataset contract on `ethereumP1data.csv` and `ethereumtransactions1.csv`.
+- Failures now report the missing dataset file directly so the recovery step is obvious.
+- Malformed transaction rows are skipped with warnings instead of silently corrupting downstream analysis.
 
-## Summary
+### 3. Cleaner Product Surface
+- Repositioned the repo around the explorer instead of coursework-era entrypoints.
+- Made the browser UI a supported surface built from the same CSV data contract as the CLI.
+- Kept the interactive menu as a secondary path for humans who want to browse from the terminal.
 
-These improvements transform the Ethereum blockchain explorer from a basic academic project into a robust, performant application suitable for real-world use. The focus on performance optimization, error handling, and user experience makes the application both faster and more reliable.
+### 4. Leaner Verification
+- Added CLI smoke coverage for the supported commands and common failure paths.
+- Added browser smoke coverage for the static explorer.
+- Added `make verify` so local verification and CI use the same contract.
+
+### 5. Less Structural Drift
+- Excluded `Driver.java` from the default build.
+- Kept generated `.class` files and built browser artifacts out of the supported source surface.
+- Reused `make ui-build` in deployment paths so the browser build stays consistent locally and in Vercel.
+
+## Follow-Ups Worth Considering
+
+- Replace the ad hoc Java build with Maven or Gradle if the repo grows beyond this lightweight scope.
+- Harden CSV parsing further for larger or less trusted datasets.
+- Add richer CI artifacts or snapshots if browser/UI work becomes a larger part of the project.

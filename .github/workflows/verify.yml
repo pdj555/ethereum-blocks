@@ -30,14 +30,5 @@ jobs:
       - name: Install Chromium for Playwright smoke tests
         run: npx playwright install --with-deps chromium
 
-      - name: Run JUnit suite
-        run: make test
-
-      - name: Smoke test core explorer CLI surface
-        run: make cli-smoke
-
-      - name: Build browser UI
-        run: make ui-build
-
-      - name: Smoke test browser UI
-        run: make ui-smoke
+      - name: Run the local verification contract
+        run: make verify

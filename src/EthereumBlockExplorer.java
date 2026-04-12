@@ -106,7 +106,7 @@ public class EthereumBlockExplorer {
                     if (jsonMode) {
                         outputResult(AgentAPI.minerAnalysis(blocks, 10));
                     } else {
-                        Blocks.calUniqMiners();
+                        System.out.println(Blocks.calUniqMiners());
                     }
                     break;
                 case "network":
@@ -125,7 +125,10 @@ public class EthereumBlockExplorer {
         } catch (NumberFormatException e) {
             outputError("Expected a numeric value such as 15049311. Run 'make help' to see command examples.");
         } catch (Exception e) {
-            outputError(e.getMessage());
+            if (!jsonMode && e.getMessage() != null && !e.getMessage().isBlank()) {
+                System.err.println("Details: " + e.getMessage());
+            }
+            outputError(buildUnexpectedCommandError(command));
         }
     }
 
@@ -254,6 +257,10 @@ public class EthereumBlockExplorer {
         return "{\"error\": \"data_file_not_found\", \"file\": \"" + missingFile + "\"}";
     }
 
+    static String buildUnexpectedCommandError(String command) {
+        return "Unexpected error while running '" + command + "'. Re-run the command or see 'make help'.";
+    }
+
     private static String missingDatasetFile(FileNotFoundException exception) {
         String message = exception.getMessage();
         if (message == null || message.trim().isEmpty()) {
@@ -357,7 +364,7 @@ public class EthereumBlockExplorer {
     private static void viewUniqueMiners() {
         System.out.println("\n===== MINER BREAKDOWN =====");
         try {
-            Blocks.calUniqMiners();
+            System.out.println(Blocks.calUniqMiners());
         } catch (Exception e) {
             System.err.println("\nError: Could not build the miner breakdown. " + e.getMessage());
         }
@@ -377,7 +384,7 @@ public class EthereumBlockExplorer {
                 System.out.println("\n===== BLOCK COMPARISON =====");
                 System.out.println("Block difference: " + Blocks.blockDiff(block1, block2));
                 System.out.println("\nTime difference:");
-                Blocks.timeDiff(block1, block2);
+                System.out.println(Blocks.timeDiff(block1, block2));
                 int transDiff = Blocks.transactionDiff(block1, block2);
                 if (transDiff >= 0) {
                     System.out.println("\nTransactions between blocks: " + transDiff);
@@ -401,7 +408,7 @@ public class EthereumBlockExplorer {
             Blocks block = Blocks.getBlockByNumber(blockNum);
             if (block != null) {
                 System.out.println("\n===== GROUPED TRANSACTIONS BY ADDRESS =====");
-                block.uniqFromTo();
+                System.out.println(block.uniqFromTo());
             } else {
                 System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
             }
@@ -476,26 +483,28 @@ public class EthereumBlockExplorer {
             "Ethereum Block Explorer v5.0",
             "",
             "Start here:",
-            "  make ui                   Open the visual explorer at http://localhost:4173",
-            "  make dashboard            Fastest way to inspect the dataset",
-            "  make help                 See every supported command",
+            "  Run 'make help' for the full command guide.",
+            "  Run 'make dashboard' for the fastest dataset read.",
+            "  Run 'make ui' to serve the visual explorer at http://localhost:4173.",
+            "  Run 'make verify' to mirror the local health gate.",
             "",
             "Commands:",
-            "  make ui                   Build and serve the browser UI",
-            "  make ui-build             Prepare the static web files in web/dist/",
+            "  make help                 Show the command guide and runtime requirements",
             "  make dashboard            Print the human-readable dashboard",
+            "  make ui                   Serve the visual explorer at http://localhost:4173",
             "  make block N=15049311     Inspect one block in JSON",
             "  make address ADDR=0x...   Inspect one address in JSON",
             "  make network              Print the network analysis in JSON",
             "  make report               Write ethereum-report.md",
             "  make run                  Open the small interactive menu",
-            "  make help                 Show the command guide",
             "  make brief                Print the action brief",
             "  make anomalies            Print anomaly analysis in JSON",
             "  make miners               Print the unique miner breakdown in JSON",
             "  make run-json             Print the JSON overview",
+            "  make verify               Run the full local health gate",
             "  make test                 Run the existing JUnit suite",
             "  make cli-smoke            Smoke test the core explorer commands",
+            "  make ui-build             Prepare the static web files in web/dist/",
             "  make ui-smoke             Smoke test the browser explorer",
             "  make build                Compile the explorer into bin/",
             "  make clean                Remove compiled explorer artifacts",
@@ -506,7 +515,7 @@ public class EthereumBlockExplorer {
             "  - A JDK with javac",
             "  - The vendored JUnit runner in tools/",
             "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv",
-            "  - Node.js for 'make cli-smoke' and 'make ui-smoke'",
+            "  - Node.js for 'make cli-smoke', 'make ui-smoke', and 'make verify'",
             "  - Python 3 to serve the browser UI with 'make ui'",
             "");
     }

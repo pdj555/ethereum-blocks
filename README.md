@@ -6,10 +6,10 @@ The browser UI needs the dataset files [`ethereumP1data.csv`](./ethereumP1data.c
 
 ## Start Here
 
-Open the browser UI:
+See the supported commands:
 
 ```bash
-make ui
+make help
 ```
 
 Get value immediately:
@@ -18,10 +18,16 @@ Get value immediately:
 make dashboard
 ```
 
-See the supported commands:
+Open the browser UI:
 
 ```bash
-make help
+make ui
+```
+
+Run the full local health gate:
+
+```bash
+make verify
 ```
 
 Inspect one block:
@@ -46,21 +52,22 @@ make report
 
 | Command | What it does |
 | --- | --- |
-| `make ui` | Build and serve the browser explorer at `http://localhost:4173` |
-| `make ui-build` | Prepare the static browser files in `web/dist/` |
+| `make help` | Show the command guide and runtime requirements |
 | `make dashboard` | Print the fastest human-readable summary of the dataset |
+| `make ui` | Serve the browser explorer at `http://localhost:4173` |
 | `make block N=15049311` | Return one block in JSON |
 | `make address ADDR=0x...` | Return one address profile in JSON |
 | `make network` | Return network analysis in JSON |
 | `make report` | Write `ethereum-report.md` |
 | `make run` | Open the small interactive menu |
-| `make help` | Show the command guide and runtime requirements |
 | `make brief` | Print the action brief |
 | `make anomalies` | Return anomaly analysis in JSON |
 | `make miners` | Return the unique miner breakdown in JSON |
 | `make run-json` | Print the JSON overview |
+| `make verify` | Run the same local health gate used by CI |
 | `make test` | Run the existing JUnit suite |
 | `make cli-smoke` | Smoke test the core explorer commands |
+| `make ui-build` | Prepare the static browser files in `web/dist/` |
 | `make ui-smoke` | Smoke test the browser explorer |
 | `make build` | Compile the explorer into `bin/` |
 | `make clean` | Remove compiled explorer artifacts |
@@ -68,6 +75,7 @@ make report
 
 `make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
 `make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci`.
+`make verify` runs the same local contract as CI: the JUnit suite, the CLI smoke checks, and the browser build plus smoke path.
 
 ## Browser UI
 

@@ -166,10 +166,11 @@ public class Blocks implements Comparable<Blocks> {
 
 	
 	/**
-	 * Counts the number of unique miner addresses and prints the frequency that
-	 * that each miner address occurs in the data file.
+	 * Counts the number of unique miner addresses and returns a formatted
+	 * frequency breakdown.
+	 * @return Human-readable miner frequency report
 	 */
-	public static void calUniqMiners() throws FileNotFoundException, IOException {	
+	public static String calUniqMiners() throws FileNotFoundException, IOException {
 		// if blocks ArrayList has not been read, do so now
 		if (blocks == null)
 		{
@@ -182,12 +183,23 @@ public class Blocks implements Comparable<Blocks> {
 			uniqMinersFreq.put(miner, uniqMinersFreq.getOrDefault(miner, 0) + 1);
 		}
 
-		// print according to output
-		System.out.println("Number of unique Miners: " + uniqMinersFreq.size() + "\n");
-		System.out.println("Each unique Miner and its frequency:");
+		String lineSeparator = System.lineSeparator();
+		StringBuilder report = new StringBuilder();
+		report.append("Number of unique Miners: ")
+			.append(uniqMinersFreq.size())
+			.append(lineSeparator)
+			.append(lineSeparator)
+			.append("Each unique Miner and its frequency:");
 		for (Map.Entry<String, Integer> entry : uniqMinersFreq.entrySet()) {
-			System.out.println("Miner Address: " + entry.getKey() + "\nMiner Frequency: " + entry.getValue() + "\n");
+			report.append(lineSeparator)
+				.append("Miner Address: ")
+				.append(entry.getKey())
+				.append(lineSeparator)
+				.append("Miner Frequency: ")
+				.append(entry.getValue())
+				.append(lineSeparator);
 		}
+		return report.toString().trim();
 	}
 	
 	
@@ -371,40 +383,39 @@ public class Blocks implements Comparable<Blocks> {
 	
 	
 	/**
-	 * This prints out the difference between the timestamps of the two blocks.
+	 * Builds a human-readable description of the time difference between two blocks.
 	 * @param first Represents one of the Blocks
 	 * @param second Represents the other Block
+	 * @return Human-readable time difference
 	 */
-	public static void timeDiff(Blocks first, Blocks second) {
+	public static String timeDiff(Blocks first, Blocks second) {
 		//make sure given Blocks aren't null
 		if ((first == null) || (second == null)) {
-			System.out.println("A given Block is null.");
+			return "A given Block is null.";
 		}
-		else {
-			String hours = " hours, ";
-			String minutes = " minutes, and ";
-			String seconds = " seconds.";
-			// use timestamps to find hours, minutes, seconds
-			int diffInSeconds = (int) Math.abs(first.timestamp - second.timestamp);
-			int diffInMinutes = diffInSeconds / 60;
-			int diffInHours = diffInMinutes / 60;
-			diffInSeconds = diffInSeconds % 60;
-			diffInMinutes = diffInMinutes % 60;
-			
-			if (diffInHours == 1) {
-				hours = " hour, ";
-			}
-			if (diffInMinutes == 1) {
-				minutes = " minute, and ";
-			}
-			if (diffInSeconds == 1) {
-				seconds = " second.";
-			}
-			
 
-			System.out.println("The difference in time between Block " + first.getNumber() + " and Block " + second.getNumber() + " is "
-					+ diffInHours + hours + diffInMinutes + minutes + diffInSeconds + seconds);
+		String hours = " hours, ";
+		String minutes = " minutes, and ";
+		String seconds = " seconds.";
+		// use timestamps to find hours, minutes, seconds
+		int diffInSeconds = (int) Math.abs(first.timestamp - second.timestamp);
+		int diffInMinutes = diffInSeconds / 60;
+		int diffInHours = diffInMinutes / 60;
+		diffInSeconds = diffInSeconds % 60;
+		diffInMinutes = diffInMinutes % 60;
+
+		if (diffInHours == 1) {
+			hours = " hour, ";
 		}
+		if (diffInMinutes == 1) {
+			minutes = " minute, and ";
+		}
+		if (diffInSeconds == 1) {
+			seconds = " second.";
+		}
+
+		return "The difference in time between Block " + first.getNumber() + " and Block " + second.getNumber() + " is "
+				+ diffInHours + hours + diffInMinutes + minutes + diffInSeconds + seconds;
 	}
 	
 	
@@ -500,13 +511,15 @@ public class Blocks implements Comparable<Blocks> {
 	
 	
 	/**
-	 * Finds every unique from address and keeps track of the Transaction involving that from address. It also
-	 * outputs the transactions that regard the from address along with the total cost.
+	 * Finds every unique from address and keeps track of the Transaction involving that
+	 * from address, then returns a formatted summary.
+	 * @return Human-readable grouped transaction summary
 	 */
-	public void uniqFromTo() {
+	public String uniqFromTo() {
 		// Use LinkedHashMap to maintain insertion order (based on first appearance)
 		Map<String, ArrayList<Transaction>> fromAddressMap = new LinkedHashMap<>();
 		Map<String, Integer> firstAppearance = new HashMap<>();
+		String lineSeparator = System.lineSeparator();
 		
 		// Group transactions by from address in O(n) time
 		for (int i = 0; i < transactions.size(); i++) {
@@ -526,11 +539,12 @@ public class Blocks implements Comparable<Blocks> {
 		ArrayList<String> sortedFromAddresses = new ArrayList<>(fromAddressMap.keySet());
 		sortedFromAddresses.sort((a, b) -> firstAppearance.get(a).compareTo(firstAppearance.get(b)));
 		
-		System.out.println("Each transaction by from address for Block " + number);
+		StringBuilder report = new StringBuilder();
+		report.append("Each transaction by from address for Block ").append(number);
 		
 		// Print transactions grouped by from address
 		for (String fromAddr : sortedFromAddresses) {
-			System.out.println("From " + fromAddr);
+			report.append(lineSeparator).append("From ").append(fromAddr);
 			
 			double totalCost = 0.0;
 			ArrayList<Transaction> transactionsForAddress = fromAddressMap.get(fromAddr);
@@ -540,13 +554,17 @@ public class Blocks implements Comparable<Blocks> {
 			
 			for (Transaction t : transactionsForAddress) {
 				totalCost += t.transactionCost();
-				System.out.println(" -> " + t.getToAddress());
+				report.append(lineSeparator).append(" -> ").append(t.getToAddress());
 			}
 			
-			System.out.println("Total cost of transactions: " + String.format("%.8f", totalCost) + " ETH");
-			System.out.println();
+			report.append(lineSeparator)
+				.append("Total cost of transactions: ")
+				.append(String.format("%.8f", totalCost))
+				.append(" ETH")
+				.append(lineSeparator);
 		}
-		
+
+		return report.toString().trim();
 	}
 
 	private static void ensureTransactionCacheLoaded(String filename) throws IOException {

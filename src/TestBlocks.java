@@ -43,6 +43,42 @@ class TestBlocks {
 		double expected = 0.00804665;
 		assertEquals(expected, actual.doubleValue());
 	}
+
+	@Test
+	void testUniqueMinerReportReturnsStringWithoutPrinting() throws FileNotFoundException, IOException {
+		Blocks.readFile("ethereumP1data.csv");
+		String report = Blocks.calUniqMiners();
+
+		assertTrue(report.contains("Number of unique Miners:"));
+		assertTrue(report.contains("Each unique Miner and its frequency:"));
+		assertEquals("", outputStreamCaptor.toString().trim());
+	}
+
+	@Test
+	void testTimeDiffReturnsStringWithoutPrinting() throws FileNotFoundException, IOException {
+		Blocks.readFile("ethereumP1data.csv");
+		Blocks.sortBlocksByNumber();
+		ArrayList<Blocks> loadedBlocks = Blocks.getBlocks();
+
+		String diff = Blocks.timeDiff(loadedBlocks.get(0), loadedBlocks.get(1));
+
+		assertTrue(diff.contains("The difference in time between Block"));
+		assertTrue(diff.contains(String.valueOf(loadedBlocks.get(0).getNumber())));
+		assertEquals("", outputStreamCaptor.toString().trim());
+	}
+
+	@Test
+	void testGroupedTransactionsReturnStringWithoutPrinting() throws FileNotFoundException, IOException {
+		Blocks.readFile("ethereumP1data.csv");
+		Blocks.sortBlocksByNumber();
+		Blocks block = Blocks.getBlockByNumber(15049311);
+
+		String groupedTransactions = block.uniqFromTo();
+
+		assertTrue(groupedTransactions.contains("Each transaction by from address for Block 15049311"));
+		assertTrue(groupedTransactions.contains("Total cost of transactions:"));
+		assertEquals("", outputStreamCaptor.toString().trim());
+	}
 	
 	@Test
 	void testGetTransactionsEncapsulation() throws FileNotFoundException, IOException {

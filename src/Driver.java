@@ -35,6 +35,6 @@ public class Driver {
 		
 		// print out the transactions for Block 15049311
 		// based on the given output on GitHub
-		b.uniqFromTo();
+		System.out.println(b.uniqFromTo());
 	}
 }

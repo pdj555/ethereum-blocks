@@ -67,6 +67,7 @@ const priorReport = existsSync(reportFile) ? readFileSync(reportFile, "utf8") : 
 try {
   const help = runMake(["help"]);
   assertCondition(help.includes("make dashboard"), "Help output is missing make dashboard.");
+  assertCondition(help.includes("make verify"), "Help output is missing make verify.");
   assertCondition(help.includes("make cli-smoke"), "Help output is missing make cli-smoke.");
   assertCondition(help.includes("make report"), "Help output is missing make report.");
 

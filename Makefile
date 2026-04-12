@@ -16,32 +16,34 @@ JUNIT_VERSION = 1.10.2
 JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 
-.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
+.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test verify ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
 	@echo ""
 	@echo "Start here:"
-	@echo "  make ui                   Open the visual explorer at http://localhost:4173"
-	@echo "  make dashboard            Fastest way to inspect the dataset"
-	@echo "  make help                 See every supported command"
+	@echo "  Run 'make help' for the full command guide."
+	@echo "  Run 'make dashboard' for the fastest dataset read."
+	@echo "  Run 'make ui' to serve the visual explorer at http://localhost:4173."
+	@echo "  Run 'make verify' to mirror the local health gate."
 	@echo ""
 	@echo "Commands:"
-	@echo "  make ui                   Build and serve the browser UI"
-	@echo "  make ui-build             Prepare the static web files in web/dist/"
+	@echo "  make help                 Show the command guide and runtime requirements"
 	@echo "  make dashboard            Print the human-readable dashboard"
+	@echo "  make ui                   Serve the visual explorer at http://localhost:4173"
 	@echo "  make block N=15049311     Inspect one block in JSON"
 	@echo "  make address ADDR=0x...   Inspect one address in JSON"
 	@echo "  make network              Print the network analysis in JSON"
 	@echo "  make report               Write ethereum-report.md"
 	@echo "  make run                  Open the small interactive menu"
-	@echo "  make help                 Show the command guide"
 	@echo "  make brief                Print the action brief"
 	@echo "  make anomalies            Print anomaly analysis in JSON"
 	@echo "  make miners               Print the unique miner breakdown in JSON"
 	@echo "  make run-json             Print the JSON overview"
+	@echo "  make verify               Run the full local health gate"
 	@echo "  make test                 Run the existing JUnit suite"
 	@echo "  make cli-smoke            Smoke test the core explorer commands"
+	@echo "  make ui-build             Prepare the static web files in web/dist/"
 	@echo "  make ui-smoke             Smoke test the browser explorer"
 	@echo "  make build                Compile the explorer into $(BINDIR)/"
 	@echo "  make clean                Remove compiled explorer artifacts"
@@ -52,7 +54,7 @@ help:
 	@echo "  - A JDK with javac"
 	@echo "  - The vendored JUnit runner in $(TOOLSDIR)/"
 	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
-	@echo "  - Node.js for 'make cli-smoke' and 'make ui-smoke'"
+	@echo "  - Node.js for 'make cli-smoke', 'make ui-smoke', and 'make verify'"
 	@echo "  - Python 3 to serve the browser UI with 'make ui'"
 
 build: compile
@@ -82,6 +84,9 @@ test: compile check-junit
 	@mkdir -p $(TEST_BINDIR)
 	@javac -cp "$(JUNIT_JAR):$(BINDIR)" -d $(TEST_BINDIR) $(TEST_SOURCES)
 	@java -jar $(JUNIT_JAR) --class-path "$(BINDIR):$(TEST_BINDIR)" --scan-class-path
+
+verify:
+	@$(MAKE) --no-print-directory test cli-smoke ui-smoke
 
 check-python:
 	@if ! command -v python3 >/dev/null 2>&1; then \
