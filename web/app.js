@@ -336,6 +336,16 @@
 
   function renderAddress(rawAddress) {
     const address = (rawAddress || "").toLowerCase();
+
+    if (!looksLikeAddress(address)) {
+      renderMessage(
+        "Address profile",
+        "Enter a full Ethereum address.",
+        "Use 0x followed by 40 hex characters, for example 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f."
+      );
+      return;
+    }
+
     const profile = state.data.addressMap.get(address);
 
     if (!profile) {
@@ -856,7 +866,7 @@
   }
 
   function looksLikeAddress(value) {
-    return typeof value === "string" && value.startsWith("0x") && value.length === ADDRESS_LENGTH;
+    return typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value) && value.length === ADDRESS_LENGTH;
   }
 
   function escapeHtml(value) {

@@ -155,7 +155,27 @@ class TestBlocks {
 		assertEquals(1, Blocks.getSkippedTransactionRowCount());
 		assertNotNull(Blocks.getTransactionLoadWarning());
 		assertTrue(Blocks.getTransactionLoadWarning().contains("line 2"));
-		assertTrue(errorStreamCaptor.toString().contains("Skipped 1 malformed transaction row"));
+		assertTrue(Blocks.getLoadWarnings().contains(Blocks.getTransactionLoadWarning()));
+		assertEquals("", errorStreamCaptor.toString().trim());
+	}
+
+	@Test
+	void testBlockLoadWarningsAreCapturedWithoutPrinting() throws IOException {
+		List<String> originalRows = Files.readAllLines(Path.of("ethereumP1data.csv"));
+		Path tempFile = Files.createTempFile("ethereum-blocks-warning", ".csv");
+		Files.write(tempFile, List.of(
+			"broken,row",
+			originalRows.get(0)
+		));
+
+		try {
+			Blocks.readFile(tempFile.toString());
+		} finally {
+			Files.deleteIfExists(tempFile);
+		}
+
+		assertTrue(Blocks.getLoadWarnings().stream().anyMatch((warning) -> warning.contains("insufficient data")));
+		assertEquals("", errorStreamCaptor.toString().trim());
 	}
 
 	@Test

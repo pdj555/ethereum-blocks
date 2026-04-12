@@ -1,5 +1,12 @@
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class TestEthereumBlockExplorer {
@@ -38,6 +45,9 @@ class TestEthereumBlockExplorer {
             "Unexpected error while running 'dashboard'. Re-run the command or see 'make help'.",
             EthereumBlockExplorer.buildUnexpectedCommandError("dashboard")
         );
+        assertTrue(EthereumBlockExplorer.isEthereumAddress("0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f"));
+        assertFalse(EthereumBlockExplorer.isEthereumAddress("0xzzzzb1a1c67e984247a0c78f2875b0f9c781b64f"));
+        assertFalse(EthereumBlockExplorer.isEthereumAddress("0x58a5b1a1c67e984247a0c78f2875b0f9c781b64"));
     }
 
     @Test
@@ -57,5 +67,72 @@ class TestEthereumBlockExplorer {
         assertFalse(menu.contains("brief"));
         assertFalse(menu.contains("anomalies"));
         assertFalse(menu.contains("compare"));
+    }
+
+    @Test
+    void testFrontDoorSurfacesStayAligned() throws Exception {
+        String cliHelp = normalize(EthereumBlockExplorer.buildHelpText());
+        String makeHelp = normalize(runMakeHelp());
+        String readme = Files.readString(Path.of("README.md"));
+
+        assertEquals(cliHelp, makeHelp);
+        assertEquals(extractHelpCommands(cliHelp), extractReadmeCommands(readme));
+        assertFalse(readme.contains("java -cp src"));
+        assertFalse(readme.contains("javac -cp src"));
+    }
+
+    private static String runMakeHelp() throws IOException, InterruptedException {
+        Process process = new ProcessBuilder("make", "help")
+            .redirectErrorStream(true)
+            .start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        int exitCode = process.waitFor();
+        assertEquals(0, exitCode, output);
+        return output;
+    }
+
+    private static List<String> extractHelpCommands(String helpText) {
+        List<String> commands = new ArrayList<>();
+        boolean inCommands = false;
+
+        for (String line : normalize(helpText).split("\n")) {
+            if (line.equals("Commands:")) {
+                inCommands = true;
+                continue;
+            }
+            if (line.equals("Requirements:")) {
+                break;
+            }
+            if (inCommands && line.startsWith("  make ")) {
+                commands.add(line.trim().split("\\s{2,}", 2)[0]);
+            }
+        }
+
+        return commands;
+    }
+
+    private static List<String> extractReadmeCommands(String readmeText) {
+        List<String> commands = new ArrayList<>();
+        boolean inTable = false;
+
+        for (String line : normalize(readmeText).split("\n")) {
+            if (line.equals("## Supported Commands")) {
+                inTable = true;
+                continue;
+            }
+            if (inTable && line.startsWith("## ")) {
+                break;
+            }
+            if (inTable && line.startsWith("| `make ")) {
+                String[] cells = line.split("\\|");
+                commands.add(cells[1].trim().replace("`", ""));
+            }
+        }
+
+        return commands;
+    }
+
+    private static String normalize(String value) {
+        return value.replace("\r\n", "\n").trim();
     }
 }

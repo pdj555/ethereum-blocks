@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -235,6 +236,7 @@ public class EthereumBlockExplorer {
             Blocks.readFile(Blocks.DEFAULT_BLOCKS_FILE);
             Blocks.sortBlocksByNumber();
             blocks = Blocks.getBlocks();
+            emitLoadWarnings(Blocks.getLoadWarnings());
         } catch (FileNotFoundException e) {
             String missingFile = missingDatasetFile(e);
             if (jsonMode) {
@@ -261,12 +263,29 @@ public class EthereumBlockExplorer {
         return "Unexpected error while running '" + command + "'. Re-run the command or see 'make help'.";
     }
 
+    static boolean isEthereumAddress(String value) {
+        return value != null && value.matches("^0x[0-9a-fA-F]{40}$");
+    }
+
     private static String missingDatasetFile(FileNotFoundException exception) {
         String message = exception.getMessage();
         if (message == null || message.trim().isEmpty()) {
             return Blocks.DEFAULT_BLOCKS_FILE;
         }
         return message.trim();
+    }
+
+    private static void emitLoadWarnings(List<String> warnings) {
+        for (String warning : warnings) {
+            System.err.println(warning);
+        }
+    }
+
+    private static void printInteractiveError(String failure, String nextStep, Exception e) {
+        System.err.println("\nError: " + failure + ". " + nextStep);
+        if (e.getMessage() != null && !e.getMessage().isBlank()) {
+            System.err.println("Details: " + e.getMessage());
+        }
     }
 
     private static void reloadData() {
@@ -312,7 +331,7 @@ public class EthereumBlockExplorer {
         } catch (NumberFormatException e) {
             System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: Could not load block details. " + e.getMessage());
+            printInteractiveError("Could not load block details", "Try a known block such as 15049311 or rerun 'make help'", e);
         }
     }
 
@@ -340,7 +359,7 @@ public class EthereumBlockExplorer {
         } catch (NumberFormatException e) {
             System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: Could not load block transactions. " + e.getMessage());
+            printInteractiveError("Could not load block transactions", "Try a known block such as 15049311 or rerun 'make help'", e);
         }
     }
 
@@ -357,7 +376,7 @@ public class EthereumBlockExplorer {
         } catch (NumberFormatException e) {
             System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: Could not calculate the average transaction cost. " + e.getMessage());
+            printInteractiveError("Could not calculate the average transaction cost", "Try a known block such as 15049311 or rerun 'make help'", e);
         }
     }
 
@@ -366,7 +385,7 @@ public class EthereumBlockExplorer {
         try {
             System.out.println(Blocks.calUniqMiners());
         } catch (Exception e) {
-            System.err.println("\nError: Could not build the miner breakdown. " + e.getMessage());
+            printInteractiveError("Could not build the miner breakdown", "Rerun the explorer or see 'make help'", e);
         }
     }
 
@@ -397,7 +416,7 @@ public class EthereumBlockExplorer {
         } catch (NumberFormatException e) {
             System.out.println("\nEnter numeric block numbers such as 15049311 and 15049321.");
         } catch (Exception e) {
-            System.err.println("\nError: Could not compare those blocks. " + e.getMessage());
+            printInteractiveError("Could not compare those blocks", "Try known blocks such as 15049311 and 15049321", e);
         }
     }
 
@@ -415,7 +434,7 @@ public class EthereumBlockExplorer {
         } catch (NumberFormatException e) {
             System.out.println("\nEnter a numeric block number such as 15049311.");
         } catch (Exception e) {
-            System.err.println("\nError: Could not group transactions for that block. " + e.getMessage());
+            printInteractiveError("Could not group transactions for that block", "Try a known block such as 15049311 or rerun 'make help'", e);
         }
     }
 
@@ -428,7 +447,7 @@ public class EthereumBlockExplorer {
         try {
             writeReport(path);
         } catch (IOException e) {
-            System.err.println("Error: Could not write the report to '" + path + "'. " + e.getMessage());
+            printInteractiveError("Could not write the report to '" + path + "'", "Check file permissions, then rerun 'make report'", e);
         }
     }
 
@@ -439,7 +458,7 @@ public class EthereumBlockExplorer {
     private static void viewAddressIntel() {
         System.out.print("\nEnter an Ethereum address such as 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f: ");
         String address = scanner.nextLine().trim();
-        if (!isProbablyEthereumAddress(address)) {
+        if (!isEthereumAddress(address)) {
             System.out.println("\nEnter a 42-character Ethereum address that starts with 0x, for example 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.");
             return;
         }
@@ -472,10 +491,6 @@ public class EthereumBlockExplorer {
         } else {
             System.out.println("Saved report to: " + filePath);
         }
-    }
-
-    private static boolean isProbablyEthereumAddress(String value) {
-        return value != null && value.startsWith("0x") && value.length() == 42;
     }
 
     static String buildHelpText() {

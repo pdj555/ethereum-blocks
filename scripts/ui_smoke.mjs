@@ -67,6 +67,7 @@ const server = await startStaticServer(root);
 const addressInfo = server.address();
 const baseUrl = `http://127.0.0.1:${addressInfo.port}`;
 const browser = await chromium.launch({ headless: true });
+const invalidAddress = `0x${"z".repeat(40)}`;
 
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -80,6 +81,23 @@ try {
   );
 
   await page.getByRole("button", { name: "Address" }).click();
+  await page.getByLabel("Search query").fill(invalidAddress);
+  await page.getByRole("button", { name: "Inspect" }).click();
+  await page.getByText("Enter a full Ethereum address.").waitFor();
+  assertCondition(
+    await page.getByText("Enter a full Ethereum address.").isVisible(),
+    "Invalid address guidance did not render."
+  );
+  await page.getByText("Use 0x followed by 40 hex characters").waitFor();
+  assertCondition(
+    await page.getByText("Use 0x followed by 40 hex characters").isVisible(),
+    "Invalid address recovery copy did not render."
+  );
+  assertCondition(
+    !page.url().endsWith(`#address/${invalidAddress}`),
+    "Invalid address unexpectedly updated the URL hash."
+  );
+
   await page.getByLabel("Search query").fill(defaultAddress);
   await page.getByRole("button", { name: "Inspect" }).click();
   await page.getByRole("heading", { name: /0x000000\.\.\.ede581/ }).waitFor();

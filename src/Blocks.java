@@ -24,6 +24,7 @@ public class Blocks implements Comparable<Blocks> {
 	private static ArrayList<Blocks> blocks = null;
 	private static Map<Integer, Blocks> blockMap = new HashMap<>();  // For O(1) lookups
 	private static final Map<Integer, ArrayList<Transaction>> transactionsByBlock = new HashMap<>();
+	private static final ArrayList<String> loadWarnings = new ArrayList<>();
 	private static String cachedTransactionsFile = null;
 	private static int skippedTransactionRows = 0;
 	private static String transactionLoadWarning = null;
@@ -40,6 +41,7 @@ public class Blocks implements Comparable<Blocks> {
 		blocks = null;
 		blockMap.clear();
 		transactionsByBlock.clear();
+		loadWarnings.clear();
 		cachedTransactionsFile = null;
 		skippedTransactionRows = 0;
 		transactionLoadWarning = null;
@@ -51,6 +53,10 @@ public class Blocks implements Comparable<Blocks> {
 
 	static String getTransactionLoadWarning() {
 		return transactionLoadWarning;
+	}
+
+	static ArrayList<String> getLoadWarnings() {
+		return new ArrayList<>(loadWarnings);
 	}
 
 	static ArrayList<Transaction> getCachedTransactionsForBlock(int blockNumber) {
@@ -261,6 +267,9 @@ public class Blocks implements Comparable<Blocks> {
 			throw new IOException("Cannot read file: " + filename);
 		}
 
+		loadWarnings.clear();
+		transactionLoadWarning = null;
+
 		// Use BufferedReader for better performance
 		BufferedReader reader = null;
 		ArrayList<Blocks> b = new ArrayList<Blocks>();
@@ -283,7 +292,7 @@ public class Blocks implements Comparable<Blocks> {
 					
 					// Validate data
 					if (fileData.length < 18) {
-						System.err.println("Warning: Line " + lineNumber + " has insufficient data, skipping");
+						recordLoadWarning("Warning: Line " + lineNumber + " has insufficient data, skipping");
 						continue;
 					}
 
@@ -296,17 +305,17 @@ public class Blocks implements Comparable<Blocks> {
 					
 					// Validate parsed data
 					if (blockNumber < 0) {
-						System.err.println("Warning: Invalid block number at line " + lineNumber + ", skipping");
+						recordLoadWarning("Warning: Invalid block number at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					if (timestamp < 0) {
-						System.err.println("Warning: Invalid timestamp at line " + lineNumber + ", skipping");
+						recordLoadWarning("Warning: Invalid timestamp at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					if (transactionCount < 0) {
-						System.err.println("Warning: Invalid transaction count at line " + lineNumber + ", skipping");
+						recordLoadWarning("Warning: Invalid transaction count at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
@@ -317,10 +326,10 @@ public class Blocks implements Comparable<Blocks> {
 				} catch (IOException e) {
 					throw e;
 				} catch (NumberFormatException e) {
-					System.err.println("Warning: Invalid number format at line " + lineNumber + ": " + e.getMessage());
+					recordLoadWarning("Warning: Invalid number format at line " + lineNumber + ": " + e.getMessage());
 					continue;
 				} catch (Exception e) {
-					System.err.println("Warning: Error processing line " + lineNumber + ": " + e.getMessage());
+					recordLoadWarning("Warning: Error processing line " + lineNumber + ": " + e.getMessage());
 					continue;
 				}
 			}
@@ -329,7 +338,7 @@ public class Blocks implements Comparable<Blocks> {
 				try {
 					reader.close();
 				} catch (IOException e) {
-					System.err.println("Warning: Error closing file: " + e.getMessage());
+					recordLoadWarning("Warning: Error closing file: " + e.getMessage());
 				}
 			}
 		}
@@ -626,7 +635,7 @@ public class Blocks implements Comparable<Blocks> {
 				String rowLabel = skippedTransactionRows == 1 ? "row" : "rows";
 				transactionLoadWarning = "Warning: Skipped " + skippedTransactionRows + " malformed transaction " + rowLabel
 					+ " while loading " + filename + ". First issue at line " + firstSkippedLine + ": " + firstSkippedReason + ".";
-				System.err.println(transactionLoadWarning);
+				recordLoadWarning(transactionLoadWarning);
 			}
 		}
 
@@ -635,6 +644,10 @@ public class Blocks implements Comparable<Blocks> {
 			transactionsByBlock.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
 		}
 		cachedTransactionsFile = filename;
+	}
+
+	private static void recordLoadWarning(String warning) {
+		loadWarnings.add(warning);
 	}
 
 }
