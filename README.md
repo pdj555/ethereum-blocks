@@ -2,7 +2,7 @@
 
 Explore a 100-block Ethereum dataset in a lean browser UI, with fast block, address, dashboard, network, anomaly, and report workflows.
 
-This repo expects a working Java runtime and JDK, plus the dataset files [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv) in the repo root.
+The browser UI needs the dataset files [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv) in the repo root plus Python 3 for `make ui`. CLI commands and tests also need a working Java runtime and JDK.
 
 ## Start Here
 
@@ -60,7 +60,8 @@ make report
 | `make miners` | Return the unique miner breakdown in JSON |
 | `make run-json` | Print the JSON overview |
 | `make test` | Run the existing JUnit suite |
-| `make cli-smoke` | Smoke test the documented `make` commands |
+| `make cli-smoke` | Smoke test the core explorer commands |
+| `make ui-smoke` | Smoke test the browser explorer |
 | `make build` | Compile the explorer into `bin/` |
 | `make clean` | Remove compiled explorer artifacts |
 | `make ui-clean` | Remove generated browser preview files |
@@ -99,7 +100,7 @@ It stays focused on the core jobs: dashboard, block, address, network, report, a
 - The default dataset contract is CSV-based: [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv).
 - [`src/Driver.java`](./src/Driver.java) is kept only as a legacy coursework demo. It is not part of the default build surface.
 - Generated artifacts such as `.class` files and Javadoc output are not part of the supported product surface.
-- [`vercel.json`](./vercel.json) builds the static browser UI into `web/dist/` for Vercel preview deployments.
+- [`vercel.json`](./vercel.json) reuses `make ui-build` and publishes `web/dist/` for Vercel deployments.
 
 ## Legacy Reference
 

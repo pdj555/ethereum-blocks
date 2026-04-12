@@ -33,7 +33,7 @@ jobs:
       - name: Run JUnit suite
         run: make test
 
-      - name: Smoke test documented CLI surface
+      - name: Smoke test core explorer CLI surface
         run: make cli-smoke
 
       - name: Build browser UI

@@ -25,6 +25,24 @@ function runMake(args) {
   }
 }
 
+function expectMakeFailure(args, expectedText) {
+  try {
+    execFileSync("make", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+  } catch (error) {
+    const combinedOutput = `${error.stdout || ""}\n${error.stderr || ""}`;
+    assertCondition(
+      combinedOutput.includes(expectedText),
+      `make ${args.join(" ")} failed, but did not include:\n${expectedText}\n\nOutput was:\n${combinedOutput}`
+    );
+    return;
+  }
+
+  throw new Error(`make ${args.join(" ")} unexpectedly succeeded.`);
+}
+
 function parseJsonOutput(args) {
   return JSON.parse(runMake(args));
 }
@@ -51,10 +69,15 @@ try {
   const block = parseJsonOutput(["block", "N=15049311"]);
   assertCondition(block.block_number === 15049311, "Block lookup returned the wrong block.");
   assertCondition(typeof block.miner === "string", "Block lookup is missing the miner.");
+  expectMakeFailure(["block"], "Missing block number. Try: make block N=15049311");
 
   const address = parseJsonOutput(["address", `ADDR=${defaultAddress}`]);
   assertCondition(address.address === defaultAddress, "Address lookup returned the wrong address.");
   assertCondition(typeof address.behavior_class === "string", "Address lookup is missing behavior_class.");
+  expectMakeFailure(
+    ["address"],
+    "Missing address. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f"
+  );
 
   const network = parseJsonOutput(["network"]);
   assertCondition(typeof network.total_addresses === "number", "Network analysis is missing total_addresses.");

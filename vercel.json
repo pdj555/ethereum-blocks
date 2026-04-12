@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "rm -rf web/dist && mkdir -p web/dist && cp web/index.html web/app.css web/app.js web/favicon.svg ethereumP1data.csv ethereumtransactions1.csv web/dist/",
+  "buildCommand": "make ui-build",
   "outputDirectory": "web/dist",
   "headers": [
     {
