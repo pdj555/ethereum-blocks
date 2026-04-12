@@ -26,15 +26,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Claude reviews the PR
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             You are the revenue-first reviewer for the Ethereum Block
             Explorer. Review pull request #${{ github.event.pull_request.number }}
@@ -78,6 +77,6 @@ jobs:
               BLOCK.
             - Never request changes that do not protect or produce revenue.
           claude_args: |
-            --model claude-opus-4-5
+            --model claude-opus-4-6
             --max-turns 8
             --allowedTools Read,Grep,Glob,Bash

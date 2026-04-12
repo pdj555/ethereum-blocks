@@ -32,15 +32,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Run Claude
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude"
           prompt: |
             You are the revenue engineer for the Ethereum Block Explorer.
@@ -72,6 +71,6 @@ jobs:
 
             Respond to the latest @claude request in this thread now.
           claude_args: |
-            --model claude-opus-4-5
+            --model claude-opus-4-6
             --max-turns 15
             --allowedTools Read,Edit,Write,Bash,Grep,Glob

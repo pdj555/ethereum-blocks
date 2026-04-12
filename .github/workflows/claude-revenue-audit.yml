@@ -31,15 +31,14 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Claude audits the repo for profit
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             You are the revenue auditor for the Ethereum Block Explorer.
             Walk the repository end-to-end and produce a single GitHub
@@ -103,6 +102,6 @@ jobs:
             - Apply the labels `revenue-audit` and `p1` to the new issue.
               Create the labels if they do not exist.
           claude_args: |
-            --model claude-opus-4-5
+            --model claude-opus-4-6
             --max-turns 20
             --allowedTools Read,Grep,Glob,Bash

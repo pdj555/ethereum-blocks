@@ -24,15 +24,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
       - name: Claude triages the issue
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             You are triaging issue #${{ github.event.issue.number }} for
             the Ethereum Block Explorer. Treat triage as a revenue control
@@ -79,6 +78,6 @@ jobs:
             - If the issue describes a broken revenue surface, label it
               `p0` and state the leak in the first line of the comment.
           claude_args: |
-            --model claude-opus-4-5
+            --model claude-opus-4-6
             --max-turns 6
             --allowedTools Read,Grep,Glob,Bash
