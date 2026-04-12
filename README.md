@@ -60,11 +60,13 @@ make report
 | `make miners` | Return the unique miner breakdown in JSON |
 | `make run-json` | Print the JSON overview |
 | `make test` | Run the existing JUnit suite |
+| `make cli-smoke` | Smoke test the documented `make` commands |
 | `make build` | Compile the explorer into `bin/` |
 | `make clean` | Remove compiled explorer artifacts |
 | `make ui-clean` | Remove generated browser preview files |
 
 `make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
+`make cli-smoke` uses Node.js only. `make ui-smoke` uses Node.js plus Playwright after `npm ci`.
 
 ## Browser UI
 

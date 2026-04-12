@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -119,6 +120,24 @@ class TestBlocks {
 		assertNotNull(Blocks.getTransactionLoadWarning());
 		assertTrue(Blocks.getTransactionLoadWarning().contains("line 2"));
 		assertTrue(errorStreamCaptor.toString().contains("Skipped 1 malformed transaction row"));
+	}
+
+	@Test
+	void testReadFileFailsFastWhenTransactionDatasetIsMissing() throws IOException {
+		Path transactionFile = Path.of(Blocks.DEFAULT_TRANSACTIONS_FILE);
+		Path backupFile = Path.of(Blocks.DEFAULT_TRANSACTIONS_FILE + ".test-backup");
+		Files.move(transactionFile, backupFile, StandardCopyOption.REPLACE_EXISTING);
+
+		try {
+			FileNotFoundException error = assertThrows(
+				FileNotFoundException.class,
+				() -> Blocks.readFile(Blocks.DEFAULT_BLOCKS_FILE)
+			);
+			assertEquals(Blocks.DEFAULT_TRANSACTIONS_FILE, error.getMessage());
+		} finally {
+			Blocks.resetState();
+			Files.move(backupFile, transactionFile, StandardCopyOption.REPLACE_EXISTING);
+		}
 	}
 	
 	@AfterEach

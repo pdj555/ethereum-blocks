@@ -49,7 +49,7 @@
       state.data = null;
       renderFatal(
         "UI data is missing.",
-        "Run 'make ui-build', then start the preview again. The browser surface expects ethereumP1data.csv and ethereumtransactions1.csv beside index.html."
+        "Run 'make ui-build', then reopen 'make ui' and refresh the page. The browser surface expects ethereumP1data.csv and ethereumtransactions1.csv beside index.html."
       );
       console.error(error);
     }

@@ -16,7 +16,7 @@ JUNIT_VERSION = 1.10.2
 JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 
-.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test ui ui-build ui-serve ui-clean ui-smoke check-python check-ui-data
+.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -41,6 +41,7 @@ help:
 	@echo "  make miners               Print the unique miner breakdown in JSON"
 	@echo "  make run-json             Print the JSON overview"
 	@echo "  make test                 Run the existing JUnit suite"
+	@echo "  make cli-smoke            Smoke test the documented make commands"
 	@echo "  make build                Compile the explorer into $(BINDIR)/"
 	@echo "  make clean                Remove compiled explorer artifacts"
 	@echo "  make ui-clean             Remove generated web preview files"
@@ -50,17 +51,18 @@ help:
 	@echo "  - A JDK with javac"
 	@echo "  - The vendored JUnit runner in $(TOOLSDIR)/"
 	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
+	@echo "  - Node.js for 'make cli-smoke' and 'make ui-smoke'"
 	@echo "  - Python 3 to serve the browser UI with 'make ui'"
 
 build: compile
 
 check-java:
 	@if ! command -v java >/dev/null 2>&1 || ! java -version >/dev/null 2>&1; then \
-		echo "Java runtime not available. Install a working Java runtime, then rerun 'make help'."; \
+		echo "Java runtime not available. Install a working Java runtime, then rerun your command."; \
 		exit 1; \
 	fi
 	@if ! command -v javac >/dev/null 2>&1 || ! javac -version >/dev/null 2>&1; then \
-		echo "Java compiler not available. Install a JDK, then rerun 'make help'."; \
+		echo "Java compiler not available. Install a JDK, then rerun your command."; \
 		exit 1; \
 	fi
 
@@ -86,6 +88,12 @@ check-python:
 		exit 1; \
 	fi
 
+check-node:
+	@if ! command -v node >/dev/null 2>&1; then \
+		echo "Node.js not available. Install Node.js, then rerun 'make cli-smoke' or 'make ui-smoke'."; \
+		exit 1; \
+	fi
+
 check-ui-data:
 	@if [ ! -f "ethereumP1data.csv" ] || [ ! -f "ethereumtransactions1.csv" ]; then \
 		echo "UI data files missing. Keep ethereumP1data.csv and ethereumtransactions1.csv in the repo root, then rerun 'make ui-build'."; \
@@ -106,12 +114,15 @@ ui-serve: check-python ui-build
 ui-clean:
 	@rm -rf web/dist
 
-ui-smoke: ui-build
+ui-smoke: ui-build check-node
 	@if [ ! -d node_modules/playwright ]; then \
-		echo "Browser smoke dependencies missing. Run 'npm install', then rerun 'make ui-smoke'."; \
+		echo "Browser smoke dependencies missing. Run 'npm ci', then rerun 'make ui-smoke'."; \
 		exit 1; \
 	fi
 	@node scripts/ui_smoke.mjs
+
+cli-smoke: check-node
+	@node scripts/cli_smoke.mjs
 
 run: compile
 	@$(JAVA) $(MAIN)

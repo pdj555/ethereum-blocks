@@ -7,14 +7,25 @@ class TestEthereumBlockExplorer {
     @Test
     void testHelpTextStaysMakeFirst() {
         String help = EthereumBlockExplorer.buildHelpText();
+        assertTrue(help.contains("make ui"));
         assertTrue(help.contains("make dashboard"));
         assertTrue(help.contains("make help"));
         assertTrue(help.contains("Commands:"));
         assertTrue(help.contains("make brief"));
         assertTrue(help.contains("make test"));
+        assertTrue(help.contains("make cli-smoke"));
         assertTrue(help.contains("vendored JUnit runner"));
         assertFalse(help.contains("java -cp"));
         assertFalse(help.contains("curl"));
+    }
+
+    @Test
+    void testMissingDataErrorUsesActualFilename() {
+        String json = EthereumBlockExplorer.buildMissingDataErrorJson("ethereumtransactions1.csv");
+        assertEquals(
+            "{\"error\": \"data_file_not_found\", \"file\": \"ethereumtransactions1.csv\"}",
+            json
+        );
     }
 
     @Test

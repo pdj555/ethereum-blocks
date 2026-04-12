@@ -24,9 +24,6 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Show supported commands
-        run: make help
-
       - name: Install browser smoke dependencies
         run: npm ci
 
@@ -36,32 +33,8 @@ jobs:
       - name: Run JUnit suite
         run: make test
 
-      - name: Smoke test dashboard output
-        run: |
-          make dashboard > /tmp/dashboard.txt
-          grep -q "ETHEREUM DASHBOARD" /tmp/dashboard.txt
-
-      - name: Smoke test JSON overview
-        run: |
-          make run-json > /tmp/overview.json
-          python3 - <<'PY'
-          import json
-          with open('/tmp/overview.json', 'r', encoding='utf-8') as f:
-              data = json.load(f)
-          assert data["blocks_loaded"] == 100
-          assert "top_miners" in data
-          PY
-
-      - name: Smoke test JSON block lookup
-        run: |
-          make block N=15049311 > /tmp/block.json
-          python3 - <<'PY'
-          import json
-          with open('/tmp/block.json', 'r', encoding='utf-8') as f:
-              data = json.load(f)
-          assert data["block_number"] == 15049311
-          assert "miner" in data
-          PY
+      - name: Smoke test documented CLI surface
+        run: make cli-smoke
 
       - name: Build browser UI
         run: make ui-build

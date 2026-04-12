@@ -233,20 +233,33 @@ public class EthereumBlockExplorer {
             Blocks.sortBlocksByNumber();
             blocks = Blocks.getBlocks();
         } catch (FileNotFoundException e) {
+            String missingFile = missingDatasetFile(e);
             if (jsonMode) {
-                System.out.println("{\"error\": \"data_file_not_found\", \"file\": \"" + Blocks.DEFAULT_BLOCKS_FILE + "\"}");
+                System.out.println(buildMissingDataErrorJson(missingFile));
             } else {
-                System.err.println("Error: Missing dataset files. Keep '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "' in the repo root, then rerun 'make help' or your command.");
+                System.err.println("Error: Missing dataset file '" + missingFile + "'. Keep '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "' in the repo root, then rerun your command.");
             }
             System.exit(1);
         } catch (IOException e) {
             if (jsonMode) {
                 System.out.println("{\"error\": \"io_error\", \"message\": \"" + e.getMessage() + "\"}");
             } else {
-                System.err.println("Error: Could not read the dataset files. Check '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "', then rerun 'make help' or your command.");
+                System.err.println("Error: Could not read the dataset files. Check '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "', then rerun your command.");
             }
             System.exit(1);
         }
+    }
+
+    static String buildMissingDataErrorJson(String missingFile) {
+        return "{\"error\": \"data_file_not_found\", \"file\": \"" + missingFile + "\"}";
+    }
+
+    private static String missingDatasetFile(FileNotFoundException exception) {
+        String message = exception.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            return Blocks.DEFAULT_BLOCKS_FILE;
+        }
+        return message.trim();
     }
 
     private static void reloadData() {
@@ -482,6 +495,7 @@ public class EthereumBlockExplorer {
             "  make miners               Print the unique miner breakdown in JSON",
             "  make run-json             Print the JSON overview",
             "  make test                 Run the existing JUnit suite",
+            "  make cli-smoke            Smoke test the documented make commands",
             "  make build                Compile the explorer into bin/",
             "  make clean                Remove compiled explorer artifacts",
             "  make ui-clean             Remove generated web preview files",
@@ -491,6 +505,7 @@ public class EthereumBlockExplorer {
             "  - A JDK with javac",
             "  - The vendored JUnit runner in tools/",
             "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv",
+            "  - Node.js for 'make cli-smoke' and 'make ui-smoke'",
             "  - Python 3 to serve the browser UI with 'make ui'",
             "");
     }

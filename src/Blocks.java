@@ -242,7 +242,7 @@ public class Blocks implements Comparable<Blocks> {
 		File file = new File(filename);
 		
 		if (!file.exists()) {
-			throw new FileNotFoundException("File not found: " + filename);
+			throw new FileNotFoundException(filename);
 		}
 		
 		if (!file.canRead()) {
@@ -300,6 +300,10 @@ public class Blocks implements Comparable<Blocks> {
 					
 					b.add(new Blocks(blockNumber, minerAddress, timestamp, transactionCount));
 					
+				} catch (FileNotFoundException e) {
+					throw e;
+				} catch (IOException e) {
+					throw e;
 				} catch (NumberFormatException e) {
 					System.err.println("Warning: Invalid number format at line " + lineNumber + ": " + e.getMessage());
 					continue;
@@ -556,7 +560,7 @@ public class Blocks implements Comparable<Blocks> {
 
 		File file = new File(filename);
 		if (!file.exists()) {
-			throw new FileNotFoundException("File not found: " + filename);
+			throw new FileNotFoundException(filename);
 		}
 
 		skippedTransactionRows = 0;
