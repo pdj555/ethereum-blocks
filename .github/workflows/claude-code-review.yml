@@ -1,8 +1,8 @@
 name: Claude Code Review
 
 # Every pull request is reviewed through a revenue lens before a human
-# touches it. Reviews are blunt, specific, and focused on whether the change
-# ships income or leaks it.
+# touches it. Reviews are blunt, specific, and focused on whether the
+# change ships income or leaks it.
 
 on:
   pull_request:
@@ -31,23 +31,22 @@ jobs:
           fetch-depth: 0
 
       - name: Claude reviews the PR
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          model: claude-opus-4-6
-          timeout_minutes: "12"
-          direct_prompt: |
-            You are the revenue-first reviewer for the Ethereum Block Explorer.
-            Review this pull request and post ONE consolidated review comment.
-            Do not nitpick. Do not cheerlead. Every point must map to profit.
+          prompt: |
+            You are the revenue-first reviewer for the Ethereum Block
+            Explorer. Review pull request #${{ github.event.pull_request.number }}
+            and post ONE consolidated review comment. Do not nitpick. Do
+            not cheerlead. Every point must map to profit.
 
             Structure your review exactly like this:
 
             ## Revenue verdict
             One line: SHIP IT / BLOCK / SHIP WITH FOLLOW-UP. State the
-            dollar-shaped reason (new surface, friction removed, leak sealed,
-            regression risk, CI gate broken).
+            dollar-shaped reason (new surface, friction removed, leak
+            sealed, regression risk, CI gate broken).
 
             ## Revenue impact
             - What paying-user surface does this affect? (UI, CLI, report,
@@ -74,6 +73,11 @@ jobs:
             - Be direct and professional. No hedging, no filler, no emojis.
             - If the diff is trivial and profitable, say SHIP IT in two
               sentences and stop. Speed is revenue.
-            - If the diff breaks `make verify`, the browser UI, the CLI JSON
-              contract, or the Vercel build, that is an automatic BLOCK.
+            - If the diff breaks `make verify`, the browser UI, the CLI
+              JSON contract, or the Vercel build, that is an automatic
+              BLOCK.
             - Never request changes that do not protect or produce revenue.
+          claude_args: |
+            --model claude-opus-4-5
+            --max-turns 8
+            --allowedTools Read,Grep,Glob,Bash
