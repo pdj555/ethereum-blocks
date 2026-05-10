@@ -160,6 +160,29 @@ class TestBlocks {
 	}
 
 	@Test
+	void testTransactionLoaderHandlesQuotedCommasBeforeIndexedColumns() throws IOException {
+		String validFrom = "0x89abcdef0123456789abcdef0123456789abcdef";
+		String validTo = "0x1234567890abcdef1234567890abcdef12345678";
+		Path tempFile = Files.createTempFile("ethereumtransactions-quoted", ".csv");
+		Files.write(tempFile, List.of(
+			"hash,195893,\"parent,hash\",15049308,7," + validFrom + "," + validTo + ",0,21000,1000000000,calldata"
+		));
+
+		try {
+			Blocks.loadTransactionCacheForFile(tempFile.toString());
+		} finally {
+			Files.deleteIfExists(tempFile);
+		}
+
+		ArrayList<Transaction> loaded = Blocks.getCachedTransactionsForBlock(15049308);
+		assertEquals(1, loaded.size());
+		assertEquals(7, loaded.get(0).getIndex());
+		assertEquals(validFrom, loaded.get(0).getFromAddress());
+		assertEquals(validTo, loaded.get(0).getToAddress());
+		assertEquals(0, Blocks.getSkippedTransactionRowCount());
+	}
+
+	@Test
 	void testBlockLoadWarningsAreCapturedWithoutPrinting() throws IOException {
 		List<String> originalRows = Files.readAllLines(Path.of("ethereumP1data.csv"));
 		Path tempFile = Files.createTempFile("ethereum-blocks-warning", ".csv");
@@ -176,6 +199,27 @@ class TestBlocks {
 
 		assertTrue(Blocks.getLoadWarnings().stream().anyMatch((warning) -> warning.contains("insufficient data")));
 		assertEquals("", errorStreamCaptor.toString().trim());
+	}
+
+	@Test
+	void testReadFileHandlesQuotedCommasWithoutColumnDrift() throws IOException {
+		String validMiner = "0x1234567890abcdef1234567890abcdef12345678";
+		Path tempFile = Files.createTempFile("ethereum-blocks-quoted", ".csv");
+		Files.write(tempFile, List.of(
+			"15049308,parent,uncle,nonce,sha3,logs,txroot,state,receipts," + validMiner + ",difficulty,total,size,\"extra,data with comma\",gaslimit,gasused,1656575372,342,basefee"
+		));
+
+		try {
+			ArrayList<Blocks> loaded = Blocks.readFile(tempFile.toString());
+
+			assertEquals(1, loaded.size());
+			assertEquals(15049308, loaded.get(0).getNumber());
+			assertEquals(validMiner, loaded.get(0).getMiner());
+			assertEquals(1656575372L, loaded.get(0).getTimestamp());
+			assertEquals(342, loaded.get(0).getTransactionCount());
+		} finally {
+			Files.deleteIfExists(tempFile);
+		}
 	}
 
 	@Test
