@@ -287,8 +287,8 @@ public class Blocks implements Comparable<Blocks> {
 				lineNumber++;
 				
 				try {
-					// split each line along the commas
-					fileData = line.trim().split(",", -1);
+					// parse each CSV record without letting quoted commas shift columns
+					fileData = CsvReader.parseRecord(line.trim());
 					
 					// Validate data
 					if (fileData.length < 18) {
@@ -298,10 +298,10 @@ public class Blocks implements Comparable<Blocks> {
 
 					// fileData[0] corresponds to block number, fileData[9] to miner address
 					// fileData[16] corresponds to unix timestamp, fileData[17] corresponds to transaction count
-					int blockNumber = Integer.parseInt(fileData[0]);
-					String minerAddress = fileData[9];
-					long timestamp = Long.parseLong(fileData[16]);
-					int transactionCount = Integer.parseInt(fileData[17]);
+					int blockNumber = Integer.parseInt(fileData[0].trim());
+					String minerAddress = fileData[9].trim();
+					long timestamp = Long.parseLong(fileData[16].trim());
+					int transactionCount = Integer.parseInt(fileData[17].trim());
 					
 					// Validate parsed data
 					if (blockNumber < 0) {
@@ -600,23 +600,24 @@ public class Blocks implements Comparable<Blocks> {
 			String firstSkippedReason = null;
 			while ((line = reader.readLine()) != null) {
 				lineNumber++;
-				String[] fileData = line.trim().split(",", -1);
-				if (fileData.length < 10) {
-					skippedTransactionRows++;
-					if (firstSkippedLine < 0) {
-						firstSkippedLine = lineNumber;
-						firstSkippedReason = "Expected at least 10 columns";
-					}
-					continue;
-				}
 
 				try {
-					int tranNumber = Integer.parseInt(fileData[3]);
-					int tranIndex = Integer.parseInt(fileData[4]);
-					int tranGasLimit = Integer.parseInt(fileData[8]);
-					long tranGasPrice = (long) Double.parseDouble(fileData[9]);
-					String tranFromAdr = fileData[5];
-					String tranToAdr = fileData[6];
+					String[] fileData = CsvReader.parseRecord(line.trim());
+					if (fileData.length < 10) {
+						skippedTransactionRows++;
+						if (firstSkippedLine < 0) {
+							firstSkippedLine = lineNumber;
+							firstSkippedReason = "Expected at least 10 columns";
+						}
+						continue;
+					}
+
+					int tranNumber = Integer.parseInt(fileData[3].trim());
+					int tranIndex = Integer.parseInt(fileData[4].trim());
+					int tranGasLimit = Integer.parseInt(fileData[8].trim());
+					long tranGasPrice = (long) Double.parseDouble(fileData[9].trim());
+					String tranFromAdr = fileData[5].trim();
+					String tranToAdr = fileData[6].trim();
 
 					Transaction nT = new Transaction(tranNumber, tranIndex, tranGasLimit, tranGasPrice, tranFromAdr, tranToAdr);
 					indexedTransactionsByBlock
