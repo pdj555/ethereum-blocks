@@ -1,7 +1,7 @@
 import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import http from "node:http";
-import { extname, normalize, resolve } from "node:path";
+import { extname, normalize, relative, resolve, sep } from "node:path";
 import { chromium } from "playwright";
 
 const root = resolve(process.cwd(), "web/dist");
@@ -32,7 +32,8 @@ function startStaticServer(directory) {
     }
 
     const filePath = resolve(directory, "." + normalize(relativePath));
-    if (!filePath.startsWith(directory)) {
+    const relativeFilePath = relative(directory, filePath);
+    if (relativeFilePath.startsWith(".." + sep) || relativeFilePath === ".." || relativeFilePath === "") {
       response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
       response.end("Forbidden");
       return;

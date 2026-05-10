@@ -2,9 +2,10 @@
   "name": "ethereum-block-explorer",
   "private": true,
   "scripts": {
-    "ui:smoke": "node scripts/ui_smoke.mjs"
+    "ui:smoke": "node scripts/ui_smoke.mjs",
+    "ui:install-browsers": "playwright install chromium"
   },
   "devDependencies": {
-    "playwright": "^1.54.2"
+    "playwright": "^1.59.1"
   }
 }

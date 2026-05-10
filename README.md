@@ -2,7 +2,7 @@
 
 Explore a 100-block Ethereum dataset in a lean browser UI, with fast block, address, dashboard, network, anomaly, and report workflows.
 
-The browser UI needs the dataset files [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv) in the repo root plus Python 3 for `make ui`. CLI commands and tests also need a working Java runtime and JDK.
+The browser UI needs the dataset files [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv) in the repo root plus Python 3 for `make ui`. CLI commands and tests also need a working Java runtime and JDK. Copy [`.env.example`](./.env.example) to `.env` only when you want to override local defaults such as `UI_PORT`.
 
 ## Start Here
 
@@ -74,7 +74,7 @@ make report
 | `make ui-clean` | Remove generated browser preview files |
 
 `make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
-`make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci`.
+`make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci` and a Chromium browser install with `npx playwright install chromium`.
 `make verify` runs the same local contract as CI: the JUnit suite, the CLI smoke checks, and the browser build plus smoke path.
 
 ## Browser UI
@@ -84,6 +84,8 @@ The browser UI is a static surface built from the repo's CSV files:
 ```bash
 make ui
 ```
+
+To use a different local port, copy `.env.example` to `.env` and set `UI_PORT`.
 
 Use it when you want one lean visual workspace for:
 
@@ -105,7 +107,7 @@ It stays focused on the core jobs: dashboard, block, address, network, report, a
 
 ## Repo Notes
 
-- The default dataset contract is CSV-based: [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv).
+- The default dataset contract is CSV-based: [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv). Both Java and browser ingestion use quote-aware CSV parsing so commas inside exported fields do not shift columns.
 - Generated artifacts such as `.class` files and Javadoc output are not part of the supported product surface.
 - [`vercel.json`](./vercel.json) reuses `make ui-build` and publishes `web/dist/` for Vercel deployments.
 

@@ -544,6 +544,7 @@ public class EthereumBlockExplorer {
             "  - The vendored JUnit runner in tools/",
             "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv",
             "  - Node.js for 'make cli-smoke', 'make ui-smoke', and 'make verify'",
+            "  - Playwright browser binaries via 'npx playwright install chromium'",
             "  - Python 3 to serve the browser UI with 'make ui'",
             "");
     }

@@ -1,5 +1,8 @@
 SHELL := /bin/sh
 .DEFAULT_GOAL := help
+MAKEFLAGS += --no-print-directory
+
+-include .env
 
 # Ethereum Block Explorer v5.0
 
@@ -15,6 +18,7 @@ TEST_BINDIR = $(BINDIR)/test-classes
 JUNIT_VERSION = 1.10.2
 JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
+UI_PORT ?= 4173
 
 .PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test verify ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
@@ -55,6 +59,7 @@ help:
 	@echo "  - The vendored JUnit runner in $(TOOLSDIR)/"
 	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
 	@echo "  - Node.js for 'make cli-smoke', 'make ui-smoke', and 'make verify'"
+	@echo "  - Playwright browser binaries via 'npx playwright install chromium'"
 	@echo "  - Python 3 to serve the browser UI with 'make ui'"
 
 build: compile
@@ -114,15 +119,15 @@ ui-build: check-ui-data
 	@cp web/index.html web/app.css web/app.js web/favicon.svg ethereumP1data.csv ethereumtransactions1.csv web/dist/
 
 ui-serve: check-python ui-build
-	@echo "Serving visual explorer at http://localhost:4173"
-	@python3 -m http.server 4173 -d web/dist
+	@echo "Serving visual explorer at http://localhost:$(UI_PORT)"
+	@python3 -m http.server $(UI_PORT) -d web/dist
 
 ui-clean:
 	@rm -rf web/dist
 
 ui-smoke: ui-build check-node
 	@if [ ! -d node_modules/playwright ]; then \
-		echo "Browser smoke dependencies missing. Run 'npm ci', then rerun 'make ui-smoke'."; \
+		echo "Browser smoke dependencies missing. Run 'npm ci' and 'npx playwright install chromium', then rerun 'make ui-smoke'."; \
 		exit 1; \
 	fi
 	@node scripts/ui_smoke.mjs
