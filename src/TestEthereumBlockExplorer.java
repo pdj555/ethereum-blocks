@@ -24,6 +24,7 @@ class TestEthereumBlockExplorer {
         assertTrue(help.contains("make test"));
         assertTrue(help.contains("make cli-smoke"));
         assertTrue(help.contains("make ui-smoke"));
+        assertTrue(help.contains("make snapshot"));
         assertTrue(help.contains("vendored JUnit runner"));
         assertFalse(help.contains("Open the visual explorer"));
         assertFalse(help.contains("java -cp"));

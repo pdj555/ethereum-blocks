@@ -205,6 +205,34 @@ public final class AgentAPI {
     }
 
     /**
+     * One-call agent snapshot — compact enough for LLM context, complete enough to route work.
+     */
+    public static Map<String, Object> agentSnapshot(ArrayList<Blocks> blocks) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("schema", "ethereum-block-explorer.agent-snapshot.v1");
+        result.put("purpose", "one-call context packet for agents, dashboards, and health checks");
+
+        Map<String, Object> overview = overview(blocks, 5);
+        result.put("overview", overview);
+
+        if (overview.containsKey("error")) {
+            result.put("status", "unavailable");
+            return result;
+        }
+
+        Map<String, Object> network = NetworkAnalyzer.analyzeNetwork(blocks, 5);
+        Map<String, Object> anomalies = detectAnomalies(blocks, 1.5);
+
+        result.put("network", network);
+        result.put("anomalies", anomalies);
+        result.put("data_contract", buildDataContract(overview));
+        result.put("recommended_next_actions", recommendedNextActions(overview, network, anomalies));
+        result.put("status", "ready");
+
+        return result;
+    }
+
+    /**
      * Compare two blocks — structured diff for agent reasoning.
      */
     public static Map<String, Object> compareBlocks(ArrayList<Blocks> blocks, int blockA, int blockB) {
@@ -404,6 +432,52 @@ public final class AgentAPI {
             if (b.getNumber() == number) return b;
         }
         return null;
+    }
+
+    private static Map<String, Object> buildDataContract(Map<String, Object> overview) {
+        Map<String, Object> contract = new LinkedHashMap<>();
+        contract.put("blocks_file", Blocks.DEFAULT_BLOCKS_FILE);
+        contract.put("transactions_file", Blocks.DEFAULT_TRANSACTIONS_FILE);
+        contract.put("block_range_start", overview.get("block_range_start"));
+        contract.put("block_range_end", overview.get("block_range_end"));
+        contract.put("blocks_loaded", overview.get("blocks_loaded"));
+        contract.put("parsed_transactions", overview.get("parsed_transactions"));
+        contract.put("address_format", "0x followed by 40 hexadecimal characters");
+        return contract;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> recommendedNextActions(
+        Map<String, Object> overview,
+        Map<String, Object> network,
+        Map<String, Object> anomalies
+    ) {
+        List<String> actions = new ArrayList<>();
+
+        Map<String, Object> concentration = (Map<String, Object>) overview.get("concentration_risk");
+        if (concentration != null) {
+            Object level = concentration.get("level");
+            if ("critical".equals(level) || "high".equals(level)) {
+                actions.add("Investigate miner concentration before using the sample for decentralization claims.");
+            }
+        }
+
+        List<Map<String, Object>> costAnomalies = (List<Map<String, Object>>) anomalies.get("cost_anomalies");
+        if (costAnomalies != null && !costAnomalies.isEmpty()) {
+            actions.add("Review cost_anomalies first; high z-score blocks are the fastest path to unusual-flow explanations.");
+        }
+
+        List<Map<String, Object>> whales = (List<Map<String, Object>>) network.get("whales");
+        if (whales != null && !whales.isEmpty()) {
+            Object address = whales.get(0).get("address");
+            actions.add("Profile the top whale address with make address ADDR=" + address + ".");
+        }
+
+        if (actions.isEmpty()) {
+            actions.add("Start with make dashboard, then inspect the highest-volume block from hot blocks.");
+        }
+
+        return actions;
     }
 
     private static Map<String, Object> concentrationRisk(Map<String, Integer> freq, int totalBlocks) {
