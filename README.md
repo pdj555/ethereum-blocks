@@ -48,6 +48,12 @@ Write a shareable markdown report:
 make report
 ```
 
+Give an agent one compact context packet:
+
+```bash
+make snapshot
+```
+
 ## Supported Commands
 
 | Command | What it does |
@@ -61,6 +67,7 @@ make report
 | `make report` | Write `ethereum-report.md` |
 | `make run` | Open the small interactive menu |
 | `make brief` | Print the action brief |
+| `make snapshot` | Return the one-call agent snapshot in JSON |
 | `make anomalies THRESHOLD=1.5` | Return anomaly analysis in JSON |
 | `make miners` | Return the unique miner breakdown in JSON |
 | `make run-json` | Print the JSON overview |
@@ -74,7 +81,7 @@ make report
 | `make ui-clean` | Remove generated browser preview files |
 
 `make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
-`make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci` and a Chromium browser install with `npx playwright install chromium`.
+`make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci` and a Chromium browser install with `npx playwright install --with-deps chromium`.
 `make verify` runs the same local contract as CI: the JUnit suite, the CLI smoke checks, and the browser build plus smoke path.
 
 ## Browser UI

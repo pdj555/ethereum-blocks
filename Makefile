@@ -20,7 +20,7 @@ JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 UI_PORT ?= 4173
 
-.PHONY: help build compile run run-json dashboard block address brief network anomalies miners report clean check-java check-junit test verify ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
+.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -41,6 +41,7 @@ help:
 	@echo "  make report               Write ethereum-report.md"
 	@echo "  make run                  Open the small interactive menu"
 	@echo "  make brief                Print the action brief"
+	@echo "  make snapshot             Print the one-call agent snapshot in JSON"
 	@echo "  make anomalies THRESHOLD=1.5  Print anomaly analysis in JSON"
 	@echo "  make miners               Print the unique miner breakdown in JSON"
 	@echo "  make run-json             Print the JSON overview"
@@ -59,7 +60,7 @@ help:
 	@echo "  - The vendored JUnit runner in $(TOOLSDIR)/"
 	@echo "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv"
 	@echo "  - Node.js for 'make cli-smoke', 'make ui-smoke', and 'make verify'"
-	@echo "  - Playwright browser binaries via 'npx playwright install chromium'"
+	@echo "  - Playwright browser binaries via 'npx playwright install --with-deps chromium'"
 	@echo "  - Python 3 to serve the browser UI with 'make ui'"
 
 build: compile
@@ -127,7 +128,7 @@ ui-clean:
 
 ui-smoke: ui-build check-node
 	@if [ ! -d node_modules/playwright ]; then \
-		echo "Browser smoke dependencies missing. Run 'npm ci' and 'npx playwright install chromium', then rerun 'make ui-smoke'."; \
+		echo "Browser smoke dependencies missing. Run 'npm ci' and 'npm run ui:install-browsers', then rerun 'make ui-smoke'."; \
 		exit 1; \
 	fi
 	@node scripts/ui_smoke.mjs
@@ -154,6 +155,9 @@ address: compile
 
 brief: compile
 	@$(JAVA) $(MAIN) brief
+
+snapshot: compile
+	@$(JAVA) $(MAIN) --json snapshot
 
 network: compile
 	@$(JAVA) $(MAIN) --json network

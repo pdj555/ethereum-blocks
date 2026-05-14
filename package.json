@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "ui:smoke": "node scripts/ui_smoke.mjs",
-    "ui:install-browsers": "playwright install chromium"
+    "ui:install-browsers": "playwright install --with-deps chromium"
   },
   "devDependencies": {
-    "playwright": "^1.59.1"
+    "playwright": "^1.60.0"
   }
 }

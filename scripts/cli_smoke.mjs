@@ -79,6 +79,12 @@ try {
   assertCondition(brief.includes("ETHEREUM ACTION BRIEF"), "Brief output did not render.");
   assertCondition(brief.includes("Strategic signals:"), "Brief output is missing strategic signals.");
 
+  const snapshot = parseJsonOutput(["snapshot"]);
+  assertCondition(snapshot.schema === "ethereum-block-explorer.agent-snapshot.v1", "Snapshot schema mismatch.");
+  assertCondition(snapshot.status === "ready", "Snapshot is not ready.");
+  assertCondition(snapshot.data_contract.blocks_file === "ethereumP1data.csv", "Snapshot data contract missing blocks file.");
+  assertCondition(Array.isArray(snapshot.recommended_next_actions), "Snapshot is missing recommended next actions.");
+
   const overview = parseJsonOutput(["run-json"]);
   assertCondition(overview.blocks_loaded === 100, "Overview blocks_loaded mismatch.");
   assertCondition(Array.isArray(overview.top_miners), "Overview is missing top_miners.");

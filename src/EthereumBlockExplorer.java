@@ -78,6 +78,9 @@ public class EthereumBlockExplorer {
                         Insights.printActionBrief(blocks, 5);
                     }
                     break;
+                case "snapshot":
+                    outputResult(AgentAPI.agentSnapshot(blocks));
+                    break;
                 case "report":
                     writeReport(args.length >= 2 ? args[1] : "ethereum-report.md");
                     break;
@@ -526,6 +529,7 @@ public class EthereumBlockExplorer {
             "  make report               Write ethereum-report.md",
             "  make run                  Open the small interactive menu",
             "  make brief                Print the action brief",
+            "  make snapshot             Print the one-call agent snapshot in JSON",
             "  make anomalies THRESHOLD=1.5  Print anomaly analysis in JSON",
             "  make miners               Print the unique miner breakdown in JSON",
             "  make run-json             Print the JSON overview",
@@ -544,7 +548,7 @@ public class EthereumBlockExplorer {
             "  - The vendored JUnit runner in tools/",
             "  - Dataset files in the repo root: ethereumP1data.csv and ethereumtransactions1.csv",
             "  - Node.js for 'make cli-smoke', 'make ui-smoke', and 'make verify'",
-            "  - Playwright browser binaries via 'npx playwright install chromium'",
+            "  - Playwright browser binaries via 'npx playwright install --with-deps chromium'",
             "  - Python 3 to serve the browser UI with 'make ui'",
             "");
     }
