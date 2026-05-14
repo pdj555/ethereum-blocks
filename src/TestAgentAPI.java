@@ -141,4 +141,23 @@ class TestAgentAPI {
         assertNotNull(contractCreationTx);
         assertEquals(Transaction.CONTRACT_CREATION_RECIPIENT, contractCreationTx.get("to"));
     }
+
+    @Test
+    void testAgentSnapshotReturnsOneCallContext() {
+        Map<String, Object> snapshot = AgentAPI.agentSnapshot(blocks);
+        assertEquals("ethereum-block-explorer.agent-snapshot.v1", snapshot.get("schema"));
+        assertEquals("ready", snapshot.get("status"));
+        assertTrue(snapshot.containsKey("overview"));
+        assertTrue(snapshot.containsKey("network"));
+        assertTrue(snapshot.containsKey("anomalies"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dataContract = (Map<String, Object>) snapshot.get("data_contract");
+        assertEquals(Blocks.DEFAULT_BLOCKS_FILE, dataContract.get("blocks_file"));
+        assertEquals(Blocks.DEFAULT_TRANSACTIONS_FILE, dataContract.get("transactions_file"));
+
+        @SuppressWarnings("unchecked")
+        List<String> nextActions = (List<String>) snapshot.get("recommended_next_actions");
+        assertFalse(nextActions.isEmpty());
+    }
 }

@@ -67,10 +67,11 @@ function assertCondition(condition, message) {
 const server = await startStaticServer(root);
 const addressInfo = server.address();
 const baseUrl = `http://127.0.0.1:${addressInfo.port}`;
-const browser = await chromium.launch({ headless: true });
 const invalidAddress = `0x${"z".repeat(40)}`;
+let browser;
 
 try {
+  browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.goto(baseUrl, { waitUntil: "networkidle" });
 
@@ -120,8 +121,24 @@ try {
 
   console.log("UI smoke passed.");
 } finally {
-  await browser.close();
+  if (browser) {
+    await browser.close();
+  }
   await new Promise((resolveClose, rejectClose) => {
     server.close((error) => (error ? rejectClose(error) : resolveClose()));
   });
+}
+
+async function launchBrowser() {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch (error) {
+    if (error && String(error.message || "").includes("Executable doesn't exist")) {
+      throw new Error(
+        "Playwright Chromium is not installed for the current Playwright version. Run `npm run ui:install-browsers`, then rerun `make ui-smoke`.",
+        { cause: error }
+      );
+    }
+    throw error;
+  }
 }
