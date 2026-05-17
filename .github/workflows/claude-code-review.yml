@@ -1,15 +1,19 @@
 name: Claude Code Review
 
-# Every pull request is reviewed through a revenue lens before a human
-# touches it. Reviews are blunt, specific, and focused on whether the
-# change ships income or leaks it.
+# Trigger manually via workflow_dispatch to review a specific pull request
+# through a revenue lens. Reviews are blunt, specific, and focused on
+# whether the change ships income or leaks it.
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number to review'
+        required: true
+        type: number
 
 concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
+  group: claude-review-${{ github.event.inputs.pr_number }}
   cancel-in-progress: true
 
 permissions:
@@ -21,7 +25,7 @@ permissions:
 jobs:
   review:
     name: Revenue-first PR review
-    if: github.event.pull_request.draft == false
+    if: github.event.inputs.pr_number != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -30,13 +34,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch pull request
+        run: gh pr checkout ${{ github.event.inputs.pr_number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Claude reviews the PR
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             You are the revenue-first reviewer for the Ethereum Block
-            Explorer. Review pull request #${{ github.event.pull_request.number }}
+            Explorer. Review pull request #${{ github.event.inputs.pr_number }}
             and post ONE consolidated review comment. Do not nitpick. Do
             not cheerlead. Every point must map to profit.
 
