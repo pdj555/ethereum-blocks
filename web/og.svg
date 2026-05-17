@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Ethereum Block Explorer">
+  <defs>
+    <radialGradient id="glow" cx="20%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#8eff6a" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#07080a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="warm" cx="100%" cy="10%" r="60%">
+      <stop offset="0%" stop-color="#ffad52" stop-opacity="0.10"/>
+      <stop offset="70%" stop-color="#07080a" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M 64 0 L 0 0 0 64" fill="none" stroke="#ece6d6" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="ink" x1="0" x2="1">
+      <stop offset="0%" stop-color="#ece6d6"/>
+      <stop offset="100%" stop-color="#b9b4a8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#07080a"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect width="1200" height="630" fill="url(#warm)"/>
+  <g font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" fill="#6f6c63" letter-spacing="2">
+    <text x="80" y="100">ETHEREUM · BLOCK EXPLORER</text>
+  </g>
+  <g font-family="Fraunces, 'Iowan Old Style', Georgia, serif" fill="url(#ink)">
+    <text x="80" y="270" font-size="92" font-weight="600" letter-spacing="-2">One hundred blocks.</text>
+    <text x="80" y="370" font-size="92" font-weight="400" font-style="italic" fill="#8eff6a" letter-spacing="-2">Read the chain</text>
+    <text x="80" y="470" font-size="92" font-weight="600" letter-spacing="-2">one row at a time.</text>
+  </g>
+  <g font-family="'JetBrains Mono', ui-monospace, monospace" font-size="22" fill="#b9b4a8">
+    <text x="80" y="555">Search a block · trace an address · numbers exact, hex monospace</text>
+  </g>
+  <g transform="translate(1040, 80)">
+    <rect width="80" height="80" rx="8" fill="#10131a" stroke="#ece6d6" stroke-opacity="0.18"/>
+    <path d="M40 18 26 40l14 8 14-8Z" fill="#ece6d6"/>
+    <path d="M40 52 26 43l14 20 14-20Z" fill="#8eff6a"/>
+  </g>
+</svg>
