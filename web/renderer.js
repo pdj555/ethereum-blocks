@@ -41,9 +41,9 @@ export function renderSummary(state, elements) {
   const overview = state.data.overview;
   elements.summaryStrip.innerHTML = [
     renderSummaryItem(
-      "Sample",
-      formatRange(overview.blockRangeStart, overview.blockRangeEnd),
-      overview.blocksLoaded + " loaded blocks"
+      "Loaded",
+      formatInteger(overview.blocksLoaded) + " blocks",
+      formatRange(overview.blockRangeStart, overview.blockRangeEnd)
     ),
     renderSummaryItem(
       "Miners",
@@ -128,7 +128,7 @@ export function renderBlock(rawBlock, state, elements) {
   swapResult(function () {
     elements.resultKicker.textContent = "Block";
     elements.resultTitle.textContent = "Block " + block.number;
-    elements.resultMeta.textContent = block.displayTimestamp + "  |  Miner " + shorten(block.miner);
+    elements.resultMeta.textContent = block.displayTimestamp + "  ·  Miner " + shorten(block.miner);
 
     const statGrid = [
       renderStat(
@@ -197,7 +197,7 @@ export function renderAddress(rawAddress, state, elements) {
     elements.resultKicker.textContent = "Address";
     elements.resultTitle.textContent = shorten(profile.address);
     elements.resultMeta.textContent =
-      "Active from block " + profile.firstBlock + " to " + profile.lastBlock + "  |  " + profile.behaviorClass.replace("_", " ");
+      "Active from block " + profile.firstBlock + " to " + profile.lastBlock + "  ·  " + profile.behaviorClass.replace("_", " ");
 
     const statGrid = [
       renderStat("Touches", formatInteger(profile.totalInteractions)),

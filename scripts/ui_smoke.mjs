@@ -78,7 +78,7 @@ try {
   assertCondition(await page.title() === "Ethereum Block Explorer", "Unexpected browser title.");
   await page.getByRole("heading", { name: "Block 15049311" }).waitFor();
   assertCondition(
-    await page.getByText("100 loaded blocks").isVisible(),
+    await page.getByText("100 blocks", { exact: true }).first().isVisible(),
     "Overview summary did not render."
   );
 
