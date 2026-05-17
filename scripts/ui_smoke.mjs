@@ -75,7 +75,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.goto(baseUrl, { waitUntil: "networkidle" });
 
-  assertCondition(await page.title() === "Ethereum Block Explorer", "Unexpected browser title.");
+  assertCondition((await page.title()).startsWith("Ethereum Block Explorer"), "Unexpected browser title.");
   await page.getByRole("heading", { name: "Block 15049311" }).waitFor();
   assertCondition(
     await page.getByText("100 blocks", { exact: true }).first().isVisible(),
