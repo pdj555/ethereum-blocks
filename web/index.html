@@ -8,25 +8,25 @@
     name="description"
     content="Search a 100-block Ethereum sample in a lean browser UI. Inspect one block, trace one address, and jump between both in seconds."
   >
+  <meta name="theme-color" content="#07080a">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://images.unsplash.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..700,30..100,0..1;1,9..144,400..700,30..100,0..1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+  >
   <link rel="stylesheet" href="./app.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="hero">
-      <img
-        class="hero-image"
-        src="https://images.unsplash.com/photo-1759836096317-e746643cc277?auto=format&fit=crop&w=1800&q=80"
-        alt="Server rack lights in a dark data center"
-      >
-      <div class="hero-scrim"></div>
       <div class="hero-inner">
-        <p class="eyebrow">Ethereum block explorer</p>
-        <h1>See the block window, then jump straight to the address.</h1>
+        <p class="eyebrow">Ethereum block explorer — live sample</p>
+        <h1>One hundred blocks. <em>Read the chain</em> one row at a time.</h1>
         <p class="hero-copy">
-          Search one block or one address across the loaded sample. The summary stays visual. The details stay exact.
+          Search one block or one address across the loaded sample. Numbers stay exact. Hex stays monospace. Nothing renders that the dataset cannot back.
         </p>
 
         <form id="query-form" class="query-bar" novalidate>
@@ -114,7 +114,8 @@
     </main>
 
     <footer class="footer">
-      <p>Photo by <a href="https://unsplash.com/@hieu101193">Dao Hieu</a> on <a href="https://unsplash.com">Unsplash</a>.</p>
+      <p>Sample dataset · 100 blocks · static browser explorer</p>
+      <p><a href="https://github.com/pdj555/ethereum-blocks">github.com/pdj555/ethereum-blocks</a></p>
     </footer>
   </div>
 </body>
