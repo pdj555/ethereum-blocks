@@ -117,7 +117,7 @@ ui: ui-serve
 ui-build: check-ui-data
 	@rm -rf web/dist
 	@mkdir -p web/dist
-	@cp web/*.html web/*.css web/*.js web/*.svg ethereumP1data.csv ethereumtransactions1.csv web/dist/
+	@cp web/*.html web/*.css web/*.js web/*.svg web/robots.txt web/sitemap.xml ethereumP1data.csv ethereumtransactions1.csv web/dist/
 
 ui-serve: check-python ui-build
 	@echo "Serving visual explorer at http://localhost:$(UI_PORT)"

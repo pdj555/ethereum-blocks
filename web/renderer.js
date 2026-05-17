@@ -13,7 +13,7 @@ import {
 
 export function renderLoading(elements) {
   elements.summaryStrip.innerHTML = [
-    renderSummaryItem("Sample", "Loading", "Reading CSV data"),
+    renderSummaryItem("Blocks", "Loading", "Reading CSV data"),
     renderSummaryItem("Miners", "-", "Preparing counts"),
     renderSummaryItem("Transactions", "-", "Preparing activity"),
     renderSummaryItem("Addresses", "-", "Preparing search")
@@ -23,7 +23,7 @@ export function renderLoading(elements) {
   elements.hotBlocks.innerHTML = "";
   elements.activeAddresses.innerHTML = "";
   elements.networkGlance.innerHTML = "";
-  elements.resultKicker.textContent = "Loading the sample...";
+  elements.resultKicker.textContent = "Loading";
   elements.resultTitle.textContent = "Preparing the explorer";
   elements.resultMeta.textContent = "Reading block and transaction CSV data.";
   elements.resultBody.innerHTML =
@@ -118,7 +118,7 @@ export function renderBlock(rawBlock, state, elements) {
   if (!block) {
     renderMessage(
       "Block lookup",
-      "Block " + escapeHtml(rawBlock) + " is outside the loaded sample.",
+      "Block " + escapeHtml(rawBlock) + " is not in the loaded dataset.",
       "Choose a block between " + state.data.overview.blockRangeStart + " and " + state.data.overview.blockRangeEnd + ".",
       elements
     );
@@ -154,7 +154,7 @@ export function renderBlock(rawBlock, state, elements) {
           renderJump("address", item.address, shorten(item.address)),
           formatInteger(item.count) + " tx"
         );
-      }).join("") : "<div class='empty-state'><p>No parsed senders for this block in the loaded sample.</p></div>")
+      }).join("") : "<div class='empty-state'><p>No parsed senders for this block.</p></div>")
     ].join("");
 
     const transactions = block.transactions.length
