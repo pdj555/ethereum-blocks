@@ -20,6 +20,7 @@ permissions:
 jobs:
   triage:
     name: Revenue triage
+    if: contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -38,16 +39,18 @@ jobs:
       - name: Claude triages the issue
         uses: anthropics/claude-code-action@v1
         env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OLLAMA_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ env.ANTHROPIC_BASE_URL }}
-          ANTHROPIC_AUTH_TOKEN: ${{ env.ANTHROPIC_AUTH_TOKEN }}
           ANTHROPIC_DEFAULT_SONNET_MODEL: ${{ env.ANTHROPIC_DEFAULT_SONNET_MODEL }}
           ANTHROPIC_DEFAULT_OPUS_MODEL: ${{ env.ANTHROPIC_DEFAULT_OPUS_MODEL }}
-          OLLAMA_API_KEY: ${{ env.OLLAMA_API_KEY }}
-          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
           OPENAI_BASE_URL: ${{ env.OPENAI_BASE_URL }}
         with:
-          claude_code_oauth_token: ${{ env.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             You are triaging issue #${{ github.event.issue.number }} for
             the Ethereum Block Explorer. Treat triage as a revenue control
