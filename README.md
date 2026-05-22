@@ -1,164 +1,53 @@
 # Ethereum Block Explorer
 
-Explore a 100-block Ethereum dataset in a lean browser UI, with fast block, address, dashboard, network, anomaly, and report workflows.
+A bundled 100-block Ethereum dataset. Browser UI, JSON CLI, no node required.
 
-The browser UI needs the dataset files [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv) in the repo root plus Python 3 for `make ui`. CLI commands and tests also need a working Java runtime and JDK. Copy [`.env.example`](./.env.example) to `.env` only when you want to override local defaults such as `UI_PORT`.
-
-## Start Here
-
-See the supported commands:
-
-```bash
-make help
+```mermaid
+flowchart LR
+  CSV[Dataset] --> Core[Explorer]
+  Core --> CLI[Makefile]
+  Core --> UI[Browser]
 ```
 
-Get value immediately:
+## Get started
 
 ```bash
-make dashboard
+make dashboard   # summary in the terminal
+make ui          # http://localhost:4173
+make verify      # same gate as CI
 ```
-
-Open the browser UI:
-
-```bash
-make ui
-```
-
-Run the full local health gate:
-
-```bash
-make verify
-```
-
-Inspect one block:
 
 ```bash
 make block N=15049311
-```
-
-Inspect one address:
-
-```bash
 make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f
+make report      # writes ethereum-report.md
 ```
 
-Write a shareable markdown report:
+## Overview
+
+| Command | Output |
+| :-- | :-- |
+| `make dashboard` | Human-readable dataset summary |
+| `make ui` | Static browser explorer |
+| `make block N=…` | Block JSON |
+| `make address ADDR=…` | Address profile JSON |
+| `make network` | Network analysis JSON |
+| `make snapshot` | Compact JSON context packet |
+| `make verify` | JUnit + CLI + browser smoke |
+
+Dataset files live in the repo root: `ethereumP1data.csv`, `ethereumtransactions1.csv`.
+
+Port override: copy `.env.example` → `.env`, set `UI_PORT`.
+
+Static deploy: `vercel.json` publishes `web/dist/`.
+
+## Reference
+
+Requires Python 3 (`make ui`), Java (CLI + tests), Node.js (browser build).
 
 ```bash
-make report
+make test
+make verify
 ```
 
-Give an agent one compact context packet:
-
-```bash
-make snapshot
-```
-
-## Supported Commands
-
-| Command | What it does |
-| --- | --- |
-| `make help` | Show the command guide and runtime requirements |
-| `make dashboard` | Print the fastest human-readable summary of the dataset |
-| `make ui` | Serve the browser explorer at `http://localhost:4173` |
-| `make block N=15049311` | Return one block in JSON |
-| `make address ADDR=0x...` | Return one address profile in JSON |
-| `make network` | Return network analysis in JSON |
-| `make report` | Write `ethereum-report.md` |
-| `make run` | Open the small interactive menu |
-| `make brief` | Print the action brief |
-| `make snapshot` | Return the one-call agent snapshot in JSON |
-| `make anomalies THRESHOLD=1.5` | Return anomaly analysis in JSON |
-| `make miners` | Return the unique miner breakdown in JSON |
-| `make run-json` | Print the JSON overview |
-| `make verify` | Run the same local health gate used by CI |
-| `make test` | Run the existing JUnit suite |
-| `make cli-smoke` | Smoke test the core explorer commands |
-| `make ui-build` | Prepare the static browser files in `web/dist/` |
-| `make ui-smoke` | Smoke test the browser explorer |
-| `make build` | Compile the explorer into `bin/` |
-| `make clean` | Remove compiled explorer artifacts |
-| `make ui-clean` | Remove generated browser preview files |
-
-`make test` uses the vendored JUnit console runner in the repo, so it does not need to fetch test tooling before it runs.
-`make cli-smoke` uses Node.js plus the normal CLI prerequisites: the CSV dataset files and a working Java runtime and JDK. `make ui-smoke` uses Node.js plus Playwright after `npm ci` and a Chromium browser install with `npx playwright install --with-deps chromium`.
-`make verify` runs the same local contract as CI: the JUnit suite, the CLI smoke checks, and the browser build plus smoke path.
-
-## Browser UI
-
-The browser UI is a static surface built from the repo's CSV files:
-
-```bash
-make ui
-```
-
-To use a different local port, copy `.env.example` to `.env` and set `UI_PORT`.
-
-Use it when you want one lean visual workspace for:
-
-- block lookup
-- address lookup
-- miner concentration glance
-- jumping between blocks and addresses without a backend
-
-## Interactive Menu
-
-The interactive menu is available, but it is a secondary surface:
-
-```bash
-make run
-```
-
-Use it when you want to browse from the terminal instead of calling a specific command.
-It stays focused on the core jobs: dashboard, block, address, network, report, and help.
-
-## Repo Notes
-
-- The default dataset contract is CSV-based: [`ethereumP1data.csv`](./ethereumP1data.csv) and [`ethereumtransactions1.csv`](./ethereumtransactions1.csv). Both Java and browser ingestion use quote-aware CSV parsing so commas inside exported fields do not shift columns.
-- Generated artifacts such as `.class` files and Javadoc output are not part of the supported product surface.
-- [`vercel.json`](./vercel.json) reuses `make ui-build` and publishes `web/dist/` for Vercel deployments.
-
-## Legacy Reference
-
-This repo started as a coursework-style Ethereum blocks project. The material below is kept as reference, not as the primary way to approach the explorer.
-
-<details>
-<summary>Background and original class reference</summary>
-
-A blockchain is a database of transactions that is updated and shared across many computers in a network. Every time a new set of transactions is added, it is called a block. This project uses a dataset of 100 Ethereum blocks plus a transaction dataset covering the first 15 blocks in that sample.
-
-### Transaction UML
-
-<img src="./imgs/TransactionUML.PNG" width="50%" height="50%">
-
-Key `Transaction` behaviors:
-
-- `Transaction(int number, int index, int gasLimit, long gasPrice, String fromAdr, String toAdr)`
-- `getBlockNumber()`, `getIndex()`, `getGasLimit()`, `getGasPrice()`
-- `getFromAddress()`, `getToAddress()`
-- `transactionCost()`
-- `compareTo(Transaction t)`
-- `toString()` returns `Transaction <index> for Block <blockNumber>`
-
-### Blocks UML
-
-<img src="./imgs/BlocksUML.PNG" width="50%" height="50%">
-
-Key `Blocks` behaviors:
-
-- Constructors for empty, numbered, mined, and fully loaded blocks
-- `getNumber()`, `getMiner()`, `getDate()`, `getTransactionCount()`, `getTransactions()`
-- `calUniqMiners()`
-- `getBlockByNumber(int num)`
-- `blockDiff(Blocks a, Blocks b)`, `timeDiff(Blocks first, Blocks second)`, `transactionDiff(Blocks first, Blocks second)`
-- `sortBlocksByNumber()`
-- `readFile(String filename)` and transaction loading from [`ethereumtransactions1.csv`](./ethereumtransactions1.csv)
-- `avgTransactionCost()`
-- `uniqFromTo()`
-
-`uniqFromTo()` sample output reference:
-
-- Example image: ![uniqFromTo example](./imgs/uniq1.PNG)
-- Full sample output: [`imgs/sampleoutput`](./imgs/sampleoutput)
-
-</details>
+MIT · [LICENSE](LICENSE)
