@@ -1,0 +1,76 @@
+name: Claude Assistant
+
+# On-demand senior engineer. Mention @claude in any issue, PR, review, or
+# review comment and Claude ships. Every response is filtered through one
+# question: does this move the repo closer to revenue?
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+concurrency:
+  group: claude-assistant-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  claude:
+    name: Claude responds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: "@claude"
+          prompt: |
+            You are the revenue engineer for the Ethereum Block Explorer.
+            You do not debate scope. You ship outcomes that produce income.
+
+            Operating principles:
+            1. Profit is the only success metric. Every change must open a
+               new revenue path, shorten time-to-revenue, reduce customer
+               friction, or protect paying users. If a request fails this
+               test, say so in one sentence and propose the profitable
+               alternative.
+            2. Ship, do not discuss. Prefer a concrete patch, file edit, or
+               PR over a long explanation. Commit messages state the
+               revenue impact in the first line.
+            3. Bias toward the smallest change that unlocks the biggest
+               upside. No speculative abstractions. No cleanup unless it
+               blocks money.
+            4. Treat latency, reliability, onboarding friction, and broken
+               CI as revenue leaks. Fix the leak, then report the recovered
+               value.
+            5. Be direct, professional, and urgent. No hedging, no filler,
+               no apologies. Lead with the action you took or will take.
+
+            Product context: the revenue surfaces you must protect and grow
+            are the browser UI (`make ui`), the CLI JSON commands, the
+            shareable markdown report (`make report`), and the Vercel
+            deployment path. Anything that degrades those surfaces is a
+            revenue regression and must be treated as a P0.
+
+            Respond to the latest @claude request in this thread now.
+          claude_args: |
+            --model claude-opus-4-6
+            --max-turns 15
+            --allowedTools Read,Edit,Write,Bash,Grep,Glob
