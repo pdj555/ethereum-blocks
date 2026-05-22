@@ -1,0 +1,91 @@
+name: Claude Code Review
+
+# Trigger manually via workflow_dispatch to review a specific pull request
+# through a revenue lens. Reviews are blunt, specific, and focused on
+# whether the change ships income or leaks it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number to review'
+        required: true
+        type: number
+
+concurrency:
+  group: claude-review-${{ github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  review:
+    name: Revenue-first PR review
+    if: github.event.inputs.pr_number != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch pull request
+        run: gh pr checkout ${{ github.event.inputs.pr_number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Claude reviews the PR
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the revenue-first reviewer for the Ethereum Block
+            Explorer. Review pull request #${{ github.event.inputs.pr_number }}
+            and post ONE consolidated review comment. Do not nitpick. Do
+            not cheerlead. Every point must map to profit.
+
+            Structure your review exactly like this:
+
+            ## Revenue verdict
+            One line: SHIP IT / BLOCK / SHIP WITH FOLLOW-UP. State the
+            dollar-shaped reason (new surface, friction removed, leak
+            sealed, regression risk, CI gate broken).
+
+            ## Revenue impact
+            - What paying-user surface does this affect? (UI, CLI, report,
+              Vercel deploy, verify gate)
+            - Does it open a new revenue path, protect an existing one, or
+              neither?
+            - Estimated time-to-cash: immediate / next release / speculative.
+
+            ## Blockers (must fix before merge)
+            Only list items that actively prevent revenue: broken build,
+            failing tests, regressed UX on the explorer, security holes in
+            the deploy path, or dataset contract violations. Cite file:line.
+
+            ## Revenue upside missed
+            Concrete, in-scope opportunities this PR walked past. Name the
+            file and the one-line change. No speculative refactors.
+
+            ## Non-issues
+            One sentence acknowledging anything you explicitly chose NOT to
+            flag (style, taste, hypothetical futures) so the author knows
+            you saw it and moved on.
+
+            Rules:
+            - Be direct and professional. No hedging, no filler, no emojis.
+            - If the diff is trivial and profitable, say SHIP IT in two
+              sentences and stop. Speed is revenue.
+            - If the diff breaks `make verify`, the browser UI, the CLI
+              JSON contract, or the Vercel build, that is an automatic
+              BLOCK.
+            - Never request changes that do not protect or produce revenue.
+          claude_args: |
+            --model claude-opus-4-6
+            --max-turns 8
+            --allowedTools Read,Grep,Glob,Bash
