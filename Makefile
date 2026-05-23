@@ -114,17 +114,15 @@ check-ui-data:
 
 ui: ui-serve
 
-ui-build: check-ui-data
-	@rm -rf web/dist
-	@mkdir -p web/dist
-	@cp web/*.html web/*.css web/*.js web/*.svg web/robots.txt web/sitemap.xml ethereumP1data.csv ethereumtransactions1.csv web/dist/
+ui-build: check-ui-data check-node
+	@cd web && npm ci && npm run build
 
 ui-serve: check-python ui-build
 	@echo "Serving visual explorer at http://localhost:$(UI_PORT)"
-	@python3 -m http.server $(UI_PORT) -d web/dist
+	@python3 -m http.server $(UI_PORT) -d web/out
 
 ui-clean:
-	@rm -rf web/dist
+	@rm -rf web/dist web/out web/.next
 
 ui-smoke: ui-build check-node
 	@if [ ! -d node_modules/playwright ]; then \
