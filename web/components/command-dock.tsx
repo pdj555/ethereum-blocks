@@ -202,7 +202,10 @@ export function CommandDock({
       </form>
       <p className="search-hint">
         {hint}
-        <span className="search-hint__keys"> · 1 block · 2 address · / focus</span>
+        <span className="search-hint__keys">
+          {" · "}
+          <kbd>1</kbd> block · <kbd>2</kbd> address · <kbd>/</kbd> focus
+        </span>
       </p>
     </div>
   );

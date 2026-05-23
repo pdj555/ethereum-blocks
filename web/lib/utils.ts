@@ -66,3 +66,11 @@ export function sparklinePath(values: number[], width: number, height: number): 
     })
     .join(" ");
 }
+
+export function sparklineAreaPath(values: number[], width: number, height: number): string {
+  const line = sparklinePath(values, width, height);
+  if (!line) {
+    return "";
+  }
+  return `${line} L${width.toFixed(2)},${height} L0,${height} Z`;
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { sparklinePath } from "@/lib/utils";
+import { useId, useMemo, useState } from "react";
+import { sparklineAreaPath, sparklinePath } from "@/lib/utils";
 
 type SparkChartProps = {
   values: number[];
@@ -20,9 +20,11 @@ export function SparkChart({
   formatHover,
   onSelect
 }: SparkChartProps) {
+  const gradientId = useId().replace(/:/g, "");
   const width = 320;
   const height = 96;
   const path = sparklinePath(values, width, height);
+  const areaPath = sparklineAreaPath(values, width, height);
   const gridLines = [0.25, 0.5, 0.75].map((ratio) => height * ratio);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -75,11 +77,18 @@ export function SparkChart({
         onMouseLeave={() => setHoverIndex(null)}
         onClick={handleClick}
       >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
         <g className="spark-chart__grid">
           {gridLines.map((y) => (
             <line key={y} x1="0" y1={y} x2={width} y2={y} />
           ))}
         </g>
+        {areaPath ? <path className="spark-chart__area" d={areaPath} fill={`url(#${gradientId})`} /> : null}
         {path ? <path className="spark-chart__line" d={path} /> : null}
         {hoverIndex !== null ? (
           <line

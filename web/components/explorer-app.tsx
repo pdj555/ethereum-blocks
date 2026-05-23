@@ -294,8 +294,8 @@ export function ExplorerApp() {
               </p>
               <h1 className="hero__title">Ethereum Block Explorer</h1>
               <p className="hero__copy">
-                One hundred blocks, parsed locally in your browser. Scrub the timeline, jump addresses, inspect every
-                row the CSV can prove.
+                One hundred blocks, parsed entirely in your browser. Scrub the timeline, inspect addresses, and
+                read only what the CSV can prove.
               </p>
               <div ref={dockSentinelRef} className="dock-sentinel" aria-hidden="true" />
               <CommandDock
