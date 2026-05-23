@@ -10,7 +10,7 @@ The repo is `make`-first. CI runs the same targets you run locally.
 - `make test` — JUnit suite via the vendored runner in `tools/junit-platform-console-standalone-1.10.2.jar` (no network fetch).
 - `make build` / `make compile` — `javac` everything under `src/` into `bin/`. Re-runs implicitly before `make run*`.
 - `make ui` — build static site into `web/dist/` and serve at `http://localhost:${UI_PORT:-4173}` via `python3 -m http.server`.
-- `make ui-build` — produce `web/dist/` (same target Vercel uses; see `vercel.json`).
+- `make ui-build` — produce `web/out/` (static Next export; same target Vercel uses; see `vercel.json`).
 - `make cli-smoke` / `make ui-smoke` — Node smoke harnesses in `scripts/`. `ui-smoke` needs `npm ci` and `npx playwright install --with-deps chromium`.
 - `make dashboard`, `make block N=...`, `make address ADDR=0x...`, `make network`, `make snapshot`, `make anomalies THRESHOLD=...`, `make miners`, `make report` — the supported CLI surface. `--json` mode is wired through every command in `EthereumBlockExplorer.runCommandMode`.
 
@@ -41,15 +41,16 @@ Layering inside `src/`:
 - `JsonWriter.java` — zero-dep JSON serializer used by `--json` output. Accepts Map/Collection/primitive trees.
 - `EthereumAddressValidator.java` — single source of truth for address-format checks.
 
-**Browser UI (`web/`)** — static ES modules served by `make ui` and shipped to Vercel by `make ui-build`. The browser parses the same CSVs locally, so there is no backend.
-- `app.js` — entry: fetches `./ethereumP1data.csv` + `./ethereumtransactions1.csv`, wires the search form, drives renders.
-- `parser.js` — quote-aware CSV parser (mirror of `CsvReader.java`'s rules).
-- `dataset.js` — builds the in-memory dataset (block map, address profiles, miner counts) — the browser-side analog of `Blocks` + `AgentAPI`.
-- `renderer.js` — DOM updates only; receives the dataset, never re-fetches.
-- `utils.js` — formatters + address heuristics shared by app/renderer.
-- `index.html` + `app.css` — single-page shell.
+**Browser UI (`web/`)** — Next.js static export (App Router) built with `make ui-build`, served locally via `make ui`, shipped to Vercel via `vercel.json`. The browser still parses the same CSVs locally — no backend.
+- `app/page.tsx` + `components/explorer-app.tsx` — client shell: fetches `/ethereumP1data.csv` + `/ethereumtransactions1.csv`, hash routing (`#block/N`, `#address/0x…`), drives renders.
+- `lib/parser.ts` — quote-aware CSV parser (mirror of `CsvReader.java`'s rules).
+- `lib/dataset.ts` — builds the in-memory dataset (block map, address profiles, miner counts) — the browser-side analog of `Blocks` + `AgentAPI`.
+- `components/explorer-panels.tsx` — result/rail/search UI.
+- `lib/utils.ts` — formatters + address heuristics shared by components.
+- `app/globals.css` — Distro-inspired dashboard styling (bordered panels, spark charts, light/dark).
+- `public/` — static assets; CSVs copied from repo root at build time via `web/scripts/prebuild.mjs`.
 
-The bridge between the two surfaces is the dataset contract. `make ui-build` copies the CSV files into `web/dist/` alongside the static assets, so the same file paths work locally, in `make ui-smoke`, and on Vercel.
+The bridge between the two surfaces is the dataset contract. `make ui-build` exports to `web/out/` with CSVs in the static bundle, so the same file paths work locally, in `make ui-smoke`, and on Vercel.
 
 ## Conventions worth knowing
 

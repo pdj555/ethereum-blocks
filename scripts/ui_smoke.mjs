@@ -4,7 +4,7 @@ import http from "node:http";
 import { extname, normalize, relative, resolve, sep } from "node:path";
 import { chromium } from "playwright";
 
-const root = resolve(process.cwd(), "web/dist");
+const root = resolve(process.cwd(), "web/out");
 const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
 
 function contentTypeFor(filePath) {
