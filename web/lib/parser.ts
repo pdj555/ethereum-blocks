@@ -1,22 +1,21 @@
-import { looksLikeAddress } from "./utils.js";
+import { looksLikeAddress } from "./utils";
+import type { BlockRecord, TransactionRecord } from "./types";
 
-export function parseBlocks(csvText) {
-  return parseCsvRecords(csvText).filter(function (parts) {
-    return parts.length >= 18;
-  }).map(function (parts) {
-    return {
+export function parseBlocks(csvText: string): BlockRecord[] {
+  return parseCsvRecords(csvText)
+    .filter((parts) => parts.length >= 18)
+    .map((parts) => ({
       number: Number(parts[0].trim()),
       miner: parts[9].trim().toLowerCase(),
       timestamp: Number(parts[16].trim()),
       transactionCountMetadata: Number(parts[17].trim())
-    };
-  });
+    }));
 }
 
-export function parseTransactions(csvText) {
-  const transactions = [];
+export function parseTransactions(csvText: string): TransactionRecord[] {
+  const transactions: TransactionRecord[] = [];
 
-  parseCsvRecords(csvText).forEach(function (parts) {
+  parseCsvRecords(csvText).forEach((parts) => {
     if (parts.length < 10) {
       return;
     }
@@ -37,28 +36,28 @@ export function parseTransactions(csvText) {
     }
 
     transactions.push({
-      blockNumber: blockNumber,
-      index: index,
-      from: from,
-      to: to,
+      blockNumber,
+      index,
+      from,
+      to,
       contractCreation: !rawTo,
-      gasLimit: gasLimit,
-      gasPrice: gasPrice,
-      costEth: gasLimit * gasPrice / 1e18
+      gasLimit,
+      gasPrice,
+      costEth: (gasLimit * gasPrice) / 1e18
     });
   });
 
   return transactions;
 }
 
-export function parseCsvRecords(csvText) {
-  const rows = [];
-  let row = [];
+export function parseCsvRecords(csvText: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
   let field = "";
   let inQuotes = false;
   let quotedField = false;
 
-  for (let i = 0; i < csvText.length; i++) {
+  for (let i = 0; i < csvText.length; i += 1) {
     const current = csvText[i];
 
     if (current === '"') {
@@ -92,7 +91,7 @@ export function parseCsvRecords(csvText) {
         i += 1;
       }
       row.push(field);
-      if (row.some(function (value) { return value.length > 0; })) {
+      if (row.some((value) => value.length > 0)) {
         rows.push(row);
       }
       row = [];
@@ -111,7 +110,7 @@ export function parseCsvRecords(csvText) {
   }
 
   row.push(field);
-  if (row.some(function (value) { return value.length > 0; })) {
+  if (row.some((value) => value.length > 0)) {
     rows.push(row);
   }
   return rows;
