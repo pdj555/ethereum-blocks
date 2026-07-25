@@ -11,6 +11,7 @@ The repo is `make`-first. CI runs the same targets you run locally.
 - `make build` / `make compile` — `javac` everything under `src/` into `bin/`. Re-runs implicitly before `make run*`.
 - `make ui` — build static site into `web/dist/` and serve at `http://localhost:${UI_PORT:-4173}` via `python3 -m http.server`.
 - `make ui-build` — produce `web/out/` (static Next export; same target Vercel uses; see `vercel.json`).
+- `make ui-contract` — compile and run the no-dependency TypeScript import/parser/domain regression suite.
 - `make cli-smoke` / `make ui-smoke` — Node smoke harnesses in `scripts/`. `ui-smoke` needs `npm ci` and `npx playwright install --with-deps chromium`.
 - `make dashboard`, `make block N=...`, `make address ADDR=0x...`, `make network`, `make snapshot`, `make anomalies THRESHOLD=...`, `make miners`, `make report` — the supported CLI surface. `--json` mode is wired through every command in `EthereumBlockExplorer.runCommandMode`.
 
@@ -44,12 +45,14 @@ Layering inside `src/`:
 **Browser UI (`web/`)** — Next.js static export (App Router) built with `make ui-build`, served locally via `make ui`, shipped to Vercel via `vercel.json`. The browser still parses the same CSVs locally — no backend.
 - `app/page.tsx` + `components/explorer-app.tsx` — client shell: fetches `/ethereumP1data.csv` + `/ethereumtransactions1.csv`, hash routing (`#block/N`, `#address/0x…`), drives renders.
 - `lib/parser.ts` — quote-aware CSV parser (mirror of `CsvReader.java`'s rules).
-- `lib/dataset-import.ts` — strict client-only boundary for user-selected CSVs. It validates raw positional rows before typed parsing, rejects duplicate blocks, filters transactions to imported block numbers, and enforces a 25 MiB limit per file.
+- `lib/dataset-import-core.ts` + `lib/dataset-import.ts` — strict client-only boundary for user-selected CSVs. The core validates and converts each CSV in one streaming parser pass, rejects duplicate blocks, filters transactions to imported block numbers, and caps input at 64 columns, 25,000 block rows, 100,000 transaction rows, 1,000,000,000 gas, 1,000,000,000,000,000 wei per gas, and 25 MiB per file.
+- `workers/dataset-import-worker.ts` — decodes transferred file buffers and builds imported datasets off the UI thread. Sample boot remains synchronous and static-export compatible.
 - `lib/dataset.ts` — builds the in-memory dataset (block map, address profiles, miner counts) — the browser-side analog of `Blocks` + `AgentAPI`.
 - Empty-network datasets are valid: `heaviestSender`, `heaviestReceiver`, and `largestTransaction` are nullable when no imported transactions match the imported blocks.
 - `components/explorer-panels.tsx` — result/rail/search UI.
 - `components/dataset-importer.tsx` — accessible native-dialog import surface and bundled-sample reset. File reads stay in the browser.
-- `components/block-timeline.tsx` — renders at most 400 sampled timeline cells while search, keyboard stepping, scrubbing, and navigation retain the full block-number array.
+- `components/block-timeline.tsx` — renders one non-wrapping track of at most 400 sampled timeline cells while search, keyboard stepping, scrubbing, and navigation retain the full block-number array.
+- Spark charts render at most 240 memoized points. Block transaction tables render 50 rows per page.
 - `lib/utils.ts` — formatters + address heuristics shared by components.
 - `app/globals.css` — Distro-inspired dashboard styling (bordered panels, spark charts, light/dark).
 - `public/` — static assets; CSVs copied from repo root at build time via `web/scripts/prebuild.mjs`.

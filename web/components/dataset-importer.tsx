@@ -16,6 +16,9 @@ export function DatasetImporter({ source, onLoad, onReset }: DatasetImporterProp
   const [submitting, setSubmitting] = useState(false);
 
   function closeDialog() {
+    if (submitting) {
+      return;
+    }
     dialogRef.current?.close();
   }
 
@@ -47,6 +50,12 @@ export function DatasetImporter({ source, onLoad, onReset }: DatasetImporterProp
         ref={dialogRef}
         className="dataset-dialog"
         aria-labelledby="dataset-dialog-title"
+        aria-busy={submitting}
+        onCancel={(event) => {
+          if (submitting) {
+            event.preventDefault();
+          }
+        }}
         onClose={() => {
           formRef.current?.reset();
           setError(null);
@@ -118,7 +127,7 @@ export function DatasetImporter({ source, onLoad, onReset }: DatasetImporterProp
           ) : null}
 
           <div className="dataset-dialog__actions">
-            <button type="button" onClick={closeDialog}>
+            <button type="button" onClick={closeDialog} disabled={submitting}>
               Cancel
             </button>
             <button type="submit" className="dataset-source__primary" disabled={submitting}>

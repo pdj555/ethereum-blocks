@@ -204,6 +204,24 @@ export function ExplorerApp() {
     window.location.hash = `${jumpMode}/${encodeURIComponent(value)}`;
   }, []);
 
+  const handleTimelineScrub = useCallback((blockNumber: number) => {
+    const value = String(blockNumber);
+    const url = new URL(window.location.href);
+    url.hash = `block/${value}`;
+    window.history.replaceState(null, "", url);
+    setMode("block");
+    setQuery(value);
+    setMessage(null);
+  }, []);
+
+  const handleTimelineScrubCommit = useCallback(
+    (blockNumber: number, startUrl: string) => {
+      window.history.replaceState(null, "", startUrl);
+      handleJump("block", String(blockNumber));
+    },
+    [handleJump]
+  );
+
   const showToast = useCallback((value: string) => {
     setToast(value);
     window.setTimeout(() => setToast(null), 1800);
@@ -358,6 +376,8 @@ export function ExplorerApp() {
                 dataset={dataset}
                 activeBlock={activeBlock}
                 onSelect={(blockNumber) => handleJump("block", String(blockNumber))}
+                onScrub={handleTimelineScrub}
+                onScrubCommit={handleTimelineScrubCommit}
               />
             </SectionFrame>
           ) : null}

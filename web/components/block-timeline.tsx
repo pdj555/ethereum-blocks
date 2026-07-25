@@ -8,12 +8,29 @@ type BlockTimelineProps = {
   dataset: Dataset;
   activeBlock: number | null;
   onSelect: (blockNumber: number) => void;
+  onScrub: (blockNumber: number) => void;
+  onScrubCommit: (blockNumber: number, startUrl: string) => void;
 };
 
-export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineProps) {
-  const peak = dataset.txSeries.reduce((highest, value) => Math.max(highest, value), 1);
+export function BlockTimeline({
+  dataset,
+  activeBlock,
+  onSelect,
+  onScrub,
+  onScrubCommit
+}: BlockTimelineProps) {
+  const peak = useMemo(
+    () => dataset.txSeries.reduce((highest, value) => Math.max(highest, value), 1),
+    [dataset.txSeries]
+  );
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const scrubStartedRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const pointerStartXRef = useRef(0);
+  const pointerStartedOnCellRef = useRef(false);
+  const lastScrubbedBlockRef = useRef<number | null>(null);
+  const scrubStartUrlRef = useRef("");
   const timelinePoints = useMemo(() => {
     const total = dataset.blockNumbers.length;
     if (total <= 400) {
@@ -58,11 +75,11 @@ export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineP
       .map((index) => ({ blockNumber: dataset.blockNumbers[index]!, index }));
   }, [activeBlock, dataset.blockNumbers]);
 
-  const pickFromClientX = useCallback(
+  const blockFromClientX = useCallback(
     (clientX: number) => {
       const track = trackRef.current;
       if (!track || dataset.blockNumbers.length === 0) {
-        return;
+        return null;
       }
       const rect = track.getBoundingClientRect();
       const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
@@ -70,9 +87,21 @@ export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineP
         dataset.blockNumbers.length - 1,
         Math.round(ratio * (dataset.blockNumbers.length - 1))
       );
-      onSelect(dataset.blockNumbers[index]!);
+      return dataset.blockNumbers[index]!;
     },
-    [dataset.blockNumbers, onSelect]
+    [dataset.blockNumbers]
+  );
+
+  const previewFromClientX = useCallback(
+    (clientX: number) => {
+      const blockNumber = blockFromClientX(clientX);
+      if (blockNumber === null || blockNumber === lastScrubbedBlockRef.current) {
+        return;
+      }
+      lastScrubbedBlockRef.current = blockNumber;
+      onScrub(blockNumber);
+    },
+    [blockFromClientX, onScrub]
   );
 
   return (
@@ -82,23 +111,59 @@ export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineP
         className="block-timeline__cells"
         role="list"
         aria-label="Block activity timeline"
+        style={{ gridTemplateColumns: `repeat(${timelinePoints.length}, minmax(0, 1fr))` }}
         onPointerDown={(event) => {
           draggingRef.current = true;
-          trackRef.current?.setPointerCapture(event.pointerId);
-          pickFromClientX(event.clientX);
+          scrubStartedRef.current = false;
+          suppressClickRef.current = false;
+          pointerStartXRef.current = event.clientX;
+          pointerStartedOnCellRef.current = event.target !== event.currentTarget;
+          scrubStartUrlRef.current = window.location.href;
+          lastScrubbedBlockRef.current = null;
         }}
         onPointerMove={(event) => {
           if (!draggingRef.current) {
             return;
           }
-          pickFromClientX(event.clientX);
+          if (!scrubStartedRef.current) {
+            if (Math.abs(event.clientX - pointerStartXRef.current) < 4) {
+              return;
+            }
+            scrubStartedRef.current = true;
+            trackRef.current?.setPointerCapture(event.pointerId);
+          }
+          previewFromClientX(event.clientX);
         }}
         onPointerUp={(event) => {
+          if (!draggingRef.current) {
+            return;
+          }
           draggingRef.current = false;
-          trackRef.current?.releasePointerCapture(event.pointerId);
+          if (scrubStartedRef.current) {
+            previewFromClientX(event.clientX);
+            if (trackRef.current?.hasPointerCapture(event.pointerId)) {
+              trackRef.current.releasePointerCapture(event.pointerId);
+            }
+            suppressClickRef.current = pointerStartedOnCellRef.current;
+            window.setTimeout(() => {
+              suppressClickRef.current = false;
+            }, 0);
+            if (lastScrubbedBlockRef.current !== null) {
+              onScrubCommit(lastScrubbedBlockRef.current, scrubStartUrlRef.current);
+            }
+          } else if (!pointerStartedOnCellRef.current) {
+            const blockNumber = blockFromClientX(event.clientX);
+            if (blockNumber !== null) {
+              onSelect(blockNumber);
+            }
+          }
         }}
-        onPointerLeave={() => {
+        onPointerCancel={() => {
+          const finalBlock = lastScrubbedBlockRef.current;
           draggingRef.current = false;
+          if (finalBlock !== null) {
+            onScrubCommit(finalBlock, scrubStartUrlRef.current);
+          }
         }}
       >
         {timelinePoints.map(({ blockNumber, index }) => {
@@ -117,7 +182,14 @@ export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineP
               title={title}
               aria-label={title}
               aria-current={isActive ? "true" : undefined}
-              onClick={() => onSelect(blockNumber)}
+              onClick={(event) => {
+                if (suppressClickRef.current) {
+                  suppressClickRef.current = false;
+                  event.preventDefault();
+                  return;
+                }
+                onSelect(blockNumber);
+              }}
             />
           );
         })}

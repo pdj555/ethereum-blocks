@@ -999,6 +999,44 @@ kbd {
   padding-top: 18px;
 }
 
+.transaction-pages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.transaction-pages p {
+  margin: 0;
+}
+
+.transaction-pages div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.transaction-pages button {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  color: var(--accent);
+}
+
+.transaction-pages button:hover:not(:disabled),
+.transaction-pages button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.transaction-pages button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .table-scroll {
   overflow-x: auto;
 }
@@ -1182,8 +1220,7 @@ th:last-child {
 
 .block-timeline__cells {
   display: grid;
-  grid-template-columns: repeat(100, minmax(0, 1fr));
-  gap: 2px;
+  gap: 0;
   align-items: end;
   min-height: 96px;
   padding: 8px 0 4px;
@@ -1389,8 +1426,6 @@ th:last-child {
   }
 
   .block-timeline__cells {
-    grid-template-columns: repeat(50, minmax(0, 1fr));
-    overflow-x: auto;
     padding-bottom: 8px;
   }
 
@@ -1445,6 +1480,11 @@ th:last-child {
   .dataset-dialog__header,
   .dataset-dialog__fields {
     grid-template-columns: 1fr;
+  }
+
+  .transaction-pages {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
