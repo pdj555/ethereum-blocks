@@ -32,6 +32,25 @@ const importedTransactions = [
   "21000",
   "1000000000"
 ].join(",");
+const unmatchedTransactions = [
+  "0xhash",
+  "21000",
+  "0xblockhash",
+  "999999",
+  "0",
+  importSender,
+  importReceiver,
+  "0",
+  "21000",
+  "1000000000"
+].join(",");
+const malformedQuotedBlocks = `"900000"0${blockRow(900000).slice(String(900000).length)}`;
+const invalidBlockNumberFields = Array(18).fill("");
+invalidBlockNumberFields[0] = "not-a-block";
+invalidBlockNumberFields[9] = importMiner;
+invalidBlockNumberFields[16] = "1700000000";
+invalidBlockNumberFields[17] = "0";
+const invalidBlockNumberBlocks = invalidBlockNumberFields.join(",");
 
 function contentTypeFor(filePath) {
   switch (extname(filePath)) {
@@ -110,6 +129,40 @@ try {
 
   await page.getByRole("button", { name: "Load your CSVs" }).click();
   await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(blockRow(900000))
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "empty-transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("")
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Transactions CSV is empty. Choose a transaction export and try again.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "malformed-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(malformedQuotedBlocks)
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Blocks CSV contains malformed quoting. Export the data again and retry.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "invalid-number-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(invalidBlockNumberBlocks)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Blocks CSV row 1 has an invalid block number. Export the block data again and retry.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
     name: "invalid-blocks.csv",
     mimeType: "text/csv",
     buffer: Buffer.from("invalid")
@@ -123,11 +176,37 @@ try {
   await page.getByRole("alert").getByText("Blocks CSV row 1 needs at least 18 columns. Export the block data again and retry.").waitFor();
 
   await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "zero-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(blockRow(900000))
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "unmatched-transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(unmatchedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.getByRole("heading", { name: "Block 900000" }).waitFor();
+  await page.getByText("zero-blocks.csv + unmatched-transactions.csv", { exact: true }).waitFor();
+  assertCondition(
+    (await page.getByText("—", { exact: true }).count()) >= 4,
+    "Zero-matching transaction imports did not render nullable network values."
+  );
+
+  await page.getByRole("button", { name: "Replace CSVs" }).click();
+  await page.getByLabel("Blocks CSV").setInputFiles({
     name: "blocks.csv",
     mimeType: "text/csv",
     buffer: Buffer.from(importedBlocks)
   });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedTransactions)
+  });
   await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.getByRole("heading", { name: "Block 900000" }).waitFor();
   assertCondition((await page.getByRole("listitem").count()) <= 400, "Large imports rendered too many timeline cells.");
   await page.getByText("blocks.csv + transactions.csv", { exact: true }).waitFor();

@@ -11,7 +11,7 @@ type BlockTimelineProps = {
 };
 
 export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineProps) {
-  const peak = Math.max(...dataset.txSeries, 1);
+  const peak = dataset.txSeries.reduce((highest, value) => Math.max(highest, value), 1);
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const timelinePoints = useMemo(() => {

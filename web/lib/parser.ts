@@ -55,38 +55,64 @@ export function parseCsvRecords(csvText: string): string[][] {
   let row: string[] = [];
   let field = "";
   let inQuotes = false;
-  let quotedField = false;
+  let quoteClosed = false;
 
   for (let i = 0; i < csvText.length; i += 1) {
     const current = csvText[i];
 
-    if (current === '"') {
-      if (inQuotes && csvText[i + 1] === '"') {
-        field += '"';
-        i += 1;
-        continue;
+    if (inQuotes) {
+      if (current === '"') {
+        if (csvText[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+          quoteClosed = true;
+        }
+      } else {
+        field += current;
       }
-
-      if (!inQuotes && field.length === 0) {
-        quotedField = true;
-        inQuotes = true;
-        continue;
-      }
-
-      if (inQuotes) {
-        inQuotes = false;
-        continue;
-      }
-    }
-
-    if (current === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-      quotedField = false;
       continue;
     }
 
-    if ((current === "\n" || current === "\r") && !inQuotes) {
+    if (quoteClosed) {
+      if (current === ",") {
+        row.push(field);
+        field = "";
+        quoteClosed = false;
+        continue;
+      }
+      if (current === "\n" || current === "\r") {
+        if (current === "\r" && csvText[i + 1] === "\n") {
+          i += 1;
+        }
+        row.push(field);
+        if (row.some((value) => value.length > 0)) {
+          rows.push(row);
+        }
+        row = [];
+        field = "";
+        quoteClosed = false;
+        continue;
+      }
+      throw new Error("Unexpected character after closing quoted CSV field.");
+    }
+
+    if (current === '"') {
+      if (field.length > 0) {
+        throw new Error("Unexpected quote in unquoted CSV field.");
+      }
+      inQuotes = true;
+      continue;
+    }
+
+    if (current === ",") {
+      row.push(field);
+      field = "";
+      continue;
+    }
+
+    if (current === "\n" || current === "\r") {
       if (current === "\r" && csvText[i + 1] === "\n") {
         i += 1;
       }
@@ -96,13 +122,10 @@ export function parseCsvRecords(csvText: string): string[][] {
       }
       row = [];
       field = "";
-      quotedField = false;
       continue;
     }
 
-    if (quotedField || current !== "\r") {
-      field += current;
-    }
+    field += current;
   }
 
   if (inQuotes) {

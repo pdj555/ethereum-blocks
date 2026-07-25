@@ -33,7 +33,9 @@ export function createDatasetFromCsv(blocksCsv: string, transactionsCsv: string)
 
     const blockNumber = Number(row[0].trim());
     if (!Number.isSafeInteger(blockNumber) || blockNumber <= 0) {
-      throw new DatasetImportError(`Blocks CSV row ${rowNumber} has an invalid block number.`);
+      throw new DatasetImportError(
+        `Blocks CSV row ${rowNumber} has an invalid block number. Export the block data again and retry.`
+      );
     }
     if (blockNumbers.has(blockNumber)) {
       throw new DatasetImportError(
@@ -41,19 +43,30 @@ export function createDatasetFromCsv(blocksCsv: string, transactionsCsv: string)
       );
     }
     if (!looksLikeAddress(row[9].trim())) {
-      throw new DatasetImportError(`Blocks CSV row ${rowNumber} has an invalid miner address.`);
+      throw new DatasetImportError(
+        `Blocks CSV row ${rowNumber} has an invalid miner address. Export the block data again and retry.`
+      );
     }
     if (!isNonNegativeSafeInteger(row[16])) {
-      throw new DatasetImportError(`Blocks CSV row ${rowNumber} has an invalid timestamp.`);
+      throw new DatasetImportError(
+        `Blocks CSV row ${rowNumber} has an invalid timestamp. Export the block data again and retry.`
+      );
     }
     if (!isNonNegativeSafeInteger(row[17])) {
-      throw new DatasetImportError(`Blocks CSV row ${rowNumber} has an invalid transaction count.`);
+      throw new DatasetImportError(
+        `Blocks CSV row ${rowNumber} has an invalid transaction count. Export the block data again and retry.`
+      );
     }
 
     blockNumbers.add(blockNumber);
   });
 
   const transactionRows = readRows(transactionsCsv, "Transactions CSV");
+  if (transactionRows.length === 0) {
+    throw new DatasetImportError(
+      "Transactions CSV is empty. Choose a transaction export and try again."
+    );
+  }
   transactionRows.forEach((row, index) => {
     const rowNumber = index + 1;
     if (row.length < 10) {
@@ -62,23 +75,35 @@ export function createDatasetFromCsv(blocksCsv: string, transactionsCsv: string)
       );
     }
     if (!isPositiveSafeInteger(row[3])) {
-      throw new DatasetImportError(`Transactions CSV row ${rowNumber} has an invalid block number.`);
+      throw new DatasetImportError(
+        `Transactions CSV row ${rowNumber} has an invalid block number. Export the transaction data again and retry.`
+      );
     }
     if (!isNonNegativeSafeInteger(row[4])) {
-      throw new DatasetImportError(`Transactions CSV row ${rowNumber} has an invalid transaction index.`);
+      throw new DatasetImportError(
+        `Transactions CSV row ${rowNumber} has an invalid transaction index. Export the transaction data again and retry.`
+      );
     }
     if (!looksLikeAddress(row[5].trim())) {
-      throw new DatasetImportError(`Transactions CSV row ${rowNumber} has an invalid from address.`);
+      throw new DatasetImportError(
+        `Transactions CSV row ${rowNumber} has an invalid from address. Export the transaction data again and retry.`
+      );
     }
     const to = row[6].trim();
     if (to && !looksLikeAddress(to)) {
-      throw new DatasetImportError(`Transactions CSV row ${rowNumber} has an invalid to address.`);
+      throw new DatasetImportError(
+        `Transactions CSV row ${rowNumber} has an invalid to address. Export the transaction data again and retry.`
+      );
     }
     if (!isFiniteNonNegativeNumber(row[8])) {
-      throw new DatasetImportError(`Transactions CSV row ${rowNumber} has an invalid gas limit.`);
+      throw new DatasetImportError(
+        `Transactions CSV row ${rowNumber} has an invalid gas limit. Export the transaction data again and retry.`
+      );
     }
     if (!isFiniteNonNegativeNumber(row[9])) {
-      throw new DatasetImportError(`Transactions CSV row ${rowNumber} has an invalid gas price.`);
+      throw new DatasetImportError(
+        `Transactions CSV row ${rowNumber} has an invalid gas price. Export the transaction data again and retry.`
+      );
     }
   });
 
@@ -106,7 +131,9 @@ function readRows(csvText: string, label: string): string[][] {
   try {
     return parseCsvRecords(csvText);
   } catch {
-    throw new DatasetImportError(`${label} contains an unclosed quoted field. Export the data again and retry.`);
+    throw new DatasetImportError(
+      `${label} contains malformed quoting. Export the data again and retry.`
+    );
   }
 }
 

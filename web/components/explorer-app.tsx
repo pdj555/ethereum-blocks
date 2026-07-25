@@ -288,8 +288,8 @@ export function ExplorerApp() {
     return {
       txTotal,
       costTotal,
-      txPeak: Math.max(...dataset.txSeries),
-      costPeak: Math.max(...dataset.costSeries)
+      txPeak: dataset.txSeries.reduce((highest, value) => Math.max(highest, value), 0),
+      costPeak: dataset.costSeries.reduce((highest, value) => Math.max(highest, value), 0)
     };
   }, [dataset]);
 
