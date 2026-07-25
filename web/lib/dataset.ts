@@ -20,7 +20,7 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
   const addressMap = new Map<string, MutableAddressProfile>();
   let totalTransactionsMetadata = 0;
   let contractCreations = 0;
-  let largestTransaction = { blockNumber: 0, costEth: 0 };
+  let largestTransaction: { blockNumber: number; costEth: number } | null = null;
 
   blocks.forEach((block) => {
     totalTransactionsMetadata += block.transactionCountMetadata;
@@ -62,7 +62,7 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
       contractCreations += 1;
     }
 
-    if (tx.costEth > largestTransaction.costEth) {
+    if (!largestTransaction || tx.costEth > largestTransaction.costEth) {
       largestTransaction = { blockNumber: tx.blockNumber, costEth: tx.costEth };
     }
 
@@ -150,12 +150,10 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
       )
       .slice(0, 6),
     activeAddresses: addressProfiles.slice(0, 6),
-    heaviestSender: addressProfiles
-      .slice()
-      .sort((left, right) => right.outboundEth - left.outboundEth)[0],
-    heaviestReceiver: addressProfiles
-      .slice()
-      .sort((left, right) => right.inboundEth - left.inboundEth)[0],
+    heaviestSender:
+      addressProfiles.slice().sort((left, right) => right.outboundEth - left.outboundEth)[0] ?? null,
+    heaviestReceiver:
+      addressProfiles.slice().sort((left, right) => right.inboundEth - left.inboundEth)[0] ?? null,
     largestTransaction,
     blockMap,
     addressMap: new Map(addressProfiles.map((profile) => [profile.address, profile])),

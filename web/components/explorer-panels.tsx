@@ -130,10 +130,22 @@ export function SideRail({ dataset, onJump }: SideRailProps) {
       </SectionFrame>
       <SectionFrame title="Network glance">
         <div className="glance-list">
-          <GlanceRow label="Largest tx" value={`Block ${dataset.largestTransaction.blockNumber}`} />
-          <GlanceRow label="Cost" value={formatEth(dataset.largestTransaction.costEth)} />
-          <GlanceRow label="Heaviest sender" value={shorten(dataset.heaviestSender.address)} />
-          <GlanceRow label="Heaviest receiver" value={shorten(dataset.heaviestReceiver.address)} />
+          <GlanceRow
+            label="Largest tx"
+            value={dataset.largestTransaction ? `Block ${dataset.largestTransaction.blockNumber}` : "—"}
+          />
+          <GlanceRow
+            label="Cost"
+            value={dataset.largestTransaction ? formatEth(dataset.largestTransaction.costEth) : "—"}
+          />
+          <GlanceRow
+            label="Heaviest sender"
+            value={dataset.heaviestSender ? shorten(dataset.heaviestSender.address) : "—"}
+          />
+          <GlanceRow
+            label="Heaviest receiver"
+            value={dataset.heaviestReceiver ? shorten(dataset.heaviestReceiver.address) : "—"}
+          />
           <GlanceRow label="Avg tx / block" value={formatDecimal(overview.avgTransactionsPerBlock, 2)} />
         </div>
       </SectionFrame>

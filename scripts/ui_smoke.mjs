@@ -6,6 +6,32 @@ import { chromium } from "playwright";
 
 const root = resolve(process.cwd(), "web/out");
 const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
+const importMiner = "0x1111111111111111111111111111111111111111";
+const importSender = "0x2222222222222222222222222222222222222222";
+const importReceiver = "0x3333333333333333333333333333333333333333";
+
+function blockRow(number) {
+  const fields = Array(18).fill("");
+  fields[0] = String(number);
+  fields[9] = importMiner;
+  fields[16] = "1700000000";
+  fields[17] = number === 900449 ? "1" : "0";
+  return fields.join(",");
+}
+
+const importedBlocks = Array.from({ length: 450 }, (_, index) => blockRow(900000 + index)).join("\n");
+const importedTransactions = [
+  "0xhash",
+  "21000",
+  "0xblockhash",
+  "900449",
+  "0",
+  importSender,
+  importReceiver,
+  "0",
+  "21000",
+  "1000000000"
+].join(",");
 
 function contentTypeFor(filePath) {
   switch (extname(filePath)) {
@@ -81,6 +107,33 @@ try {
     await page.getByText("100 blocks", { exact: true }).first().isVisible(),
     "Overview summary did not render."
   );
+
+  await page.getByRole("button", { name: "Load your CSVs" }).click();
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "invalid-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("invalid")
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Blocks CSV row 1 needs at least 18 columns. Export the block data again and retry.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedBlocks)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("heading", { name: "Block 900000" }).waitFor();
+  assertCondition((await page.getByRole("listitem").count()) <= 400, "Large imports rendered too many timeline cells.");
+  await page.getByText("blocks.csv + transactions.csv", { exact: true }).waitFor();
+
+  await page.getByRole("button", { name: "Use bundled sample" }).click();
+  await page.getByRole("heading", { name: "Block 15049311" }).waitFor();
 
   await page.getByRole("button", { name: "Address" }).click();
   await page.getByLabel("Search query").fill(invalidAddress);

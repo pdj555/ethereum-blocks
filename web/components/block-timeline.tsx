@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { Dataset } from "@/lib/types";
 import { formatEth, formatInteger } from "@/lib/utils";
 
@@ -14,6 +14,49 @@ export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineP
   const peak = Math.max(...dataset.txSeries, 1);
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const timelinePoints = useMemo(() => {
+    const total = dataset.blockNumbers.length;
+    if (total <= 400) {
+      return dataset.blockNumbers.map((blockNumber, index) => ({ blockNumber, index }));
+    }
+
+    const stride = Math.ceil(total / 400);
+    const indexes = new Set<number>();
+    for (let index = 0; index < total; index += stride) {
+      indexes.add(index);
+    }
+    indexes.add(total - 1);
+
+    while (indexes.size > 400) {
+      const removable = Array.from(indexes)
+        .filter((index) => index !== 0 && index !== total - 1)
+        .sort((left, right) => right - left)[0];
+      if (removable === undefined) {
+        break;
+      }
+      indexes.delete(removable);
+    }
+
+    const activeIndex = activeBlock === null ? -1 : dataset.blockNumbers.indexOf(activeBlock);
+    if (activeIndex >= 0 && !indexes.has(activeIndex)) {
+      indexes.add(activeIndex);
+      if (indexes.size > 400) {
+        const nearestNeighbor = Array.from(indexes)
+          .filter((index) => index !== 0 && index !== total - 1 && index !== activeIndex)
+          .sort(
+            (left, right) =>
+              Math.abs(left - activeIndex) - Math.abs(right - activeIndex) || left - right
+          )[0];
+        if (nearestNeighbor !== undefined) {
+          indexes.delete(nearestNeighbor);
+        }
+      }
+    }
+
+    return Array.from(indexes)
+      .sort((left, right) => left - right)
+      .map((index) => ({ blockNumber: dataset.blockNumbers[index]!, index }));
+  }, [activeBlock, dataset.blockNumbers]);
 
   const pickFromClientX = useCallback(
     (clientX: number) => {
@@ -58,7 +101,7 @@ export function BlockTimeline({ dataset, activeBlock, onSelect }: BlockTimelineP
           draggingRef.current = false;
         }}
       >
-        {dataset.blockNumbers.map((blockNumber, index) => {
+        {timelinePoints.map(({ blockNumber, index }) => {
           const txCount = dataset.txSeries[index] ?? 0;
           const intensity = txCount / peak;
           const isActive = activeBlock === blockNumber;

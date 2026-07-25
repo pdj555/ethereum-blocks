@@ -44,8 +44,12 @@ Layering inside `src/`:
 **Browser UI (`web/`)** — Next.js static export (App Router) built with `make ui-build`, served locally via `make ui`, shipped to Vercel via `vercel.json`. The browser still parses the same CSVs locally — no backend.
 - `app/page.tsx` + `components/explorer-app.tsx` — client shell: fetches `/ethereumP1data.csv` + `/ethereumtransactions1.csv`, hash routing (`#block/N`, `#address/0x…`), drives renders.
 - `lib/parser.ts` — quote-aware CSV parser (mirror of `CsvReader.java`'s rules).
+- `lib/dataset-import.ts` — strict client-only boundary for user-selected CSVs. It validates raw positional rows before typed parsing, rejects duplicate blocks, filters transactions to imported block numbers, and enforces a 25 MiB limit per file.
 - `lib/dataset.ts` — builds the in-memory dataset (block map, address profiles, miner counts) — the browser-side analog of `Blocks` + `AgentAPI`.
+- Empty-network datasets are valid: `heaviestSender`, `heaviestReceiver`, and `largestTransaction` are nullable when no imported transactions match the imported blocks.
 - `components/explorer-panels.tsx` — result/rail/search UI.
+- `components/dataset-importer.tsx` — accessible native-dialog import surface and bundled-sample reset. File reads stay in the browser.
+- `components/block-timeline.tsx` — renders at most 400 sampled timeline cells while search, keyboard stepping, scrubbing, and navigation retain the full block-number array.
 - `lib/utils.ts` — formatters + address heuristics shared by components.
 - `app/globals.css` — Distro-inspired dashboard styling (bordered panels, spark charts, light/dark).
 - `public/` — static assets; CSVs copied from repo root at build time via `web/scripts/prebuild.mjs`.
