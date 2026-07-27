@@ -1,0 +1,568 @@
+- generic [active] [ref=e1]:
+  - generic: loading...
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: 100 blocks · 2,738 parsed tx
+        - button "dark mode" [ref=e6] [cursor=pointer]
+      - strong [ref=e7]: Ethereum Block Explorer
+      - link "github" [ref=e9] [cursor=pointer]:
+        - /url: https://github.com/pdj555/ethereum-blocks
+    - generic [ref=e10]:
+      - heading "Ethereum Block Explorer" [level=1] [ref=e11]
+      - paragraph [ref=e12]: One hundred blocks. Read the chain one row at a time. Search one block or one address. Numbers stay exact. Hex stays monospace. Nothing renders that the dataset cannot back.
+      - generic [ref=e13]:
+        - generic "Search type" [ref=e14]:
+          - button "Block" [pressed] [ref=e15] [cursor=pointer]
+          - button "Address" [ref=e16] [cursor=pointer]
+        - generic [ref=e17]: Search query
+        - textbox "Search query" [ref=e18]:
+          - /placeholder: "15049311"
+          - text: "15049311"
+        - button "Inspect" [ref=e19] [cursor=pointer]
+      - paragraph [ref=e20]: Start with block 15049311 or choose one from hot blocks.
+    - generic [ref=e21]:
+      - article [ref=e22]:
+        - generic [ref=e23]: Loaded
+        - strong [ref=e24]: 100 blocks
+        - generic [ref=e25]: 15049308-15049407
+      - article [ref=e26]:
+        - generic [ref=e27]: Miners
+        - strong [ref=e28]: "20"
+        - generic [ref=e29]: 27% top share
+      - article [ref=e30]:
+        - generic [ref=e31]: Transactions
+        - strong [ref=e32]: 2,738
+        - generic [ref=e33]: 19,433 in metadata
+      - article [ref=e34]:
+        - generic [ref=e35]: Addresses
+        - strong [ref=e36]: 2,787
+        - generic [ref=e37]: 4 contract creations
+    - generic [ref=e38]:
+      - heading "Chain activity" [level=2] [ref=e39]
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - generic [ref=e43]: Parsed transactions / block
+            - generic [ref=e44]: 2,738 total · peak 364
+          - img [ref=e45]
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: Block cost / ETH
+            - generic [ref=e51]: 26.040956 ETH total · peak 5.245106 ETH
+          - img [ref=e52]
+    - generic [ref=e55]:
+      - generic [ref=e56]:
+        - heading "Block lookup" [level=2] [ref=e57]
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - paragraph [ref=e60]: Block
+            - heading "Block 15049311" [level=2] [ref=e61]
+          - paragraph [ref=e62]: Jun 30, 2022, 2:51 AM · Miner 0x00192f...f599e8
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - generic [ref=e66]: Miner
+              - button "0x00192f...f599e8" [ref=e68] [cursor=pointer]
+            - generic [ref=e69]:
+              - generic [ref=e70]: Parsed tx
+              - generic [ref=e71]: "39"
+            - generic [ref=e72]:
+              - generic [ref=e73]: Metadata tx
+              - generic [ref=e74]: "39"
+            - generic [ref=e75]:
+              - generic [ref=e76]: Avg cost
+              - generic [ref=e77]: 0.006081 ETH
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - heading "Block view" [level=3] [ref=e80]
+              - generic [ref=e81]:
+                - generic [ref=e82]:
+                  - generic [ref=e83]: Timestamp
+                  - strong [ref=e84]: Jun 30, 2022, 2:51 AM
+                - generic [ref=e85]:
+                  - generic [ref=e86]: Total cost
+                  - strong [ref=e87]: 0.237147 ETH
+                - generic [ref=e88]:
+                  - generic [ref=e89]: Unique senders
+                  - strong [ref=e90]: "31"
+                - generic [ref=e91]:
+                  - generic [ref=e92]: Unique receivers
+                  - strong [ref=e93]: "35"
+            - generic [ref=e94]:
+              - heading "Top senders" [level=3] [ref=e95]
+              - generic [ref=e96]:
+                - generic [ref=e97]:
+                  - button "0x7f101f...f2b90c" [ref=e99] [cursor=pointer]
+                  - strong [ref=e100]: 8 tx
+                - generic [ref=e101]:
+                  - button "0xcf1d97...869623" [ref=e103] [cursor=pointer]
+                  - strong [ref=e104]: 2 tx
+                - generic [ref=e105]:
+                  - button "0xcfadf6...fb6545" [ref=e107] [cursor=pointer]
+                  - strong [ref=e108]: 1 tx
+                - generic [ref=e109]:
+                  - button "0x46340b...eb9758" [ref=e111] [cursor=pointer]
+                  - strong [ref=e112]: 1 tx
+          - generic [ref=e113]:
+            - heading "Transactions" [level=3] [ref=e114]
+            - table [ref=e116]:
+              - rowgroup [ref=e117]:
+                - row "Index From To Type Cost" [ref=e118]:
+                  - columnheader "Index" [ref=e119]
+                  - columnheader "From" [ref=e120]
+                  - columnheader "To" [ref=e121]
+                  - columnheader "Type" [ref=e122]
+                  - columnheader "Cost" [ref=e123]
+              - rowgroup [ref=e124]:
+                - row "0 0xcf1d97...869623 0x7d1afa...cfebb0 Transfer 0.002372 ETH" [ref=e125]:
+                  - cell "0" [ref=e126]
+                  - cell "0xcf1d97...869623" [ref=e127]:
+                    - button "0xcf1d97...869623" [ref=e128] [cursor=pointer]
+                  - cell "0x7d1afa...cfebb0" [ref=e129]:
+                    - button "0x7d1afa...cfebb0" [ref=e130] [cursor=pointer]
+                  - cell "Transfer" [ref=e131]:
+                    - generic [ref=e132]: Transfer
+                  - cell "0.002372 ETH" [ref=e133]
+                - row "1 0xcf1d97...869623 0x881d40...8d300c Transfer 0.014534 ETH" [ref=e134]:
+                  - cell "1" [ref=e135]
+                  - cell "0xcf1d97...869623" [ref=e136]:
+                    - button "0xcf1d97...869623" [ref=e137] [cursor=pointer]
+                  - cell "0x881d40...8d300c" [ref=e138]:
+                    - button "0x881d40...8d300c" [ref=e139] [cursor=pointer]
+                  - cell "Transfer" [ref=e140]:
+                    - generic [ref=e141]: Transfer
+                  - cell "0.014534 ETH" [ref=e142]
+                - row "2 0xcfadf6...fb6545 0x61415f...ddd83d Transfer 0.002083 ETH" [ref=e143]:
+                  - cell "2" [ref=e144]
+                  - cell "0xcfadf6...fb6545" [ref=e145]:
+                    - button "0xcfadf6...fb6545" [ref=e146] [cursor=pointer]
+                  - cell "0x61415f...ddd83d" [ref=e147]:
+                    - button "0x61415f...ddd83d" [ref=e148] [cursor=pointer]
+                  - cell "Transfer" [ref=e149]:
+                    - generic [ref=e150]: Transfer
+                  - cell "0.002083 ETH" [ref=e151]
+                - row "3 0x46340b...eb9758 0x6e97b6...4794f8 Transfer 0.020636 ETH" [ref=e152]:
+                  - cell "3" [ref=e153]
+                  - cell "0x46340b...eb9758" [ref=e154]:
+                    - button "0x46340b...eb9758" [ref=e155] [cursor=pointer]
+                  - cell "0x6e97b6...4794f8" [ref=e156]:
+                    - button "0x6e97b6...4794f8" [ref=e157] [cursor=pointer]
+                  - cell "Transfer" [ref=e158]:
+                    - generic [ref=e159]: Transfer
+                  - cell "0.020636 ETH" [ref=e160]
+                - row "4 0x416299...06eef5 0xa38088...e10a45 Transfer 0.002840 ETH" [ref=e161]:
+                  - cell "4" [ref=e162]
+                  - cell "0x416299...06eef5" [ref=e163]:
+                    - button "0x416299...06eef5" [ref=e164] [cursor=pointer]
+                  - cell "0xa38088...e10a45" [ref=e165]:
+                    - button "0xa38088...e10a45" [ref=e166] [cursor=pointer]
+                  - cell "Transfer" [ref=e167]:
+                    - generic [ref=e168]: Transfer
+                  - cell "0.002840 ETH" [ref=e169]
+                - row "5 0x75e89d...1dcb88 0x71a28f...21e7e0 Transfer 0.003948 ETH" [ref=e170]:
+                  - cell "5" [ref=e171]
+                  - cell "0x75e89d...1dcb88" [ref=e172]:
+                    - button "0x75e89d...1dcb88" [ref=e173] [cursor=pointer]
+                  - cell "0x71a28f...21e7e0" [ref=e174]:
+                    - button "0x71a28f...21e7e0" [ref=e175] [cursor=pointer]
+                  - cell "Transfer" [ref=e176]:
+                    - generic [ref=e177]: Transfer
+                  - cell "0.003948 ETH" [ref=e178]
+                - row "6 0x7f101f...f2b90c 0xcc8ceb...6df832 Transfer 0.001048 ETH" [ref=e179]:
+                  - cell "6" [ref=e180]
+                  - cell "0x7f101f...f2b90c" [ref=e181]:
+                    - button "0x7f101f...f2b90c" [ref=e182] [cursor=pointer]
+                  - cell "0xcc8ceb...6df832" [ref=e183]:
+                    - button "0xcc8ceb...6df832" [ref=e184] [cursor=pointer]
+                  - cell "Transfer" [ref=e185]:
+                    - generic [ref=e186]: Transfer
+                  - cell "0.001048 ETH" [ref=e187]
+                - row "7 0x7f101f...f2b90c 0xde9450...659d52 Transfer 0.001048 ETH" [ref=e188]:
+                  - cell "7" [ref=e189]
+                  - cell "0x7f101f...f2b90c" [ref=e190]:
+                    - button "0x7f101f...f2b90c" [ref=e191] [cursor=pointer]
+                  - cell "0xde9450...659d52" [ref=e192]:
+                    - button "0xde9450...659d52" [ref=e193] [cursor=pointer]
+                  - cell "Transfer" [ref=e194]:
+                    - generic [ref=e195]: Transfer
+                  - cell "0.001048 ETH" [ref=e196]
+                - row "8 0x7f101f...f2b90c 0x68c3e1...f57320 Transfer 0.001048 ETH" [ref=e197]:
+                  - cell "8" [ref=e198]
+                  - cell "0x7f101f...f2b90c" [ref=e199]:
+                    - button "0x7f101f...f2b90c" [ref=e200] [cursor=pointer]
+                  - cell "0x68c3e1...f57320" [ref=e201]:
+                    - button "0x68c3e1...f57320" [ref=e202] [cursor=pointer]
+                  - cell "Transfer" [ref=e203]:
+                    - generic [ref=e204]: Transfer
+                  - cell "0.001048 ETH" [ref=e205]
+                - row "9 0x7f101f...f2b90c 0x0dd54a...546c90 Transfer 0.001048 ETH" [ref=e206]:
+                  - cell "9" [ref=e207]
+                  - cell "0x7f101f...f2b90c" [ref=e208]:
+                    - button "0x7f101f...f2b90c" [ref=e209] [cursor=pointer]
+                  - cell "0x0dd54a...546c90" [ref=e210]:
+                    - button "0x0dd54a...546c90" [ref=e211] [cursor=pointer]
+                  - cell "Transfer" [ref=e212]:
+                    - generic [ref=e213]: Transfer
+                  - cell "0.001048 ETH" [ref=e214]
+                - row "10 0x7f101f...f2b90c 0xb2a889...05dc89 Transfer 0.001048 ETH" [ref=e215]:
+                  - cell "10" [ref=e216]
+                  - cell "0x7f101f...f2b90c" [ref=e217]:
+                    - button "0x7f101f...f2b90c" [ref=e218] [cursor=pointer]
+                  - cell "0xb2a889...05dc89" [ref=e219]:
+                    - button "0xb2a889...05dc89" [ref=e220] [cursor=pointer]
+                  - cell "Transfer" [ref=e221]:
+                    - generic [ref=e222]: Transfer
+                  - cell "0.001048 ETH" [ref=e223]
+                - row "11 0x7f101f...f2b90c 0xa005ed...efa58a Transfer 0.001048 ETH" [ref=e224]:
+                  - cell "11" [ref=e225]
+                  - cell "0x7f101f...f2b90c" [ref=e226]:
+                    - button "0x7f101f...f2b90c" [ref=e227] [cursor=pointer]
+                  - cell "0xa005ed...efa58a" [ref=e228]:
+                    - button "0xa005ed...efa58a" [ref=e229] [cursor=pointer]
+                  - cell "Transfer" [ref=e230]:
+                    - generic [ref=e231]: Transfer
+                  - cell "0.001048 ETH" [ref=e232]
+                - row "12 0x7f101f...f2b90c 0x7ba3ef...432d82 Transfer 0.001048 ETH" [ref=e233]:
+                  - cell "12" [ref=e234]
+                  - cell "0x7f101f...f2b90c" [ref=e235]:
+                    - button "0x7f101f...f2b90c" [ref=e236] [cursor=pointer]
+                  - cell "0x7ba3ef...432d82" [ref=e237]:
+                    - button "0x7ba3ef...432d82" [ref=e238] [cursor=pointer]
+                  - cell "Transfer" [ref=e239]:
+                    - generic [ref=e240]: Transfer
+                  - cell "0.001048 ETH" [ref=e241]
+                - row "13 0x7f101f...f2b90c 0xb022e0...e1b906 Transfer 0.001048 ETH" [ref=e242]:
+                  - cell "13" [ref=e243]
+                  - cell "0x7f101f...f2b90c" [ref=e244]:
+                    - button "0x7f101f...f2b90c" [ref=e245] [cursor=pointer]
+                  - cell "0xb022e0...e1b906" [ref=e246]:
+                    - button "0xb022e0...e1b906" [ref=e247] [cursor=pointer]
+                  - cell "Transfer" [ref=e248]:
+                    - generic [ref=e249]: Transfer
+                  - cell "0.001048 ETH" [ref=e250]
+                - row "14 0x2c3db2...c21380 0xdac17f...831ec7 Transfer 0.003460 ETH" [ref=e251]:
+                  - cell "14" [ref=e252]
+                  - cell "0x2c3db2...c21380" [ref=e253]:
+                    - button "0x2c3db2...c21380" [ref=e254] [cursor=pointer]
+                  - cell "0xdac17f...831ec7" [ref=e255]:
+                    - button "0xdac17f...831ec7" [ref=e256] [cursor=pointer]
+                  - cell "Transfer" [ref=e257]:
+                    - generic [ref=e258]: Transfer
+                  - cell "0.003460 ETH" [ref=e259]
+                - row "15 0x3ce434...8bd754 0x1aaba8...dc1218 Transfer 0.002277 ETH" [ref=e260]:
+                  - cell "15" [ref=e261]
+                  - cell "0x3ce434...8bd754" [ref=e262]:
+                    - button "0x3ce434...8bd754" [ref=e263] [cursor=pointer]
+                  - cell "0x1aaba8...dc1218" [ref=e264]:
+                    - button "0x1aaba8...dc1218" [ref=e265] [cursor=pointer]
+                  - cell "Transfer" [ref=e266]:
+                    - generic [ref=e267]: Transfer
+                  - cell "0.002277 ETH" [ref=e268]
+                - row "16 0x63acc4...ef1541 0x46fdfc...7b40d9 Transfer 0.002282 ETH" [ref=e269]:
+                  - cell "16" [ref=e270]
+                  - cell "0x63acc4...ef1541" [ref=e271]:
+                    - button "0x63acc4...ef1541" [ref=e272] [cursor=pointer]
+                  - cell "0x46fdfc...7b40d9" [ref=e273]:
+                    - button "0x46fdfc...7b40d9" [ref=e274] [cursor=pointer]
+                  - cell "Transfer" [ref=e275]:
+                    - generic [ref=e276]: Transfer
+                  - cell "0.002282 ETH" [ref=e277]
+                - row "17 0xe598a5...56351b 0xb2a512...63b4f8 Transfer 0.002540 ETH" [ref=e278]:
+                  - cell "17" [ref=e279]
+                  - cell "0xe598a5...56351b" [ref=e280]:
+                    - button "0xe598a5...56351b" [ref=e281] [cursor=pointer]
+                  - cell "0xb2a512...63b4f8" [ref=e282]:
+                    - button "0xb2a512...63b4f8" [ref=e283] [cursor=pointer]
+                  - cell "Transfer" [ref=e284]:
+                    - generic [ref=e285]: Transfer
+                  - cell "0.002540 ETH" [ref=e286]
+                - row "18 0xd6d791...f96358 0xae0ee0...48d419 Transfer 0.008146 ETH" [ref=e287]:
+                  - cell "18" [ref=e288]
+                  - cell "0xd6d791...f96358" [ref=e289]:
+                    - button "0xd6d791...f96358" [ref=e290] [cursor=pointer]
+                  - cell "0xae0ee0...48d419" [ref=e291]:
+                    - button "0xae0ee0...48d419" [ref=e292] [cursor=pointer]
+                  - cell "Transfer" [ref=e293]:
+                    - generic [ref=e294]: Transfer
+                  - cell "0.008146 ETH" [ref=e295]
+                - row "19 0x8b54ff...02cf8e 0xd62899...c4c6bf Transfer 0.002281 ETH" [ref=e296]:
+                  - cell "19" [ref=e297]
+                  - cell "0x8b54ff...02cf8e" [ref=e298]:
+                    - button "0x8b54ff...02cf8e" [ref=e299] [cursor=pointer]
+                  - cell "0xd62899...c4c6bf" [ref=e300]:
+                    - button "0xd62899...c4c6bf" [ref=e301] [cursor=pointer]
+                  - cell "Transfer" [ref=e302]:
+                    - generic [ref=e303]: Transfer
+                  - cell "0.002281 ETH" [ref=e304]
+                - row "20 0x030147...9e2c06 0x000000...ede581 Transfer 0.008091 ETH" [ref=e305]:
+                  - cell "20" [ref=e306]
+                  - cell "0x030147...9e2c06" [ref=e307]:
+                    - button "0x030147...9e2c06" [ref=e308] [cursor=pointer]
+                  - cell "0x000000...ede581" [ref=e309]:
+                    - button "0x000000...ede581" [ref=e310] [cursor=pointer]
+                  - cell "Transfer" [ref=e311]:
+                    - generic [ref=e312]: Transfer
+                  - cell "0.008091 ETH" [ref=e313]
+                - row "21 0xc10e00...6bfb27 0x4b4fa2...0f3a85 Transfer 0.002539 ETH" [ref=e314]:
+                  - cell "21" [ref=e315]
+                  - cell "0xc10e00...6bfb27" [ref=e316]:
+                    - button "0xc10e00...6bfb27" [ref=e317] [cursor=pointer]
+                  - cell "0x4b4fa2...0f3a85" [ref=e318]:
+                    - button "0x4b4fa2...0f3a85" [ref=e319] [cursor=pointer]
+                  - cell "Transfer" [ref=e320]:
+                    - generic [ref=e321]: Transfer
+                  - cell "0.002539 ETH" [ref=e322]
+                - row "22 0xd2fddf...ea83d7 0x000000...ede581 Transfer 0.005838 ETH" [ref=e323]:
+                  - cell "22" [ref=e324]
+                  - cell "0xd2fddf...ea83d7" [ref=e325]:
+                    - button "0xd2fddf...ea83d7" [ref=e326] [cursor=pointer]
+                  - cell "0x000000...ede581" [ref=e327]:
+                    - button "0x000000...ede581" [ref=e328] [cursor=pointer]
+                  - cell "Transfer" [ref=e329]:
+                    - generic [ref=e330]: Transfer
+                  - cell "0.005838 ETH" [ref=e331]
+                - row "23 0x4ec731...f16ecf 0xdef1c0...b25eff Transfer 0.013935 ETH" [ref=e332]:
+                  - cell "23" [ref=e333]
+                  - cell "0x4ec731...f16ecf" [ref=e334]:
+                    - button "0x4ec731...f16ecf" [ref=e335] [cursor=pointer]
+                  - cell "0xdef1c0...b25eff" [ref=e336]:
+                    - button "0xdef1c0...b25eff" [ref=e337] [cursor=pointer]
+                  - cell "Transfer" [ref=e338]:
+                    - generic [ref=e339]: Transfer
+                  - cell "0.013935 ETH" [ref=e340]
+                - row "24 0x503828...1d23da 0xa0b869...06eb48 Transfer 0.012224 ETH" [ref=e341]:
+                  - cell "24" [ref=e342]
+                  - cell "0x503828...1d23da" [ref=e343]:
+                    - button "0x503828...1d23da" [ref=e344] [cursor=pointer]
+                  - cell "0xa0b869...06eb48" [ref=e345]:
+                    - button "0xa0b869...06eb48" [ref=e346] [cursor=pointer]
+                  - cell "Transfer" [ref=e347]:
+                    - generic [ref=e348]: Transfer
+                  - cell "0.012224 ETH" [ref=e349]
+                - row "25 0x901569...bcb422 0xb6ee96...097143 Transfer 0.002725 ETH" [ref=e350]:
+                  - cell "25" [ref=e351]
+                  - cell "0x901569...bcb422" [ref=e352]:
+                    - button "0x901569...bcb422" [ref=e353] [cursor=pointer]
+                  - cell "0xb6ee96...097143" [ref=e354]:
+                    - button "0xb6ee96...097143" [ref=e355] [cursor=pointer]
+                  - cell "Transfer" [ref=e356]:
+                    - generic [ref=e357]: Transfer
+                  - cell "0.002725 ETH" [ref=e358]
+                - row "26 0xf15968...b5affb 0xda1491...a327b6 Transfer 0.001439 ETH" [ref=e359]:
+                  - cell "26" [ref=e360]
+                  - cell "0xf15968...b5affb" [ref=e361]:
+                    - button "0xf15968...b5affb" [ref=e362] [cursor=pointer]
+                  - cell "0xda1491...a327b6" [ref=e363]:
+                    - button "0xda1491...a327b6" [ref=e364] [cursor=pointer]
+                  - cell "Transfer" [ref=e365]:
+                    - generic [ref=e366]: Transfer
+                  - cell "0.001439 ETH" [ref=e367]
+                - row "27 0xec2163...3f4880 0x2b591e...0eeb39 Transfer 0.003851 ETH" [ref=e368]:
+                  - cell "27" [ref=e369]
+                  - cell "0xec2163...3f4880" [ref=e370]:
+                    - button "0xec2163...3f4880" [ref=e371] [cursor=pointer]
+                  - cell "0x2b591e...0eeb39" [ref=e372]:
+                    - button "0x2b591e...0eeb39" [ref=e373] [cursor=pointer]
+                  - cell "Transfer" [ref=e374]:
+                    - generic [ref=e375]: Transfer
+                  - cell "0.003851 ETH" [ref=e376]
+                - row "28 0x57e962...10b362 0xb8901a...19727f Transfer 0.005843 ETH" [ref=e377]:
+                  - cell "28" [ref=e378]
+                  - cell "0x57e962...10b362" [ref=e379]:
+                    - button "0x57e962...10b362" [ref=e380] [cursor=pointer]
+                  - cell "0xb8901a...19727f" [ref=e381]:
+                    - button "0xb8901a...19727f" [ref=e382] [cursor=pointer]
+                  - cell "Transfer" [ref=e383]:
+                    - generic [ref=e384]: Transfer
+                  - cell "0.005843 ETH" [ref=e385]
+                - row "29 0xa6cffc...5c7c78 0x249b61...f90673 Transfer 0.001016 ETH" [ref=e386]:
+                  - cell "29" [ref=e387]
+                  - cell "0xa6cffc...5c7c78" [ref=e388]:
+                    - button "0xa6cffc...5c7c78" [ref=e389] [cursor=pointer]
+                  - cell "0x249b61...f90673" [ref=e390]:
+                    - button "0x249b61...f90673" [ref=e391] [cursor=pointer]
+                  - cell "Transfer" [ref=e392]:
+                    - generic [ref=e393]: Transfer
+                  - cell "0.001016 ETH" [ref=e394]
+                - row "30 0xc5d42d...459e1c 0x000000...ede581 Transfer 0.014789 ETH" [ref=e395]:
+                  - cell "30" [ref=e396]
+                  - cell "0xc5d42d...459e1c" [ref=e397]:
+                    - button "0xc5d42d...459e1c" [ref=e398] [cursor=pointer]
+                  - cell "0x000000...ede581" [ref=e399]:
+                    - button "0x000000...ede581" [ref=e400] [cursor=pointer]
+                  - cell "Transfer" [ref=e401]:
+                    - generic [ref=e402]: Transfer
+                  - cell "0.014789 ETH" [ref=e403]
+                - row "31 0x158b0f...6b20a5 0x5c1c2c...781860 Transfer 0.001016 ETH" [ref=e404]:
+                  - cell "31" [ref=e405]
+                  - cell "0x158b0f...6b20a5" [ref=e406]:
+                    - button "0x158b0f...6b20a5" [ref=e407] [cursor=pointer]
+                  - cell "0x5c1c2c...781860" [ref=e408]:
+                    - button "0x5c1c2c...781860" [ref=e409] [cursor=pointer]
+                  - cell "Transfer" [ref=e410]:
+                    - generic [ref=e411]: Transfer
+                  - cell "0.001016 ETH" [ref=e412]
+                - row "32 0xf4ec3e...8827be 0x68b346...65fc45 Transfer 0.008772 ETH" [ref=e413]:
+                  - cell "32" [ref=e414]
+                  - cell "0xf4ec3e...8827be" [ref=e415]:
+                    - button "0xf4ec3e...8827be" [ref=e416] [cursor=pointer]
+                  - cell "0x68b346...65fc45" [ref=e417]:
+                    - button "0x68b346...65fc45" [ref=e418] [cursor=pointer]
+                  - cell "Transfer" [ref=e419]:
+                    - generic [ref=e420]: Transfer
+                  - cell "0.008772 ETH" [ref=e421]
+                - row "33 0x07d3b6...7e1408 0x68b346...65fc45 Transfer 0.008218 ETH" [ref=e422]:
+                  - cell "33" [ref=e423]
+                  - cell "0x07d3b6...7e1408" [ref=e424]:
+                    - button "0x07d3b6...7e1408" [ref=e425] [cursor=pointer]
+                  - cell "0x68b346...65fc45" [ref=e426]:
+                    - button "0x68b346...65fc45" [ref=e427] [cursor=pointer]
+                  - cell "Transfer" [ref=e428]:
+                    - generic [ref=e429]: Transfer
+                  - cell "0.008218 ETH" [ref=e430]
+                - row "34 0x033d1a...37d41d 0x0df016...c52e14 Transfer 0.011768 ETH" [ref=e431]:
+                  - cell "34" [ref=e432]
+                  - cell "0x033d1a...37d41d" [ref=e433]:
+                    - button "0x033d1a...37d41d" [ref=e434] [cursor=pointer]
+                  - cell "0x0df016...c52e14" [ref=e435]:
+                    - button "0x0df016...c52e14" [ref=e436] [cursor=pointer]
+                  - cell "Transfer" [ref=e437]:
+                    - generic [ref=e438]: Transfer
+                  - cell "0.011768 ETH" [ref=e439]
+                - row "35 0x69ae44...e83be1 0x68b346...65fc45 Transfer 0.009142 ETH" [ref=e440]:
+                  - cell "35" [ref=e441]
+                  - cell "0x69ae44...e83be1" [ref=e442]:
+                    - button "0x69ae44...e83be1" [ref=e443] [cursor=pointer]
+                  - cell "0x68b346...65fc45" [ref=e444]:
+                    - button "0x68b346...65fc45" [ref=e445] [cursor=pointer]
+                  - cell "Transfer" [ref=e446]:
+                    - generic [ref=e447]: Transfer
+                  - cell "0.009142 ETH" [ref=e448]
+                - row "36 0x3d4ef5...f6831b 0xcbd683...8575ac Transfer 0.001016 ETH" [ref=e449]:
+                  - cell "36" [ref=e450]
+                  - cell "0x3d4ef5...f6831b" [ref=e451]:
+                    - button "0x3d4ef5...f6831b" [ref=e452] [cursor=pointer]
+                  - cell "0xcbd683...8575ac" [ref=e453]:
+                    - button "0xcbd683...8575ac" [ref=e454] [cursor=pointer]
+                  - cell "Transfer" [ref=e455]:
+                    - generic [ref=e456]: Transfer
+                  - cell "0.001016 ETH" [ref=e457]
+                - row "37 0x5bc228...700460 0xb19e7a...1f03c3 Transfer 0.001011 ETH" [ref=e458]:
+                  - cell "37" [ref=e459]
+                  - cell "0x5bc228...700460" [ref=e460]:
+                    - button "0x5bc228...700460" [ref=e461] [cursor=pointer]
+                  - cell "0xb19e7a...1f03c3" [ref=e462]:
+                    - button "0xb19e7a...1f03c3" [ref=e463] [cursor=pointer]
+                  - cell "Transfer" [ref=e464]:
+                    - generic [ref=e465]: Transfer
+                  - cell "0.001011 ETH" [ref=e466]
+                - row "38 0xf6c75e...5bb9ea 0xb61b5a...0e1e83 Transfer 0.048132 ETH" [ref=e467]:
+                  - cell "38" [ref=e468]
+                  - cell "0xf6c75e...5bb9ea" [ref=e469]:
+                    - button "0xf6c75e...5bb9ea" [ref=e470] [cursor=pointer]
+                  - cell "0xb61b5a...0e1e83" [ref=e471]:
+                    - button "0xb61b5a...0e1e83" [ref=e472] [cursor=pointer]
+                  - cell "Transfer" [ref=e473]:
+                    - generic [ref=e474]: Transfer
+                  - cell "0.048132 ETH" [ref=e475]
+      - generic [ref=e476]:
+        - generic [ref=e477]:
+          - heading "Snapshot" [level=2] [ref=e478]
+          - generic [ref=e479]:
+            - generic [ref=e480]:
+              - generic [ref=e481]: Blocks
+              - strong [ref=e482]: 15049308-15049407
+            - generic [ref=e483]:
+              - generic [ref=e484]: Avg tx / block
+              - strong [ref=e485]: "194.33"
+            - generic [ref=e486]:
+              - generic [ref=e487]: Avg cost / parsed tx
+              - strong [ref=e488]: 0.009511 ETH
+            - generic [ref=e489]:
+              - generic [ref=e490]: Parsed blocks
+              - strong [ref=e491]: "15"
+        - generic [ref=e492]:
+          - heading "Top miners" [level=2] [ref=e493]
+          - generic [ref=e494]:
+            - button "0xea674f...898ec8 27 blocks | latest 15049322" [ref=e495] [cursor=pointer]:
+              - generic [ref=e496]: 0xea674f...898ec8
+              - generic [ref=e497]: 27 blocks | latest 15049322
+            - button "0x829bd8...33a830 14 blocks | latest 15049319" [ref=e498] [cursor=pointer]:
+              - generic [ref=e499]: 0x829bd8...33a830
+              - generic [ref=e500]: 14 blocks | latest 15049319
+            - button "0x1ad91e...b45836 7 blocks | latest 15049316" [ref=e501] [cursor=pointer]:
+              - generic [ref=e502]: 0x1ad91e...b45836
+              - generic [ref=e503]: 7 blocks | latest 15049316
+            - button "0x00192f...f599e8 7 blocks | latest 15049314" [ref=e504] [cursor=pointer]:
+              - generic [ref=e505]: 0x00192f...f599e8
+              - generic [ref=e506]: 7 blocks | latest 15049314
+            - button "0xb7e390...43f707 6 blocks | latest 15049313" [ref=e507] [cursor=pointer]:
+              - generic [ref=e508]: 0xb7e390...43f707
+              - generic [ref=e509]: 6 blocks | latest 15049313
+        - generic [ref=e510]:
+          - heading "Hot blocks" [level=2] [ref=e511]
+          - generic [ref=e512]:
+            - button "Block 15049309 364 tx metadata" [ref=e513] [cursor=pointer]:
+              - generic [ref=e514]: Block 15049309
+              - generic [ref=e515]: 364 tx metadata
+            - button "Block 15049320 353 tx metadata" [ref=e516] [cursor=pointer]:
+              - generic [ref=e517]: Block 15049320
+              - generic [ref=e518]: 353 tx metadata
+            - button "Block 15049308 342 tx metadata" [ref=e519] [cursor=pointer]:
+              - generic [ref=e520]: Block 15049308
+              - generic [ref=e521]: 342 tx metadata
+            - button "Block 15049319 328 tx metadata" [ref=e522] [cursor=pointer]:
+              - generic [ref=e523]: Block 15049319
+              - generic [ref=e524]: 328 tx metadata
+            - button "Block 15049318 296 tx metadata" [ref=e525] [cursor=pointer]:
+              - generic [ref=e526]: Block 15049318
+              - generic [ref=e527]: 296 tx metadata
+            - button "Block 15049321 190 tx metadata" [ref=e528] [cursor=pointer]:
+              - generic [ref=e529]: Block 15049321
+              - generic [ref=e530]: 190 tx metadata
+        - generic [ref=e531]:
+          - heading "Active addresses" [level=2] [ref=e532]
+          - generic [ref=e533]:
+            - button "0x000000...ede581 421 touches" [ref=e534] [cursor=pointer]:
+              - generic [ref=e535]: 0x000000...ede581
+              - generic [ref=e536]: 421 touches
+            - button "0xdac17f...831ec7 184 touches" [ref=e537] [cursor=pointer]:
+              - generic [ref=e538]: 0xdac17f...831ec7
+              - generic [ref=e539]: 184 touches
+            - button "0x881d40...fc6bb1 119 touches" [ref=e540] [cursor=pointer]:
+              - generic [ref=e541]: 0x881d40...fc6bb1
+              - generic [ref=e542]: 119 touches
+            - button "0x7f101f...f2b90c 118 touches" [ref=e543] [cursor=pointer]:
+              - generic [ref=e544]: 0x7f101f...f2b90c
+              - generic [ref=e545]: 118 touches
+            - button "0x808b4d...9bea52 78 touches" [ref=e546] [cursor=pointer]:
+              - generic [ref=e547]: 0x808b4d...9bea52
+              - generic [ref=e548]: 78 touches
+            - button "0x3fda25...74be6d 78 touches" [ref=e549] [cursor=pointer]:
+              - generic [ref=e550]: 0x3fda25...74be6d
+              - generic [ref=e551]: 78 touches
+        - generic [ref=e552]:
+          - heading "Network glance" [level=2] [ref=e553]
+          - generic [ref=e554]:
+            - generic [ref=e555]:
+              - generic [ref=e556]: Largest tx
+              - strong [ref=e557]: Block 15049322
+            - generic [ref=e558]:
+              - generic [ref=e559]: Cost
+              - strong [ref=e560]: 0.243665 ETH
+            - generic [ref=e561]:
+              - generic [ref=e562]: Heaviest sender
+              - strong [ref=e563]: 0x8129b7...03390a
+            - generic [ref=e564]:
+              - generic [ref=e565]: Heaviest receiver
+              - strong [ref=e566]: 0x000000...ede581
+            - generic [ref=e567]:
+              - generic [ref=e568]: Avg tx / block
+              - strong [ref=e569]: "194.33"
+    - contentinfo [ref=e570]:
+      - paragraph [ref=e571]: 100 blocks · static browser explorer · no backend
+      - paragraph [ref=e572]:
+        - link "github.com/pdj555/ethereum-blocks" [ref=e573] [cursor=pointer]:
+          - /url: https://github.com/pdj555/ethereum-blocks
+  - alert [ref=e574]
