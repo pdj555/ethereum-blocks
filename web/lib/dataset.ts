@@ -20,10 +20,14 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
   const addressMap = new Map<string, MutableAddressProfile>();
   let totalTransactionsMetadata = 0;
   let contractCreations = 0;
-  let largestTransaction = { blockNumber: 0, costEth: 0 };
+  let largestTransaction: { blockNumber: number; costEth: number } | null = null;
+  let totalMatchedCostEth = 0;
 
   blocks.forEach((block) => {
     totalTransactionsMetadata += block.transactionCountMetadata;
+    if (!Number.isSafeInteger(totalTransactionsMetadata)) {
+      throw new RangeError("Block transaction totals exceed the supported numeric range.");
+    }
     minerCounts.set(block.miner, (minerCounts.get(block.miner) || 0) + 1);
     blockMap.set(block.number, {
       ...block,
@@ -54,7 +58,13 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
 
     block.transactions.push(tx);
     block.parsedTransactionCount += 1;
-    block.totalCostEth += tx.costEth;
+    const nextBlockCost = block.totalCostEth + tx.costEth;
+    const nextDatasetCost = totalMatchedCostEth + tx.costEth;
+    if (!Number.isFinite(nextBlockCost) || !Number.isFinite(nextDatasetCost)) {
+      throw new RangeError("Transaction cost totals exceed the supported numeric range.");
+    }
+    block.totalCostEth = nextBlockCost;
+    totalMatchedCostEth = nextDatasetCost;
     block.senderCounts.set(tx.from, (block.senderCounts.get(tx.from) || 0) + 1);
     block.receiverCounts.set(tx.to, (block.receiverCounts.get(tx.to) || 0) + 1);
 
@@ -62,7 +72,7 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
       contractCreations += 1;
     }
 
-    if (tx.costEth > largestTransaction.costEth) {
+    if (!largestTransaction || tx.costEth > largestTransaction.costEth) {
       largestTransaction = { blockNumber: tx.blockNumber, costEth: tx.costEth };
     }
 
@@ -131,9 +141,7 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
     blockRangeStart: blocksList[0]?.number ?? 0,
     blockRangeEnd: blocksList[blocksList.length - 1]?.number ?? 0,
     avgTransactionsPerBlock: blocksList.length ? totalTransactionsMetadata / blocksList.length : 0,
-    avgCostPerTxEth: transactions.length
-      ? transactions.reduce((total, tx) => total + tx.costEth, 0) / transactions.length
-      : 0,
+    avgCostPerTxEth: transactions.length ? totalMatchedCostEth / transactions.length : 0,
     blocksWithParsedTransactions: blocksWithParsedTransactions.length,
     topMinerShare: topMiners.length ? topMiners[0].count / blocksList.length : 0
   };
@@ -150,12 +158,12 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
       )
       .slice(0, 6),
     activeAddresses: addressProfiles.slice(0, 6),
-    heaviestSender: addressProfiles
-      .slice()
-      .sort((left, right) => right.outboundEth - left.outboundEth)[0],
-    heaviestReceiver: addressProfiles
-      .slice()
-      .sort((left, right) => right.inboundEth - left.inboundEth)[0],
+    heaviestSender:
+      addressProfiles.slice().sort((left, right) => right.outboundEth - left.outboundEth)[0] ?? null,
+    heaviestReceiver:
+      addressProfiles
+        .filter((profile) => profile.inboundCount > 0)
+        .sort((left, right) => right.inboundEth - left.inboundEth)[0] ?? null,
     largestTransaction,
     blockMap,
     addressMap: new Map(addressProfiles.map((profile) => [profile.address, profile])),

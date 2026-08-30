@@ -4,20 +4,20 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Ethereum Block Explorer — a focused chain reader",
   description:
-    "Inspect one Ethereum block or trace one address across a curated 100-block slice. Numbers exact, hex monospace, nothing the dataset cannot back.",
+    "Privately analyze your own compatible Ethereum CSV exports in the browser, or explore the bundled sample. Files never leave your device.",
   metadataBase: new URL("https://ethereum-blocks.vercel.app"),
   openGraph: {
     type: "website",
     siteName: "Ethereum Block Explorer",
     title: "Ethereum Block Explorer — a focused chain reader",
     description:
-      "Inspect one block or trace one address. Numbers exact, hex monospace, nothing the dataset cannot back.",
+      "Privately analyze your own compatible Ethereum CSV exports in the browser. Files never leave your device.",
     images: ["/og.svg"]
   },
   twitter: {
     card: "summary_large_image",
     title: "Ethereum Block Explorer",
-    description: "Inspect one block or trace one address. Numbers exact, hex monospace.",
+    description: "Privately analyze your own compatible Ethereum CSV exports in the browser.",
     images: ["/og.svg"]
   },
   icons: { icon: "/favicon.svg" }

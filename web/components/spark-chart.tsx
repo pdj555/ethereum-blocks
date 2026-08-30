@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { downsampleSeries } from "@/lib/series";
 import { sparklineAreaPath, sparklinePath } from "@/lib/utils";
 
 type SparkChartProps = {
@@ -23,30 +24,40 @@ export function SparkChart({
   const gradientId = useId().replace(/:/g, "");
   const width = 320;
   const height = 96;
-  const path = sparklinePath(values, width, height);
-  const areaPath = sparklineAreaPath(values, width, height);
+  const sampled = useMemo(
+    () => downsampleSeries(values, blockNumbers),
+    [blockNumbers, values]
+  );
+  const path = useMemo(
+    () => sparklinePath(sampled.values, width, height),
+    [sampled.values]
+  );
+  const areaPath = useMemo(
+    () => sparklineAreaPath(sampled.values, width, height),
+    [sampled.values]
+  );
   const gridLines = [0.25, 0.5, 0.75].map((ratio) => height * ratio);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const hoverLabel = useMemo(() => {
-    if (hoverIndex === null || values[hoverIndex] === undefined) {
+    if (hoverIndex === null || sampled.values[hoverIndex] === undefined) {
       return null;
     }
-    const blockNumber = blockNumbers?.[hoverIndex] ?? null;
-    const value = values[hoverIndex];
+    const blockNumber = sampled.blockNumbers[hoverIndex] ?? null;
+    const value = sampled.values[hoverIndex];
     if (formatHover) {
       return formatHover(value, blockNumber);
     }
     return blockNumber ? `Block ${blockNumber} · ${value}` : String(value);
-  }, [blockNumbers, formatHover, hoverIndex, values]);
+  }, [formatHover, hoverIndex, sampled.blockNumbers, sampled.values]);
 
   function indexFromEvent(event: React.MouseEvent<SVGSVGElement>) {
-    if (values.length < 2) {
+    if (sampled.values.length < 2) {
       return null;
     }
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1);
-    return Math.round(ratio * (values.length - 1));
+    return Math.round(ratio * (sampled.values.length - 1));
   }
 
   function handleMove(event: React.MouseEvent<SVGSVGElement>) {
@@ -58,7 +69,7 @@ export function SparkChart({
 
   function handleClick(event: React.MouseEvent<SVGSVGElement>) {
     const index = indexFromEvent(event);
-    const blockNumber = index !== null ? blockNumbers?.[index] : undefined;
+    const blockNumber = index !== null ? sampled.blockNumbers[index] : undefined;
     if (blockNumber !== undefined && onSelect) {
       onSelect(blockNumber);
     }
@@ -93,9 +104,9 @@ export function SparkChart({
         {hoverIndex !== null ? (
           <line
             className="spark-chart__cursor"
-            x1={(hoverIndex / Math.max(values.length - 1, 1)) * width}
+            x1={(hoverIndex / Math.max(sampled.values.length - 1, 1)) * width}
             y1="0"
-            x2={(hoverIndex / Math.max(values.length - 1, 1)) * width}
+            x2={(hoverIndex / Math.max(sampled.values.length - 1, 1)) * width}
             y2={height}
           />
         ) : null}

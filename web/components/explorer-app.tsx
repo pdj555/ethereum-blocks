@@ -1,20 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildDataset, parseBlocksToViews } from "@/lib/dataset";
-import { parseBlocks, parseTransactions } from "@/lib/parser";
+import {
+  createDatasetFromCsv,
+  loadDatasetFiles,
+  type DatasetSource
+} from "@/lib/dataset-import";
 import type { Dataset, SearchMode } from "@/lib/types";
 import { formatEth, formatInteger } from "@/lib/utils";
 import { BlockTimeline } from "./block-timeline";
 import { LiveStatusPanel } from "./live-status-panel";
 import { BootLoader } from "./boot-loader";
 import { CommandDock } from "./command-dock";
+import { DatasetImporter } from "./dataset-importer";
 import { ResultPanel, SideRail, SummaryStrip } from "./explorer-panels";
 import { SectionFrame } from "./section-frame";
 import { SparkChart } from "./spark-chart";
 import { ThemeToggle } from "./theme-toggle";
 
 const DEFAULT_BLOCK = "15049311";
+const SAMPLE_SOURCE: DatasetSource = { kind: "sample", label: "Bundled 100-block sample" };
 
 type MessageState = {
   kicker: string;
@@ -26,6 +31,7 @@ export function ExplorerApp() {
   const [loading, setLoading] = useState(true);
   const [fatal, setFatal] = useState<string | null>(null);
   const [dataset, setDataset] = useState<Dataset | null>(null);
+  const [source, setSource] = useState<DatasetSource>(SAMPLE_SOURCE);
   const [mode, setMode] = useState<SearchMode>("block");
   const [query, setQuery] = useState(DEFAULT_BLOCK);
   const [message, setMessage] = useState<MessageState>(null);
@@ -35,6 +41,7 @@ export function ExplorerApp() {
   const [dockSticky, setDockSticky] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const dockSentinelRef = useRef<HTMLDivElement>(null);
+  const sampleDatasetRef = useRef<Dataset | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -59,9 +66,7 @@ export function ExplorerApp() {
 
         setBootStage("indexing blocks and addresses");
         setBootProgress(0.72);
-        const blocks = parseBlocksToViews(parseBlocks(blocksCsv));
-        const transactions = parseTransactions(transactionsCsv);
-        const nextDataset = buildDataset(blocks, transactions);
+        const nextDataset = createDatasetFromCsv(blocksCsv, transactionsCsv);
 
         if (!active) {
           return;
@@ -69,6 +74,7 @@ export function ExplorerApp() {
 
         setBootStage("ready");
         setBootProgress(1);
+        sampleDatasetRef.current = nextDataset;
         setDataset(nextDataset);
         setLoading(false);
         window.setTimeout(() => setBootVisible(false), 320);
@@ -198,6 +204,55 @@ export function ExplorerApp() {
     window.location.hash = `${jumpMode}/${encodeURIComponent(value)}`;
   }, []);
 
+  const handleTimelineScrub = useCallback((blockNumber: number) => {
+    const value = String(blockNumber);
+    const url = new URL(window.location.href);
+    url.hash = `block/${value}`;
+    window.history.replaceState(null, "", url);
+    setMode("block");
+    setQuery(value);
+    setMessage(null);
+  }, []);
+
+  const handleTimelineScrubCommit = useCallback(
+    (blockNumber: number, startUrl: string) => {
+      window.history.replaceState(null, "", startUrl);
+      handleJump("block", String(blockNumber));
+    },
+    [handleJump]
+  );
+
+  const showToast = useCallback((value: string) => {
+    setToast(value);
+    window.setTimeout(() => setToast(null), 1800);
+  }, []);
+
+  const handleImport = useCallback(
+    async (blocksFile: File, transactionsFile: File) => {
+      const importedDataset = await loadDatasetFiles(blocksFile, transactionsFile);
+      const firstBlock = importedDataset.blockNumbers[0]!;
+      setDataset(importedDataset);
+      setSource({ kind: "local", label: `${blocksFile.name} + ${transactionsFile.name}` });
+      setFatal(null);
+      setMessage(null);
+      handleJump("block", String(firstBlock));
+      showToast("Local dataset ready");
+    },
+    [handleJump, showToast]
+  );
+
+  const handleReset = useCallback(() => {
+    if (!sampleDatasetRef.current) {
+      return;
+    }
+    setDataset(sampleDatasetRef.current);
+    setSource(SAMPLE_SOURCE);
+    setFatal(null);
+    setMessage(null);
+    handleJump("block", DEFAULT_BLOCK);
+    showToast("Bundled sample restored");
+  }, [handleJump, showToast]);
+
   useEffect(() => {
     if (!dataset || mode !== "block" || !/^\d+$/.test(query)) {
       return;
@@ -251,8 +306,8 @@ export function ExplorerApp() {
     return {
       txTotal,
       costTotal,
-      txPeak: Math.max(...dataset.txSeries),
-      costPeak: Math.max(...dataset.costSeries)
+      txPeak: dataset.txSeries.reduce((highest, value) => Math.max(highest, value), 0),
+      costPeak: dataset.costSeries.reduce((highest, value) => Math.max(highest, value), 0)
     };
   }, [dataset]);
 
@@ -274,7 +329,7 @@ export function ExplorerApp() {
               <span className={`live-dot${loading ? " is-loading" : ""}`} aria-hidden="true" />
               {dataset
                 ? `${formatInteger(dataset.overview.blocksLoaded)} blocks · ${formatInteger(dataset.overview.parsedTransactions)} parsed tx`
-                : "100 blocks · static browser explorer"}
+                : "Loading local dataset"}
             </span>
             <ThemeToggle />
           </div>
@@ -290,13 +345,13 @@ export function ExplorerApp() {
           <div className="hero__grid">
             <div className="hero__main">
               <p className="hero__eyebrow">
-                100blk curated slice · {dataset ? `${dataset.overview.blockRangeStart}–${dataset.overview.blockRangeEnd}` : "loading"}
+                {dataset ? `${formatInteger(dataset.overview.blocksLoaded)}blk loaded · ${dataset.overview.blockRangeStart}–${dataset.overview.blockRangeEnd}` : "Loading dataset"}
               </p>
               <h1 className="hero__title">Ethereum Block Explorer</h1>
               <p className="hero__copy">
-                One hundred blocks, parsed entirely in your browser. Scrub the timeline, inspect addresses, and
-                read only what the CSV can prove.
+                Explore the sample or load your own compatible exports. Every row is indexed locally; nothing leaves your browser.
               </p>
+              <DatasetImporter source={source} onLoad={handleImport} onReset={handleReset} />
               <div ref={dockSentinelRef} className="dock-sentinel" aria-hidden="true" />
               <CommandDock
                 mode={mode}
@@ -321,6 +376,8 @@ export function ExplorerApp() {
                 dataset={dataset}
                 activeBlock={activeBlock}
                 onSelect={(blockNumber) => handleJump("block", String(blockNumber))}
+                onScrub={handleTimelineScrub}
+                onScrubCommit={handleTimelineScrubCommit}
               />
             </SectionFrame>
           ) : null}
@@ -368,7 +425,9 @@ export function ExplorerApp() {
         </div>
 
         <footer className="footer">
-          <p>100 blocks · static browser explorer · no backend</p>
+          <p>
+            {dataset ? `${formatInteger(dataset.overview.blocksLoaded)} blocks` : "Dataset loading"} · static browser explorer · no backend
+          </p>
           <p>
             <a href="https://github.com/pdj555/ethereum-blocks">github.com/pdj555/ethereum-blocks</a>
           </p>

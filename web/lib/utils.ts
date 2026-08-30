@@ -54,8 +54,12 @@ export function sparklinePath(values: number[], width: number, height: number): 
   if (values.length < 2) {
     return "";
   }
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  let min = values[0]!;
+  let max = values[0]!;
+  for (let index = 1; index < values.length; index += 1) {
+    min = Math.min(min, values[index]!);
+    max = Math.max(max, values[index]!);
+  }
   const span = max - min || 1;
   const step = width / (values.length - 1);
   return values
