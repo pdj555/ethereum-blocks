@@ -6,12 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The repo is `make`-first. CI runs the same targets you run locally.
 
-- `make verify` — full local health gate (mirrors `.github/workflows/verify.yml`): JUnit suite + CLI smoke + browser smoke. Run this before claiming work is done.
+- `make verify` — full local health gate (mirrors `.github/workflows/verify.yml`): workflow provider contracts + JUnit + CLI smoke + production dependency audit + TypeScript + CSV contracts + browser smoke. Run this before claiming work is done.
 - `make test` — JUnit suite via the vendored runner in `tools/junit-platform-console-standalone-1.10.2.jar` (no network fetch).
 - `make build` / `make compile` — `javac` everything under `src/` into `bin/`. Re-runs implicitly before `make run*`.
-- `make ui` — build static site into `web/dist/` and serve at `http://localhost:${UI_PORT:-4173}` via `python3 -m http.server`.
+- `make ui` — build static site into `web/out/` and serve at `http://localhost:${UI_PORT:-4173}` via `python3 -m http.server`.
 - `make ui-build` — produce `web/out/` (static Next export; same target Vercel uses; see `vercel.json`).
-- `make ui-contract` — compile and run the no-dependency TypeScript import/parser/domain regression suite.
+- `make ui-contract` — install locked web dependencies, then compile and run the TypeScript import/parser/domain regression suite.
+- `make ui-audit` / `make ui-typecheck` — install locked web dependencies, then audit production dependencies or check the complete TypeScript surface.
+- `make workflow-contract` — exercise optional workflow provider selection and credential routing using fixtures; no API calls or secrets required.
 - `make cli-smoke` / `make ui-smoke` — Node smoke harnesses in `scripts/`. `ui-smoke` needs `npm ci` and `npx playwright install --with-deps chromium`.
 - `make dashboard`, `make block N=...`, `make address ADDR=0x...`, `make network`, `make snapshot`, `make anomalies THRESHOLD=...`, `make miners`, `make report` — the supported CLI surface. `--json` mode is wired through every command in `EthereumBlockExplorer.runCommandMode`.
 

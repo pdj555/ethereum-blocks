@@ -1,5 +1,5 @@
 name: Configure AI credentials
-description: Select auth provider and set non-secret model endpoints only. Never writes secrets to GITHUB_ENV.
+description: Select one optional AI provider without persisting credentials.
 
 inputs:
   claude_code_oauth_token:
@@ -17,8 +17,14 @@ inputs:
 
 outputs:
   provider:
-    description: Selected auth provider
+    description: Selected auth provider, or none when no credentials are configured
     value: ${{ steps.select.outputs.provider }}
+  model:
+    description: Model supported by the selected provider
+    value: ${{ steps.select.outputs.model }}
+  base_url:
+    description: Anthropic-compatible endpoint for the selected provider
+    value: ${{ steps.select.outputs.base_url }}
 
 runs:
   using: composite
@@ -32,25 +38,35 @@ runs:
       run: |
         set -euo pipefail
 
+        provider=none
+        model=
+        base_url=
         if [ "$HAS_OAUTH" = "true" ]; then
-          echo "provider=claude-oauth" >> "$GITHUB_OUTPUT"
-          echo "ai_provider=claude-oauth" >> "$GITHUB_ENV"
+          provider=claude-oauth
+          model=opus
+          base_url=https://api.anthropic.com
         elif [ "$HAS_OLLAMA" = "true" ]; then
-          echo "provider=ollama-cloud" >> "$GITHUB_OUTPUT"
-          {
-            echo "ai_provider=ollama-cloud"
-            echo "ANTHROPIC_BASE_URL=https://ollama.com"
-            echo "ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5.2:cloud"
-            echo "ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5.2:cloud"
-            echo "OPENAI_BASE_URL=https://ollama.com/v1"
-            echo "OLLAMA_BASE_URL=https://ollama.com/v1"
-            echo "OLLAMA_MODEL=gpt-oss:120b"
-            echo "OPENAI_MODEL=gpt-oss:120b"
-          } >> "$GITHUB_ENV"
+          provider=ollama-cloud
+          model=glm-5.2:cloud
+          base_url=https://ollama.com
         elif [ "$HAS_ANTHROPIC" = "true" ]; then
-          echo "provider=anthropic-api" >> "$GITHUB_OUTPUT"
-          echo "ai_provider=anthropic-api" >> "$GITHUB_ENV"
-        else
-          echo "provider=none" >> "$GITHUB_OUTPUT"
-          echo "ai_provider=none" >> "$GITHUB_ENV"
+          provider=anthropic-api
+          model=opus
+          base_url=https://api.anthropic.com
+        fi
+
+        {
+          echo "provider=$provider"
+          echo "model=$model"
+          echo "base_url=$base_url"
+        } >> "$GITHUB_OUTPUT"
+
+        if [ "$provider" = "none" ]; then
+          echo "::notice::AI automation skipped: no supported AI credential is configured."
+          {
+            echo "### AI automation skipped"
+            echo ""
+            echo 'Configure one repository secret: CLAUDE_CODE_OAUTH_TOKEN, OLLAMA_API_KEY, or ANTHROPIC_API_KEY.'
+            echo "No AI assistant, review, triage, or audit was performed. Product verification runs separately."
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
