@@ -20,7 +20,7 @@ JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 UI_PORT ?= 4173
 
-.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify ui ui-build ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
+.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify ui ui-build ui-contract ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -49,6 +49,7 @@ help:
 	@echo "  make test                 Run the existing JUnit suite"
 	@echo "  make cli-smoke            Smoke test the core explorer commands"
 	@echo "  make ui-build             Prepare the static web files in web/dist/"
+	@echo "  make ui-contract          Test the browser CSV import/domain contract"
 	@echo "  make ui-smoke             Smoke test the browser explorer"
 	@echo "  make build                Compile the explorer into $(BINDIR)/"
 	@echo "  make clean                Remove compiled explorer artifacts"
@@ -115,7 +116,16 @@ check-ui-data:
 ui: ui-serve
 
 ui-build: check-ui-data check-node
-	@cd web && npm ci && npm run build
+	@cd web && npm ci
+	@$(MAKE) --no-print-directory ui-contract
+	@cd web && npm run build
+
+ui-contract: check-node
+	@if [ ! -x web/node_modules/.bin/tsc ]; then \
+		echo "Web TypeScript dependencies missing. Run 'cd web && npm ci', then rerun 'make ui-contract'."; \
+		exit 1; \
+	fi
+	@node scripts/run_dataset_import_contract.mjs
 
 ui-serve: check-python ui-build
 	@echo "Serving visual explorer at http://localhost:$(UI_PORT)"

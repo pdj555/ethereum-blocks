@@ -75,9 +75,9 @@ export type Dataset = {
   topMiners: MinerEntry[];
   hotBlocks: BlockView[];
   activeAddresses: AddressProfile[];
-  heaviestSender: AddressProfile;
-  heaviestReceiver: AddressProfile;
-  largestTransaction: { blockNumber: number; costEth: number };
+  heaviestSender: AddressProfile | null;
+  heaviestReceiver: AddressProfile | null;
+  largestTransaction: { blockNumber: number; costEth: number } | null;
   blockMap: Map<number, BlockView>;
   addressMap: Map<string, AddressProfile>;
   txSeries: number[];

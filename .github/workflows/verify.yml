@@ -27,6 +27,14 @@ jobs:
       - name: Install browser smoke dependencies
         run: npm ci
 
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Audit production web dependencies
+        working-directory: web
+        run: npm audit --omit=dev
+
       - name: Install Chromium for Playwright smoke tests
         run: npx playwright install --with-deps chromium
 
