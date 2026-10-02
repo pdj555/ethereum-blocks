@@ -130,10 +130,22 @@ export function SideRail({ dataset, onJump }: SideRailProps) {
       </SectionFrame>
       <SectionFrame title="Network glance">
         <div className="glance-list">
-          <GlanceRow label="Largest tx" value={`Block ${dataset.largestTransaction.blockNumber}`} />
-          <GlanceRow label="Cost" value={formatEth(dataset.largestTransaction.costEth)} />
-          <GlanceRow label="Heaviest sender" value={shorten(dataset.heaviestSender.address)} />
-          <GlanceRow label="Heaviest receiver" value={shorten(dataset.heaviestReceiver.address)} />
+          <GlanceRow
+            label="Largest tx"
+            value={dataset.largestTransaction ? `Block ${dataset.largestTransaction.blockNumber}` : "—"}
+          />
+          <GlanceRow
+            label="Cost"
+            value={dataset.largestTransaction ? formatEth(dataset.largestTransaction.costEth) : "—"}
+          />
+          <GlanceRow
+            label="Heaviest sender"
+            value={dataset.heaviestSender ? shorten(dataset.heaviestSender.address) : "—"}
+          />
+          <GlanceRow
+            label="Heaviest receiver"
+            value={dataset.heaviestReceiver ? shorten(dataset.heaviestReceiver.address) : "—"}
+          />
           <GlanceRow label="Avg tx / block" value={formatDecimal(overview.avgTransactionsPerBlock, 2)} />
         </div>
       </SectionFrame>
@@ -297,7 +309,11 @@ function BlockResult({
         <div className="transactions-wrap">
           <h3>Transactions</h3>
           {block.transactions.length ? (
-            <TransactionTable transactions={block.transactions} onJump={onJump} />
+            <TransactionTable
+              key={`${block.number}:${block.transactions.length}`}
+              transactions={block.transactions}
+              onJump={onJump}
+            />
           ) : (
             <div className="empty-state">
               <p>
@@ -574,38 +590,69 @@ function TransactionTable({
   }>;
   onJump: JumpHandler;
 }) {
+  const pageSize = 50;
+  const [page, setPage] = useState(0);
+  const pageCount = Math.ceil(transactions.length / pageSize);
+  const start = page * pageSize;
+  const visibleTransactions = transactions.slice(start, start + pageSize);
+  const end = start + visibleTransactions.length;
+
   return (
-    <div className="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Index</th>
-            <th>From</th>
-            <th>To</th>
-            <th>Type</th>
-            <th>Cost</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.map((tx) => (
-            <tr key={`${tx.index}-${tx.from}`}>
-              <td>{tx.index}</td>
-              <td>
-                <JumpLink mode="address" value={tx.from} label={shorten(tx.from)} onJump={onJump} className="address-chip" />
-              </td>
-              <td>
-                {tx.contractCreation ? (
-                  <span className="pill alert">Contract creation</span>
-                ) : (
-                  <JumpLink mode="address" value={tx.to} label={shorten(tx.to)} onJump={onJump} className="address-chip" />
-                )}
-              </td>
-              <td>{tx.contractCreation ? <span className="pill alert">Create</span> : <span className="pill">Transfer</span>}</td>
-              <td>{formatEth(tx.costEth)}</td>
+    <>
+      <div className="transaction-pages" aria-label="Transaction pagination">
+        <p>{`Showing ${start + 1}–${end} of ${transactions.length} transactions`}</p>
+        <div>
+          <button
+            type="button"
+            aria-label="Previous transaction page"
+            disabled={page === 0}
+            onClick={() => setPage((current) => Math.max(current - 1, 0))}
+          >
+            Previous
+          </button>
+          <span>{`${page + 1} / ${pageCount}`}</span>
+          <button
+            type="button"
+            aria-label="Next transaction page"
+            disabled={page >= pageCount - 1}
+            onClick={() => setPage((current) => Math.min(current + 1, pageCount - 1))}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Index</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Type</th>
+              <th>Cost</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {visibleTransactions.map((tx) => (
+              <tr key={`${tx.index}-${tx.from}`}>
+                <td>{tx.index}</td>
+                <td>
+                  <JumpLink mode="address" value={tx.from} label={shorten(tx.from)} onJump={onJump} className="address-chip" />
+                </td>
+                <td>
+                  {tx.contractCreation ? (
+                    <span className="pill alert">Contract creation</span>
+                  ) : (
+                    <JumpLink mode="address" value={tx.to} label={shorten(tx.to)} onJump={onJump} className="address-chip" />
+                  )}
+                </td>
+                <td>{tx.contractCreation ? <span className="pill alert">Create</span> : <span className="pill">Transfer</span>}</td>
+                <td>{formatEth(tx.costEth)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

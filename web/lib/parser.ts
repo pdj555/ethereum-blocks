@@ -50,68 +50,138 @@ export function parseTransactions(csvText: string): TransactionRecord[] {
   return transactions;
 }
 
-export function parseCsvRecords(csvText: string): string[][] {
+export type CsvParseLimits = {
+  maxColumns?: number;
+  maxRecords?: number;
+};
+
+export class CsvParseLimitError extends Error {
+  constructor(
+    readonly kind: "columns" | "records",
+    readonly rowNumber: number,
+    readonly limit: number
+  ) {
+    super(
+      kind === "columns"
+        ? `CSV row ${rowNumber} exceeds the ${limit}-column limit.`
+        : `CSV input exceeds the ${limit}-record limit.`
+    );
+    this.name = "CsvParseLimitError";
+  }
+}
+
+export function parseCsvRecords(csvText: string, limits: CsvParseLimits = {}): string[][] {
   const rows: string[][] = [];
+  visitCsvRecords(csvText, (row) => rows.push(row), limits);
+  return rows;
+}
+
+export function visitCsvRecords(
+  csvText: string,
+  onRecord: (row: string[], rowNumber: number) => void,
+  limits: CsvParseLimits = {}
+): number {
   let row: string[] = [];
   let field = "";
   let inQuotes = false;
-  let quotedField = false;
+  let quoteClosed = false;
+  let recordHasSyntax = false;
+  let recordCount = 0;
+
+  function assertAnotherColumn() {
+    if (limits.maxColumns !== undefined && row.length + 1 >= limits.maxColumns) {
+      throw new CsvParseLimitError("columns", recordCount + 1, limits.maxColumns);
+    }
+  }
+
+  function emitRecord() {
+    if (!recordHasSyntax) {
+      row = [];
+      field = "";
+      quoteClosed = false;
+      return;
+    }
+    if (limits.maxRecords !== undefined && recordCount >= limits.maxRecords) {
+      throw new CsvParseLimitError("records", recordCount + 1, limits.maxRecords);
+    }
+    row.push(field);
+    recordCount += 1;
+    onRecord(row, recordCount);
+    row = [];
+    field = "";
+    quoteClosed = false;
+    recordHasSyntax = false;
+  }
 
   for (let i = 0; i < csvText.length; i += 1) {
     const current = csvText[i];
 
-    if (current === '"') {
-      if (inQuotes && csvText[i + 1] === '"') {
-        field += '"';
-        i += 1;
-        continue;
+    if (inQuotes) {
+      if (current === '"') {
+        if (csvText[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+          quoteClosed = true;
+        }
+      } else {
+        field += current;
       }
-
-      if (!inQuotes && field.length === 0) {
-        quotedField = true;
-        inQuotes = true;
-        continue;
-      }
-
-      if (inQuotes) {
-        inQuotes = false;
-        continue;
-      }
-    }
-
-    if (current === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-      quotedField = false;
       continue;
     }
 
-    if ((current === "\n" || current === "\r") && !inQuotes) {
+    if (quoteClosed) {
+      if (current === ",") {
+        assertAnotherColumn();
+        row.push(field);
+        field = "";
+        quoteClosed = false;
+        continue;
+      }
+      if (current === "\n" || current === "\r") {
+        if (current === "\r" && csvText[i + 1] === "\n") {
+          i += 1;
+        }
+        emitRecord();
+        continue;
+      }
+      throw new Error("Unexpected character after closing quoted CSV field.");
+    }
+
+    if (current === '"') {
+      if (field.length > 0) {
+        throw new Error("Unexpected quote in unquoted CSV field.");
+      }
+      recordHasSyntax = true;
+      inQuotes = true;
+      continue;
+    }
+
+    if (current === ",") {
+      recordHasSyntax = true;
+      assertAnotherColumn();
+      row.push(field);
+      field = "";
+      continue;
+    }
+
+    if (current === "\n" || current === "\r") {
       if (current === "\r" && csvText[i + 1] === "\n") {
         i += 1;
       }
-      row.push(field);
-      if (row.some((value) => value.length > 0)) {
-        rows.push(row);
-      }
-      row = [];
-      field = "";
-      quotedField = false;
+      emitRecord();
       continue;
     }
 
-    if (quotedField || current !== "\r") {
-      field += current;
-    }
+    recordHasSyntax = true;
+    field += current;
   }
 
   if (inQuotes) {
     throw new Error("Unclosed quoted CSV field.");
   }
 
-  row.push(field);
-  if (row.some((value) => value.length > 0)) {
-    rows.push(row);
-  }
-  return rows;
+  emitRecord();
+  return recordCount;
 }

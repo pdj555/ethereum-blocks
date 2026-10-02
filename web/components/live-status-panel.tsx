@@ -24,7 +24,6 @@ export function LiveStatusPanel({ dataset, loading, activeBlock }: LiveStatusPan
   }
 
   const { overview } = dataset;
-  const loadPct = overview.blocksLoaded / 100;
   const txPct = overview.parsedTransactions / Math.max(overview.totalTransactionsMetadata, 1);
   const index = activeBlock ? dataset.blockNumbers.indexOf(activeBlock) : -1;
   const slicePct = index >= 0 ? (index + 1) / dataset.blockNumbers.length : 0;
@@ -39,7 +38,7 @@ export function LiveStatusPanel({ dataset, loading, activeBlock }: LiveStatusPan
       <div className="live-panel__metrics">
         <div className="live-panel__metric">
           <span>Blocks loaded</span>
-          <strong>{formatInteger(overview.blocksLoaded)} / 100</strong>
+          <strong>{formatInteger(overview.blocksLoaded)}</strong>
         </div>
         <div className="live-panel__metric">
           <span>Parsed tx</span>
@@ -53,9 +52,9 @@ export function LiveStatusPanel({ dataset, loading, activeBlock }: LiveStatusPan
 
       <div className="live-panel__bars">
         <div className="live-panel__bar-row">
-          <span>Dataset</span>
+          <span>Index</span>
           <div className="live-panel__bar">
-            <div className="live-panel__bar-fill" style={{ width: `${loadPct * 100}%` }} />
+            <div className="live-panel__bar-fill" style={{ width: "100%" }} />
           </div>
         </div>
         <div className="live-panel__bar-row">

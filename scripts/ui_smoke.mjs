@@ -6,6 +6,44 @@ import { chromium } from "playwright";
 
 const root = resolve(process.cwd(), "web/out");
 const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
+const importMiner = "0x1111111111111111111111111111111111111111";
+const importSender = "0x2222222222222222222222222222222222222222";
+const importReceiver = "0x3333333333333333333333333333333333333333";
+
+function blockRow(number) {
+  const fields = Array(18).fill("");
+  fields[0] = String(number);
+  fields[9] = importMiner;
+  fields[16] = "1700000000";
+  fields[17] = number === 900000 ? "120" : "0";
+  return fields.join(",");
+}
+
+const importedBlocks = Array.from({ length: 450 }, (_, index) => blockRow(900000 + index)).join("\n");
+function transactionRow(index, blockNumber = 900000) {
+  return [
+    `0xhash${index}`,
+    "21000",
+    "0xblockhash",
+    String(blockNumber),
+    String(index),
+    importSender,
+    importReceiver,
+    "0",
+    "21000",
+    "1000000000"
+  ].join(",");
+}
+
+const importedTransactions = Array.from({ length: 120 }, (_, index) => transactionRow(index)).join("\n");
+const unmatchedTransactions = transactionRow(0, 999999);
+const malformedQuotedBlocks = `"900000"0${blockRow(900000).slice(String(900000).length)}`;
+const invalidBlockNumberFields = Array(18).fill("");
+invalidBlockNumberFields[0] = "not-a-block";
+invalidBlockNumberFields[9] = importMiner;
+invalidBlockNumberFields[16] = "1700000000";
+invalidBlockNumberFields[17] = "0";
+const invalidBlockNumberBlocks = invalidBlockNumberFields.join(",");
 
 function contentTypeFor(filePath) {
   switch (extname(filePath)) {
@@ -81,6 +119,140 @@ try {
     await page.getByText("100 blocks", { exact: true }).first().isVisible(),
     "Overview summary did not render."
   );
+
+  await page.getByRole("button", { name: "Load your CSVs" }).click();
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(blockRow(900000))
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "empty-transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("")
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Transactions CSV is empty. Choose a transaction export and try again.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "malformed-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(malformedQuotedBlocks)
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Blocks CSV contains malformed quoting. Export the data again and retry.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "invalid-number-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(invalidBlockNumberBlocks)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Blocks CSV row 1 has an invalid block number. Export the block data again and retry.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "invalid-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("invalid")
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("alert").getByText("Blocks CSV row 1 needs at least 18 columns. Export the block data again and retry.").waitFor();
+
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "zero-blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(blockRow(900000))
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "unmatched-transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(unmatchedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.getByRole("heading", { name: "Block 900000" }).waitFor();
+  await page.getByText("zero-blocks.csv + unmatched-transactions.csv", { exact: true }).waitFor();
+  assertCondition(
+    (await page.getByText("—", { exact: true }).count()) >= 4,
+    "Zero-matching transaction imports did not render nullable network values."
+  );
+
+  await page.getByRole("button", { name: "Replace CSVs" }).click();
+  await page.getByLabel("Blocks CSV").setInputFiles({
+    name: "blocks.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedBlocks)
+  });
+  await page.getByLabel("Transactions CSV").setInputFiles({
+    name: "transactions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(importedTransactions)
+  });
+  await page.getByRole("button", { name: "Analyze locally" }).click();
+  assertCondition(
+    await page.getByRole("button", { name: "Cancel" }).isDisabled(),
+    "Cancel remained available during an in-flight local analysis."
+  );
+  await page.keyboard.press("Escape");
+  assertCondition(
+    await page.getByRole("dialog").isVisible(),
+    "Escape closed the import dialog while analysis was in flight."
+  );
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.getByRole("heading", { name: "Block 900000" }).waitFor();
+  assertCondition((await page.getByRole("listitem").count()) <= 400, "Large imports rendered too many timeline cells.");
+  await page.getByText("blocks.csv + transactions.csv", { exact: true }).waitFor();
+  const livePanel = page.locator(".live-panel");
+  assertCondition(
+    (await livePanel.textContent()).includes("450") && !(await livePanel.textContent()).includes("/ 100"),
+    "Imported status still reported a fixed 100-block denominator."
+  );
+  assertCondition(
+    (await livePanel.locator(".live-panel__bar-fill").first().getAttribute("style"))?.includes("100%"),
+    "Imported status progress exceeded the completed dataset bound."
+  );
+  const transactionRows = page.locator(".transactions-wrap tbody tr");
+  assertCondition(
+    (await transactionRows.count()) <= 50,
+    "The active block rendered an unbounded transaction table."
+  );
+  await page.getByText("Showing 1–50 of 120 transactions", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Next transaction page" }).click();
+  await page.getByText("Showing 51–100 of 120 transactions", { exact: true }).waitFor();
+
+  const timeline = page.getByRole("list", { name: "Block activity timeline" });
+  await timeline.scrollIntoViewIfNeeded();
+  const timelineRows = await timeline.getByRole("listitem").evaluateAll((items) =>
+    new Set(items.map((item) => Math.round(item.getBoundingClientRect().bottom))).size
+  );
+  assertCondition(timelineRows === 1, "Large imports wrapped the timeline into multiple scrub rows.");
+  const timelineBox = await timeline.boundingBox();
+  assertCondition(Boolean(timelineBox), "Timeline did not expose a scrub target.");
+  const historyBeforeScrub = await page.evaluate(() => window.history.length);
+  await page.mouse.move(timelineBox.x + 8, timelineBox.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(timelineBox.x + timelineBox.width * 0.72, timelineBox.y + 4, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  const historyAfterScrub = await page.evaluate(() => window.history.length);
+  const hashAfterScrub = await page.evaluate(() => window.location.hash);
+  assertCondition(
+    historyAfterScrub === historyBeforeScrub + 1,
+    `Timeline scrubbing created ${historyAfterScrub - historyBeforeScrub} history entries instead of one; final hash was ${hashAfterScrub}.`
+  );
+
+  await page.getByRole("button", { name: "Use bundled sample" }).click();
+  await page.getByRole("heading", { name: "Block 15049311" }).waitFor();
 
   await page.getByRole("button", { name: "Address" }).click();
   await page.getByLabel("Search query").fill(invalidAddress);

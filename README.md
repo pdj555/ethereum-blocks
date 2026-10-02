@@ -1,6 +1,6 @@
 # Ethereum Block Explorer
 
-A bundled 100-block Ethereum dataset. Browser UI, JSON CLI, no node required.
+Privately analyze compatible Ethereum CSV exports in your browser, or explore the bundled 100-block sample. The browser UI, JSON CLI, and static build require no backend.
 
 ```mermaid
 flowchart LR
@@ -44,12 +44,26 @@ make report      # writes ethereum-report.md
 | `make test` | JUnit suite |
 | `make cli-smoke` | Core explorer command smoke test |
 | `make ui-build` | Prepare static web files |
+| `make ui-contract` | Browser CSV import/domain contract tests |
 | `make ui-smoke` | Browser explorer smoke test |
 | `make build` | Compile explorer |
 | `make clean` | Remove compiled artifacts |
 | `make ui-clean` | Remove generated web preview files |
 
 Dataset files live in the repo root: `ethereumP1data.csv`, `ethereumtransactions1.csv`.
+
+## Load your data
+
+Run `make ui`, open the explorer, select **Load your CSVs**, and choose both exports. Each file can be up to 25 MiB. Parsing, validation, and indexing happen in a browser worker; the files are never uploaded.
+
+The import boundary uses these positional schemas:
+
+- Blocks CSV: block number at column 1 (`[0]`), miner address at column 10 (`[9]`), Unix timestamp at column 17 (`[16]`), and transaction count at column 18 (`[17]`).
+- Transactions CSV: block number at column 4 (`[3]`), transaction index at column 5 (`[4]`), sender at column 6 (`[5]`), recipient at column 7 (`[6]`, blank for contract creation), gas limit at column 9 (`[8]`), and gas price at column 10 (`[9]`).
+
+Imports reject malformed rows and duplicate block numbers. Parsing stops at 64 columns, 25,000 block rows, or 100,000 transaction rows with an actionable error. Gas values must resolve to non-negative base-10 integers; the import bounds are 1,000,000,000 gas and 1,000,000,000,000,000 wei per gas. Transactions outside the imported block range are excluded from analysis. Use the bundled CSV links in the import dialog as schema examples.
+
+Large views stay bounded: the timeline renders at most 400 cells, each spark chart renders at most 240 sampled points, and transaction tables show 50 rows per page. All imported blocks and matching transactions remain indexed for search and navigation.
 
 Port override: copy `.env.example` → `.env`, set `UI_PORT`.
 
