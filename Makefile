@@ -20,7 +20,7 @@ JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 UI_PORT ?= 4173
 
-.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify ui ui-build ui-contract ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
+.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify workflow-contract ui ui-deps ui-audit ui-build ui-contract ui-typecheck ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -48,8 +48,11 @@ help:
 	@echo "  make verify               Run the full local health gate"
 	@echo "  make test                 Run the existing JUnit suite"
 	@echo "  make cli-smoke            Smoke test the core explorer commands"
-	@echo "  make ui-build             Prepare the static web files in web/dist/"
+	@echo "  make workflow-contract    Test optional workflow credential routing"
+	@echo "  make ui-build             Prepare the static web files in web/out/"
 	@echo "  make ui-contract          Test the browser CSV import/domain contract"
+	@echo "  make ui-typecheck         Check the complete browser TypeScript surface"
+	@echo "  make ui-audit             Audit the locked production web dependencies"
 	@echo "  make ui-smoke             Smoke test the browser explorer"
 	@echo "  make build                Compile the explorer into $(BINDIR)/"
 	@echo "  make clean                Remove compiled explorer artifacts"
@@ -93,7 +96,10 @@ test: compile check-junit
 	@java -jar $(JUNIT_JAR) --class-path "$(BINDIR):$(TEST_BINDIR)" --scan-class-path
 
 verify:
-	@$(MAKE) --no-print-directory test cli-smoke ui-smoke
+	@$(MAKE) --no-print-directory workflow-contract test cli-smoke ui-audit ui-smoke
+
+workflow-contract: check-node
+	@node scripts/workflow_provider_contract.mjs
 
 check-python:
 	@if ! command -v python3 >/dev/null 2>&1; then \
@@ -115,16 +121,19 @@ check-ui-data:
 
 ui: ui-serve
 
-ui-build: check-ui-data check-node
+ui-deps: check-node
 	@cd web && npm ci
-	@$(MAKE) --no-print-directory ui-contract
+
+ui-audit: ui-deps
+	@cd web && npm audit --omit=dev
+
+ui-typecheck: ui-deps
+	@cd web && npm run typecheck
+
+ui-build: check-ui-data ui-contract ui-typecheck
 	@cd web && npm run build
 
-ui-contract: check-node
-	@if [ ! -x web/node_modules/.bin/tsc ]; then \
-		echo "Web TypeScript dependencies missing. Run 'cd web && npm ci', then rerun 'make ui-contract'."; \
-		exit 1; \
-	fi
+ui-contract: ui-deps
 	@node scripts/run_dataset_import_contract.mjs
 
 ui-serve: check-python ui-build
