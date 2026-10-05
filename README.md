@@ -40,11 +40,14 @@ make report      # writes ethereum-report.md
 | `make anomalies THRESHOLD=1.5` | Anomaly analysis JSON |
 | `make miners` | Unique miner breakdown JSON |
 | `make run-json` | JSON overview |
-| `make verify` | JUnit + CLI + browser smoke |
+| `make verify` | Workflow contracts + JUnit + CLI + dependency audit + TypeScript + browser smoke |
 | `make test` | JUnit suite |
 | `make cli-smoke` | Core explorer command smoke test |
+| `make workflow-contract` | Test optional workflow credential routing |
 | `make ui-build` | Prepare static web files |
 | `make ui-contract` | Browser CSV import/domain contract tests |
+| `make ui-typecheck` | Check the complete browser TypeScript surface |
+| `make ui-audit` | Audit locked production web dependencies |
 | `make ui-smoke` | Browser explorer smoke test |
 | `make build` | Compile explorer |
 | `make clean` | Remove compiled artifacts |
@@ -67,11 +70,23 @@ Large views stay bounded: the timeline renders at most 400 cells, each spark cha
 
 Port override: copy `.env.example` → `.env`, set `UI_PORT`.
 
-Static deploy: `vercel.json` publishes `web/dist/`.
+Static deploy: `vercel.json` publishes `web/out/`.
 
 ## Reference
 
-Requires Python 3 (`make ui`), Java (CLI + tests), Node.js (browser build).
+Requires Python 3 (`make ui`), a JDK (CLI + tests), and Node.js 24 LTS (browser build and verification).
+
+Install the browser test dependencies once, then run the same verification command as CI:
+
+```bash
+npm ci
+npm run ui:install-browsers
+make verify
+```
+
+The gate installs the locked web dependencies once, audits all production dependency severities, checks workflow credential routing and TypeScript, and exercises the CLI, CSV importer, and exported browser UI. An audit failure stops verification. `npm run typecheck` inside `web/` replaces the old unconfigured `next lint` command.
+
+The web dependencies stay on the Next.js 15.5 and React 19.1 release lines. Scoped overrides keep Next.js's PostCSS and sharp dependencies patched; remove an override only when the upstream dependency and the production audit are both clean.
 
 ```bash
 make test

@@ -4,9 +4,17 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -21,19 +29,14 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version: '24'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
 
       - name: Install browser smoke dependencies
         run: npm ci
-
-      - name: Install web dependencies
-        working-directory: web
-        run: npm ci
-
-      - name: Audit production web dependencies
-        working-directory: web
-        run: npm audit --omit=dev
 
       - name: Install Chromium for Playwright smoke tests
         run: npx playwright install --with-deps chromium

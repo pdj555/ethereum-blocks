@@ -34,33 +34,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch pull request
-        run: gh pr checkout ${{ github.event.inputs.pr_number }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Configure AI credentials
+        id: ai
         uses: ./.github/actions/configure-ai
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ollama_api_key: ${{ secrets.OLLAMA_API_KEY }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
+      - name: Fetch pull request
+        if: steps.ai.outputs.provider != 'none'
+        run: gh pr checkout ${{ github.event.inputs.pr_number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Claude reviews the PR
+        if: steps.ai.outputs.provider != 'none'
         uses: anthropics/claude-code-action@v1
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OLLAMA_API_KEY }}
-          ANTHROPIC_BASE_URL: ${{ env.ANTHROPIC_BASE_URL }}
-          ANTHROPIC_DEFAULT_SONNET_MODEL: ${{ env.ANTHROPIC_DEFAULT_SONNET_MODEL }}
-          ANTHROPIC_DEFAULT_OPUS_MODEL: ${{ env.ANTHROPIC_DEFAULT_OPUS_MODEL }}
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OPENAI_BASE_URL: ${{ env.OPENAI_BASE_URL }}
+          ANTHROPIC_BASE_URL: ${{ steps.ai.outputs.base_url }}
+          # The action explicitly forwards custom headers to the Claude subprocess.
+          # Ollama requires Bearer auth and does not accept x-api-key alone.
+          ANTHROPIC_CUSTOM_HEADERS: "${{ steps.ai.outputs.provider == 'ollama-cloud' && format('Authorization: Bearer {0}', secrets.OLLAMA_API_KEY) || '' }}"
+          ANTHROPIC_DEFAULT_SONNET_MODEL: ${{ steps.ai.outputs.provider == 'ollama-cloud' && steps.ai.outputs.model || '' }}
+          ANTHROPIC_DEFAULT_OPUS_MODEL: ${{ steps.ai.outputs.provider == 'ollama-cloud' && steps.ai.outputs.model || '' }}
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: ${{ steps.ai.outputs.provider == 'ollama-cloud' && steps.ai.outputs.model || '' }}
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ steps.ai.outputs.provider == 'claude-oauth' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          # Ollama's key also satisfies the action's required API-key input.
+          anthropic_api_key: ${{ (steps.ai.outputs.provider == 'ollama-cloud' && secrets.OLLAMA_API_KEY) || (steps.ai.outputs.provider == 'anthropic-api' && secrets.ANTHROPIC_API_KEY) || '' }}
           prompt: |
             You are the revenue-first reviewer for the Ethereum Block
             Explorer. Review pull request #${{ github.event.inputs.pr_number }}
@@ -104,6 +106,6 @@ jobs:
               BLOCK.
             - Never request changes that do not protect or produce revenue.
           claude_args: |
-            --model claude-opus-4-6
+            --model ${{ steps.ai.outputs.model }}
             --max-turns 8
             --allowedTools Read,Grep,Glob,Bash
