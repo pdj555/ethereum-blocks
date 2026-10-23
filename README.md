@@ -11,11 +11,11 @@ flowchart LR
 
 ## How it works
 
-1. **Load.** Pick your CSV exports in the browser. Parsing, validation, and indexing happen in a web worker. Files are never uploaded.
-2. **Explore.** Block timelines, address profiles, miner breakdowns, gas analysis, anomaly detection.
-3. **Report.** `make report` writes a Markdown summary you can keep.
+1. Load. Pick your CSV exports in the browser. Parsing, validation, and indexing happen in a web worker. Files are never uploaded.
+2. Explore. Block timelines, address profiles, miner breakdowns, gas analysis, anomaly detection.
+3. Report. `make report` writes a Markdown summary you can keep.
 
-The same engine backs the browser UI and the JSON CLI, so results agree across surfaces.
+The browser UI and the JSON CLI use the same engine, so results agree across surfaces.
 
 ## Quickstart
 
