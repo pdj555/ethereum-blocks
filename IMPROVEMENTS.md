@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repo has been tightened around one supported product surface: a make-first explorer with a lean browser UI, a small interactive menu, and stable JSON outputs for automation.
+This repo now has one supported way in: an explorer you run through make targets, with a browser UI, a small interactive menu, and stable JSON outputs for automation.
 
 ## Current Workflow
 
@@ -16,7 +16,7 @@ make verify
 ```
 
 - `make help` is the command guide and runtime checklist.
-- `make dashboard` is the fastest human-readable value path.
+- `make dashboard` is the quickest way to read a summary of the dataset.
 - `make ui` serves the browser explorer at `http://localhost:4173`.
 - `make verify` runs the same local health gate used by CI.
 - `make anomalies THRESHOLD=1.5` is the supported way to override the anomaly z-score threshold.
