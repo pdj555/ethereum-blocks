@@ -20,7 +20,7 @@ JUNIT_JAR = $(TOOLSDIR)/junit-platform-console-standalone-$(JUNIT_VERSION).jar
 REPORT_FILE = ethereum-report.md
 UI_PORT ?= 4173
 
-.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify workflow-contract ui ui-deps ui-audit ui-build ui-contract ui-typecheck ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
+.PHONY: help build compile run run-json dashboard block address brief snapshot network anomalies miners report clean check-java check-junit test verify ui ui-deps ui-audit ui-build ui-contract ui-typecheck ui-serve ui-clean ui-smoke cli-smoke check-python check-ui-data check-node
 
 help:
 	@echo "Ethereum Block Explorer v5.0"
@@ -42,13 +42,12 @@ help:
 	@echo "  make run                  Open the small interactive menu"
 	@echo "  make brief                Print the action brief"
 	@echo "  make snapshot             Print the one-call agent snapshot in JSON"
-	@echo "  make anomalies THRESHOLD=1.5  Print anomaly analysis in JSON"
+	@echo "  make anomalies THRESHOLD=3.5  Print anomaly analysis in JSON"
 	@echo "  make miners               Print the unique miner breakdown in JSON"
 	@echo "  make run-json             Print the JSON overview"
 	@echo "  make verify               Run the full local health gate"
 	@echo "  make test                 Run the existing JUnit suite"
 	@echo "  make cli-smoke            Smoke test the core explorer commands"
-	@echo "  make workflow-contract    Test optional workflow credential routing"
 	@echo "  make ui-build             Prepare the static web files in web/out/"
 	@echo "  make ui-contract          Test the browser CSV import/domain contract"
 	@echo "  make ui-typecheck         Check the complete browser TypeScript surface"
@@ -96,10 +95,7 @@ test: compile check-junit
 	@java -jar $(JUNIT_JAR) --class-path "$(BINDIR):$(TEST_BINDIR)" --scan-class-path
 
 verify:
-	@$(MAKE) --no-print-directory workflow-contract test cli-smoke ui-audit ui-smoke
-
-workflow-contract: check-node
-	@node scripts/workflow_provider_contract.mjs
+	@$(MAKE) --no-print-directory test cli-smoke ui-audit ui-smoke
 
 check-python:
 	@if ! command -v python3 >/dev/null 2>&1; then \

@@ -122,7 +122,7 @@ try {
   assertCondition(Array.isArray(anomalies.volume_anomalies), "Anomalies output is missing volume_anomalies.");
   const invalidAnomalies = parseJsonOutput(["anomalies", "THRESHOLD=not-a-number"]);
   assertCondition(
-    invalidAnomalies.error === "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=1.5.",
+    invalidAnomalies.error === "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.",
     "Invalid anomalies threshold did not return the command-specific guidance."
   );
 
