@@ -536,7 +536,6 @@ public class EthereumBlockExplorer {
             "  make verify               Run the full local health gate",
             "  make test                 Run the existing JUnit suite",
             "  make cli-smoke            Smoke test the core explorer commands",
-            "  make workflow-contract    Test optional workflow credential routing",
             "  make ui-build             Prepare the static web files in web/out/",
             "  make ui-contract          Test the browser CSV import/domain contract",
             "  make ui-typecheck         Check the complete browser TypeScript surface",
