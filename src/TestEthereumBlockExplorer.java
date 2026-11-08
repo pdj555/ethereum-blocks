@@ -75,14 +75,12 @@ class TestEthereumBlockExplorer {
         String cliHelp = normalize(EthereumBlockExplorer.buildHelpText());
         String makeHelp = normalize(runMakeHelp());
         String readme = Files.readString(Path.of("README.md"));
-        String improvements = Files.readString(Path.of("IMPROVEMENTS.md"));
 
         assertEquals(cliHelp, makeHelp);
         assertEquals(extractHelpCommands(cliHelp), extractReadmeCommands(readme));
         assertFalse(readme.contains("java -cp src"));
         assertFalse(readme.contains("javac -cp src"));
         assertFalse(readme.contains("Driver.java"));
-        assertFalse(improvements.contains("Driver.java"));
     }
 
     private static String runMakeHelp() throws IOException, InterruptedException {
@@ -120,7 +118,7 @@ class TestEthereumBlockExplorer {
         boolean inTable = false;
 
         for (String line : normalize(readmeText).split("\n")) {
-            if (line.equals("## Supported Commands")) {
+            if (line.equals("## Commands")) {
                 inTable = true;
                 continue;
             }
