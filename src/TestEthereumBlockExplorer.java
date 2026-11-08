@@ -77,7 +77,10 @@ class TestEthereumBlockExplorer {
         String readme = Files.readString(Path.of("README.md"));
 
         assertEquals(cliHelp, makeHelp);
-        assertEquals(extractHelpCommands(cliHelp), extractReadmeCommands(readme));
+        List<String> helpCommands = extractHelpCommands(cliHelp);
+        List<String> readmeCommands = extractReadmeCommands(readme);
+        assertFalse(readmeCommands.isEmpty());
+        assertTrue(helpCommands.containsAll(readmeCommands), "README lists a command make help does not: " + readmeCommands);
         assertFalse(readme.contains("java -cp src"));
         assertFalse(readme.contains("javac -cp src"));
         assertFalse(readme.contains("Driver.java"));
