@@ -12,16 +12,16 @@
 - `make dashboard`: compile and print a quick dataset summary.
 - `make ui`: build the static site and serve it at `http://localhost:4173` (override with `UI_PORT` in `.env`).
 - `make test`: compile and run all JUnit tests.
-- `make verify`: run the CI-equivalent JUnit, CLI smoke, and Playwright UI smoke checks.
+- `make verify`: run the same checks as CI: JUnit, CLI smoke, dependency audit, and Playwright UI smoke checks.
 - `cd web && npm run dev`: run the Next.js development server.
 
 Before browser smoke tests, run `npm ci` at the root and `npm run ui:install-browsers`.
 
 ## Coding Style & Naming Conventions
 
-Match the surrounding Java style: `PascalCase` classes and `camelCase` methods and fields. TypeScript uses two-space indentation, semicolons, double quotes, `PascalCase` components, and `camelCase` helpers. Preserve strict checks and the `@/` import alias. Avoid unrelated reformatting.
+Match the surrounding Java style: `PascalCase` classes and `camelCase` methods and fields. TypeScript uses indentation with two spaces, semicolons, double quotes, `PascalCase` components, and `camelCase` helpers. Preserve strict checks and the `@/` import alias. Avoid unrelated reformatting.
 
-Both product surfaces consume the same CSV contract. Use the quote-aware parsers instead of splitting on commas, and keep Java and browser behavior synchronized when changing fields or validation.
+Both product surfaces consume the same CSV contract. Use the parsers that handle quoted fields instead of splitting on commas, and keep Java and browser behavior synchronized when changing fields or validation.
 
 ## Testing Guidelines
 
@@ -29,7 +29,7 @@ Name Java test classes `Test<ClassName>.java` and methods `testBehavior`. Call `
 
 ## Commit & Pull Request Guidelines
 
-Use short, imperative, sentence-case subjects, consistent with history: `Add wallet intel command` or `Harden CSV ingestion and runtime setup`. Keep each commit to one logical change.
+Use short, imperative subjects in sentence case, consistent with history: `Add wallet intel command` or `Harden CSV ingestion and runtime setup`. Keep each commit to one logical change.
 
 Pull requests should explain the affected surface, link the issue when applicable, and list verification commands. Include before/after screenshots for UI changes. Call out changes to CSV parsing, JSON field names, generated assets, or deployment behavior. Do not add agent attribution to commits or pull requests.
 

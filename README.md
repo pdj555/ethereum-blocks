@@ -8,7 +8,7 @@ Analyze Ethereum block and transaction exports privately in the browser, or expl
 2. Explore. Block timelines, address profiles, miner breakdowns, gas analysis, and anomaly detection scored on the median and median absolute deviation, so one extreme block cannot hide another.
 3. Report. `make report` writes a Markdown summary.
 
-The browser (TypeScript) and the JSON CLI (Java) are two implementations held to one answer: `scripts/anomaly_parity.json` is the CLI's anomaly output on the bundled sample, and both test suites must reproduce it to 1e-9. Both count a repeated transaction row once; the sample repeats three.
+The browser (TypeScript) and the JSON CLI (Java) are two implementations that must give the same answer: `scripts/anomaly_parity.json` is the CLI's anomaly output on the bundled sample, and both test suites must reproduce it to 1e-9. Both count a repeated transaction row once; the sample repeats three.
 
 ## Quickstart
 
@@ -25,7 +25,7 @@ Your own data: run `make ui`, select **Load your CSVs**, and choose both exports
 | Command | Output |
 | :-- | :-- |
 | `make help` | Command guide and runtime requirements |
-| `make dashboard` | Human-readable dataset summary |
+| `make dashboard` | Human readable dataset summary |
 | `make ui` | Static browser explorer |
 | `make block N=15049311` | Block JSON |
 | `make address ADDR=0x...` | Address profile JSON |
@@ -34,7 +34,7 @@ Your own data: run `make ui`, select **Load your CSVs**, and choose both exports
 | `make miners` | Unique miner breakdown JSON |
 | `make report` | Writes ethereum-report.md |
 | `make brief` | Action brief |
-| `make snapshot` | Compact JSON context packet |
+| `make snapshot` | Compact JSON snapshot |
 | `make run` | Interactive menu |
 | `make verify` | JUnit + CLI + dependency audit + TypeScript + browser smoke |
 
