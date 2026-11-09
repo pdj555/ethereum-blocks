@@ -2,6 +2,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -168,5 +171,14 @@ class TestAgentAPI {
         @SuppressWarnings("unchecked")
         List<String> nextActions = (List<String>) snapshot.get("recommended_next_actions");
         assertFalse(nextActions.isEmpty());
+    }
+
+    @Test
+    void testAnomaliesMatchTheSharedParityFile() throws IOException {
+        // The browser engine checks its own scores against the same file
+        // (scripts/dataset_import_contract.test.ts), so the two engines cannot drift apart.
+        String expected = Files.readString(Path.of("scripts/anomaly_parity.json"), StandardCharsets.UTF_8);
+        String actual = JsonWriter.toJson(AgentAPI.detectAnomalies(blocks, RobustStats.DEFAULT_THRESHOLD));
+        assertEquals(expected.strip(), actual.strip());
     }
 }

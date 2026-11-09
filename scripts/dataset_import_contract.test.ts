@@ -10,6 +10,7 @@ import {
   MAX_CSV_COLUMNS,
   MAX_TRANSACTION_RECORDS
 } from "../web/lib/dataset-import-core";
+import { ANOMALY_THRESHOLD, modifiedZ } from "../web/lib/anomalies";
 import { buildDataset, parseBlocksToViews } from "../web/lib/dataset";
 import { parseCsvRecords } from "../web/lib/parser";
 import { downsampleSeries, MAX_SPARKLINE_POINTS } from "../web/lib/series";
@@ -204,4 +205,45 @@ test("chart series are downsampled to a fixed display bound with endpoints", () 
   assert.equal(sampled.values[0], 0);
   assert.equal(sampled.values.at(-1), 9_999);
   assert.equal(sampled.blockNumbers.at(-1), 909_999);
+});
+
+test("browser anomaly scores match the CLI on the bundled sample", () => {
+  const read = (name: string) => readFileSync(resolve(process.cwd(), name), "utf8");
+  const dataset = createDatasetFromCsv(read("ethereumP1data.csv"), read("ethereumtransactions1.csv"));
+  const cli = JSON.parse(read("scripts/anomaly_parity.json"));
+  const report = dataset.anomalies;
+  // The sample repeats three transaction rows; the CLI counts 2,735 transactions.
+  assert.equal(dataset.overview.parsedTransactions, 2735);
+
+  assert.equal(report.threshold, cli.z_threshold);
+  assert.equal(ANOMALY_THRESHOLD, cli.z_threshold);
+  const close = (actual: number | null, expected: number) =>
+    assert.ok(actual !== null && Math.abs(actual - expected) <= 1e-9 * Math.max(1, Math.abs(expected)));
+  close(report.costMedianEth, cli.cost_median_eth);
+  close(report.costScaleEth, cli.cost_scale_eth);
+  close(report.volumeMedian, cli.volume_median);
+  close(report.volumeScale, cli.volume_scale);
+  for (const [mine, theirs] of [
+    [report.cost, cli.cost_anomalies],
+    [report.volume, cli.volume_anomalies]
+  ] as const) {
+    assert.deepEqual(
+      mine.map((item) => item.blockNumber),
+      theirs.map((item: { block: number }) => item.block)
+    );
+    mine.forEach((item, index) => close(item.zScore, theirs[index].z_score));
+  }
+});
+
+test("modified z-score falls back to the mean absolute deviation when most values tie", () => {
+  // MAD is 0 here; 1.253314 * mean absolute deviation (0.4) is the scale.
+  const scores = modifiedZ([1, 1, 1, 1, 3]);
+  assert.ok(Math.abs(scores[4] - 2 / (1.253314 * 0.4)) < 1e-12);
+  assert.deepEqual(modifiedZ([5, 5, 5]), [0, 0, 0]);
+});
+
+test("a repeated transaction row counts once", () => {
+  const row = transactionRow();
+  const dataset = createDatasetFromCsv(blockRow(), `${row}\n${row}`);
+  assert.equal(dataset.overview.parsedTransactions, 1);
 });

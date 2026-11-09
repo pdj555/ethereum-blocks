@@ -1,0 +1,23 @@
+{
+  "cost_median_eth": 0.007749150759915347,
+  "cost_scale_eth": 0.001902861712823458,
+  "method": "modified z-score (median and median absolute deviation)",
+  "z_threshold": 3.5,
+  "cost_anomalies": [
+    {
+      "block": 15049321,
+      "avg_cost_eth": 0.027589862267523982,
+      "z_score": 10.426775300538825,
+      "direction": "high"
+    },
+    {
+      "block": 15049322,
+      "avg_cost_eth": 0.021555235603646788,
+      "z_score": 7.255432568058786,
+      "direction": "high"
+    }
+  ],
+  "volume_anomalies": [],
+  "volume_median": 177.5,
+  "volume_scale": 171.23795404002965
+}

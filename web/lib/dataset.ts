@@ -1,3 +1,4 @@
+import { detectAnomalies } from "./anomalies";
 import { formatTimestamp } from "./utils";
 import type {
   AddressProfile,
@@ -167,6 +168,7 @@ export function buildDataset(blocks: BlockView[], transactions: TransactionRecor
     largestTransaction,
     blockMap,
     addressMap: new Map(addressProfiles.map((profile) => [profile.address, profile])),
+    anomalies: detectAnomalies(blocksList),
     txSeries,
     costSeries,
     blockNumbers
