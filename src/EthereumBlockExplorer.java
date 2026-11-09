@@ -124,12 +124,12 @@ public class EthereumBlockExplorer {
                     outputResult(NetworkAnalyzer.analyzeNetwork(blocks, 10));
                     break;
                 case "anomalies":
-                    double threshold = 1.5;
+                    double threshold = RobustStats.DEFAULT_THRESHOLD;
                     if (args.length >= 2) {
                         try {
                             threshold = Double.parseDouble(args[1]);
                         } catch (NumberFormatException e) {
-                            outputError("Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=1.5.");
+                            outputError("Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.");
                             return;
                         }
                     }
@@ -488,14 +488,14 @@ public class EthereumBlockExplorer {
     }
 
     private static void viewAnomalies() {
-        System.out.print("\nZ-score threshold [1.5]: ");
+        System.out.print("\nModified z-score threshold [3.5]: ");
         try {
             String input = scanner.nextLine().trim();
-            double threshold = input.isEmpty() ? 1.5 : Double.parseDouble(input);
+            double threshold = input.isEmpty() ? RobustStats.DEFAULT_THRESHOLD : Double.parseDouble(input);
             Map<String, Object> anomalies = AgentAPI.detectAnomalies(blocks, threshold);
             printMap(anomalies, 0);
         } catch (NumberFormatException e) {
-            System.out.println("\nEnter a numeric threshold such as 1.5 or 2.0.");
+            System.out.println("\nEnter a numeric threshold such as 3.5 or 5.");
         }
     }
 
@@ -530,13 +530,12 @@ public class EthereumBlockExplorer {
             "  make run                  Open the small interactive menu",
             "  make brief                Print the action brief",
             "  make snapshot             Print the one-call agent snapshot in JSON",
-            "  make anomalies THRESHOLD=1.5  Print anomaly analysis in JSON",
+            "  make anomalies THRESHOLD=3.5  Print anomaly analysis in JSON",
             "  make miners               Print the unique miner breakdown in JSON",
             "  make run-json             Print the JSON overview",
             "  make verify               Run the full local health gate",
             "  make test                 Run the existing JUnit suite",
             "  make cli-smoke            Smoke test the core explorer commands",
-            "  make workflow-contract    Test optional workflow credential routing",
             "  make ui-build             Prepare the static web files in web/out/",
             "  make ui-contract          Test the browser CSV import/domain contract",
             "  make ui-typecheck         Check the complete browser TypeScript surface",

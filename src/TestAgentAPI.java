@@ -95,6 +95,15 @@ class TestAgentAPI {
         assertEquals(1.5, anomalies.get("z_threshold"));
         assertNotNull(anomalies.get("cost_anomalies"));
         assertNotNull(anomalies.get("volume_anomalies"));
+        assertEquals(RobustStats.METHOD, anomalies.get("method"));
+    }
+
+    @Test
+    void testDetectAnomaliesDefaultsToTheRobustCutOff() {
+        Map<String, Object> anomalies = AgentAPI.detectAnomalies(blocks, RobustStats.DEFAULT_THRESHOLD);
+        assertEquals(3.5, anomalies.get("z_threshold"));
+        assertNotNull(anomalies.get("cost_median_eth"));
+        assertNotNull(anomalies.get("volume_median"));
     }
 
     @Test

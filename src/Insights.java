@@ -272,7 +272,7 @@ public final class Insights {
 
         out.append("\nNext moves:\n");
         out.append("1) Track top spender addresses block-over-block.\n");
-        out.append("2) Alert on avg-cost z-score >= 1.5 for early anomaly detection.\n");
+        out.append("2) Alert on avg-cost modified z-score >= 3.5 for early anomaly detection.\n");
         out.append("3) Watch miner concentration > 25% as a governance risk threshold.\n");
         out.append("===========================================\n");
 
@@ -321,7 +321,7 @@ public final class Insights {
         appendTopMiners(out, minerFrequency, topN);
         out.append("\n## Highest-Cost Blocks\n");
         appendTopCostBlocks(out, blocks, topN);
-        out.append("\n## Potential Cost Outliers (z-score >= 1.5)\n");
+        out.append("\n## Potential Cost Outliers (modified z-score >= 3.5)\n");
         appendCostOutliers(out, blocks, topN);
         out.append("\n## Action Brief\n");
         out.append("```text\n");
@@ -409,21 +409,14 @@ public final class Insights {
             return new ArrayList<>();
         }
 
-        double mean = stats.stream().mapToDouble(BlockCostStat::getAvgCostEth).average().orElse(0.0);
-        double variance = stats.stream()
-            .mapToDouble(s -> {
-                double delta = s.getAvgCostEth() - mean;
-                return delta * delta;
-            })
-            .average()
-            .orElse(0.0);
-        double std = Math.sqrt(variance);
-        if (std == 0.0) {
-            return new ArrayList<>();
+        double[] scores = RobustStats.modifiedZ(
+            stats.stream().mapToDouble(BlockCostStat::getAvgCostEth).toArray());
+        ArrayList<BlockCostStat> flagged = new ArrayList<>();
+        for (int i = 0; i < stats.size(); i++) {
+            if (scores[i] >= RobustStats.DEFAULT_THRESHOLD) flagged.add(stats.get(i));
         }
 
-        return stats.stream()
-            .filter(s -> (s.getAvgCostEth() - mean) / std >= 1.5)
+        return flagged.stream()
             .sorted(Comparator.comparingDouble(BlockCostStat::getAvgCostEth).reversed())
             .limit(limit)
             .collect(Collectors.toList());

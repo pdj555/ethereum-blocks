@@ -5,7 +5,7 @@ Analyze Ethereum block and transaction exports privately in the browser, or expl
 ## How it works
 
 1. Load. Pick your CSV exports in the browser. Parsing, validation, and indexing run in a web worker.
-2. Explore. Block timelines, address profiles, miner breakdowns, gas analysis, anomaly detection.
+2. Explore. Block timelines, address profiles, miner breakdowns, gas analysis, and anomaly detection scored on the median and median absolute deviation, so one extreme block cannot hide another.
 3. Report. `make report` writes a Markdown summary.
 
 The browser UI and the JSON CLI share one engine, so results agree.
@@ -30,13 +30,13 @@ Your own data: run `make ui`, select **Load your CSVs**, and choose both exports
 | `make block N=15049311` | Block JSON |
 | `make address ADDR=0x...` | Address profile JSON |
 | `make network` | Network analysis JSON |
-| `make anomalies THRESHOLD=1.5` | Anomaly analysis JSON |
+| `make anomalies THRESHOLD=3.5` | Anomaly analysis JSON (modified z-score, median and MAD) |
 | `make miners` | Unique miner breakdown JSON |
 | `make report` | Writes ethereum-report.md |
 | `make brief` | Action brief |
 | `make snapshot` | Compact JSON context packet |
 | `make run` | Interactive menu |
-| `make verify` | Workflow contracts + JUnit + CLI + dependency audit + TypeScript + browser smoke |
+| `make verify` | JUnit + CLI + dependency audit + TypeScript + browser smoke |
 
 ## Verify
 

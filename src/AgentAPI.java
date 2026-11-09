@@ -221,7 +221,7 @@ public final class AgentAPI {
         }
 
         Map<String, Object> network = NetworkAnalyzer.analyzeNetwork(blocks, 5);
-        Map<String, Object> anomalies = detectAnomalies(blocks, 1.5);
+        Map<String, Object> anomalies = detectAnomalies(blocks, RobustStats.DEFAULT_THRESHOLD);
 
         result.put("network", network);
         result.put("anomalies", anomalies);
@@ -370,25 +370,22 @@ public final class AgentAPI {
         }
 
         if (costs.size() >= 3) {
-            double mean = costs.stream().mapToDouble(d -> d).average().orElse(0.0);
-            double variance = costs.stream().mapToDouble(d -> (d - mean) * (d - mean)).average().orElse(0.0);
-            double std = Math.sqrt(variance);
-
-            if (std > 0) {
-                for (Map.Entry<Integer, Double> entry : blockCosts.entrySet()) {
-                    double z = (entry.getValue() - mean) / std;
-                    if (Math.abs(z) >= zThreshold) {
-                        Map<String, Object> anomaly = new LinkedHashMap<>();
-                        anomaly.put("block", entry.getKey());
-                        anomaly.put("avg_cost_eth", entry.getValue());
-                        anomaly.put("z_score", z);
-                        anomaly.put("direction", z > 0 ? "high" : "low");
-                        costAnomalies.add(anomaly);
-                    }
+            double[] values = RobustStats.toArray(costs);
+            double[] scores = RobustStats.modifiedZ(values);
+            int i = 0;
+            for (Map.Entry<Integer, Double> entry : blockCosts.entrySet()) {
+                double z = scores[i++];
+                if (Math.abs(z) >= zThreshold) {
+                    Map<String, Object> anomaly = new LinkedHashMap<>();
+                    anomaly.put("block", entry.getKey());
+                    anomaly.put("avg_cost_eth", entry.getValue());
+                    anomaly.put("z_score", z);
+                    anomaly.put("direction", z > 0 ? "high" : "low");
+                    costAnomalies.add(anomaly);
                 }
             }
-            result.put("cost_mean_eth", mean);
-            result.put("cost_std_eth", std);
+            result.put("cost_median_eth", RobustStats.median(values));
+            result.put("cost_scale_eth", RobustStats.scale(values));
         }
 
         // Transaction volume anomalies
@@ -397,29 +394,29 @@ public final class AgentAPI {
             .map(Blocks::getTransactionCount)
             .collect(Collectors.toList());
 
-        double volMean = volumes.stream().mapToInt(i -> i).average().orElse(0.0);
-        double volVar = volumes.stream().mapToDouble(v -> (v - volMean) * (v - volMean)).average().orElse(0.0);
-        double volStd = Math.sqrt(volVar);
-
-        if (volStd > 0) {
-            for (Blocks block : blocks) {
-                double z = (block.getTransactionCount() - volMean) / volStd;
-                if (Math.abs(z) >= zThreshold) {
-                    Map<String, Object> anomaly = new LinkedHashMap<>();
-                    anomaly.put("block", block.getNumber());
-                    anomaly.put("tx_count", block.getTransactionCount());
-                    anomaly.put("z_score", z);
-                    anomaly.put("direction", z > 0 ? "high" : "low");
-                    volumeAnomalies.add(anomaly);
-                }
+        double[] volumeValues = RobustStats.toArray(volumes);
+        double[] volumeScores = RobustStats.modifiedZ(volumeValues);
+        for (int i = 0; i < blocks.size(); i++) {
+            Blocks block = blocks.get(i);
+            double z = volumeScores[i];
+            if (Math.abs(z) >= zThreshold) {
+                Map<String, Object> anomaly = new LinkedHashMap<>();
+                anomaly.put("block", block.getNumber());
+                anomaly.put("tx_count", block.getTransactionCount());
+                anomaly.put("z_score", z);
+                anomaly.put("direction", z > 0 ? "high" : "low");
+                volumeAnomalies.add(anomaly);
             }
         }
 
+        result.put("method", RobustStats.METHOD);
         result.put("z_threshold", zThreshold);
         result.put("cost_anomalies", costAnomalies);
         result.put("volume_anomalies", volumeAnomalies);
-        result.put("volume_mean", volMean);
-        result.put("volume_std", volStd);
+        if (volumeValues.length > 0) {
+            result.put("volume_median", RobustStats.median(volumeValues));
+            result.put("volume_scale", RobustStats.scale(volumeValues));
+        }
 
         return result;
     }
@@ -516,14 +513,11 @@ public final class AgentAPI {
 
         if (costs.size() < 3) return outliers;
 
-        double mean = costs.stream().mapToDouble(d -> d).average().orElse(0.0);
-        double variance = costs.stream().mapToDouble(d -> (d - mean) * (d - mean)).average().orElse(0.0);
-        double std = Math.sqrt(variance);
-        if (std == 0) return outliers;
-
+        double[] scores = RobustStats.modifiedZ(RobustStats.toArray(costs));
+        int i = 0;
         for (Map.Entry<Integer, double[]> entry : blockData.entrySet()) {
-            double z = (entry.getValue()[0] - mean) / std;
-            if (z >= 1.5) {
+            double z = scores[i++];
+            if (z >= RobustStats.DEFAULT_THRESHOLD) {
                 Map<String, Object> o = new LinkedHashMap<>();
                 o.put("block", entry.getKey());
                 o.put("avg_cost_eth", entry.getValue()[0]);
