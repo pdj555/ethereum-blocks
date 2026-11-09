@@ -80,6 +80,10 @@ export function createDatasetFromCsv(blocksCsv: string, transactionsCsv: string)
   }
 
   const transactions: TransactionRecord[] = [];
+  // A transaction is its block number and index. Exports can repeat a row; the first
+  // copy counts and later ones are dropped, as the Java CLI does, so both engines see
+  // the same transactions.
+  const seenTransactions = new Set<string>();
   let matchedCostTotal = 0;
   const transactionRecordCount = readRecords(
     transactionsCsv,
@@ -142,6 +146,11 @@ export function createDatasetFromCsv(blocksCsv: string, transactionsCsv: string)
       if (!blockNumbers.has(blockNumber)) {
         return;
       }
+      const transactionKey = `${blockNumber}:${index}`;
+      if (seenTransactions.has(transactionKey)) {
+        return;
+      }
+      seenTransactions.add(transactionKey);
       matchedCostTotal += costEth;
       if (!Number.isFinite(matchedCostTotal)) {
         throw new DatasetImportError(

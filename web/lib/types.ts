@@ -1,3 +1,5 @@
+import type { AnomalyReport } from "./anomalies";
+
 export type BlockRecord = {
   number: number;
   miner: string;
@@ -83,6 +85,7 @@ export type Dataset = {
   txSeries: number[];
   costSeries: number[];
   blockNumbers: number[];
+  anomalies: AnomalyReport;
 };
 
 export type SearchMode = "block" | "address";

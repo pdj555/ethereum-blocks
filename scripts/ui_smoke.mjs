@@ -119,6 +119,9 @@ try {
     await page.getByText("100 blocks", { exact: true }).first().isVisible(),
     "Overview summary did not render."
   );
+  // Same blocks and scores as `make anomalies`: 10.4 and 7.3 on average cost.
+  await page.getByRole("button", { name: /Block 15049321\s*avg cost high \| score 10\.4/ }).waitFor();
+  await page.getByRole("button", { name: /Block 15049322\s*avg cost high \| score 7\.3/ }).waitFor();
 
   await page.getByRole("button", { name: "Load your CSVs" }).click();
   await page.getByLabel("Blocks CSV").setInputFiles({

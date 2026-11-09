@@ -8,7 +8,7 @@ Analyze Ethereum block and transaction exports privately in the browser, or expl
 2. Explore. Block timelines, address profiles, miner breakdowns, gas analysis, and anomaly detection scored on the median and median absolute deviation, so one extreme block cannot hide another.
 3. Report. `make report` writes a Markdown summary.
 
-The browser UI and the JSON CLI share one engine, so results agree.
+The browser (TypeScript) and the JSON CLI (Java) are two implementations held to one answer: `scripts/anomaly_parity.json` is the CLI's anomaly output on the bundled sample, and both test suites must reproduce it to 1e-9. Both count a repeated transaction row once; the sample repeats three.
 
 ## Quickstart
 

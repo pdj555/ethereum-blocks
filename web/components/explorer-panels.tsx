@@ -114,6 +114,26 @@ export function SideRail({ dataset, onJump }: SideRailProps) {
           ))}
         </div>
       </SectionFrame>
+      <SectionFrame title="Anomalies">
+        <div className="action-list">
+          {[
+            ...dataset.anomalies.cost.map((item) => ({ ...item, what: "avg cost" })),
+            ...dataset.anomalies.volume.map((item) => ({ ...item, what: "tx count" }))
+          ].map((item) => (
+            <JumpButton
+              key={`${item.what}-${item.blockNumber}`}
+              label={`Block ${item.blockNumber}`}
+              meta={`${item.what} ${item.direction} | score ${formatDecimal(item.zScore, 1)}`}
+              mode="block"
+              value={String(item.blockNumber)}
+              onJump={onJump}
+            />
+          ))}
+          {dataset.anomalies.cost.length + dataset.anomalies.volume.length === 0 ? (
+            <GlanceRow label="None" value={`at ${formatDecimal(dataset.anomalies.threshold, 1)}`} />
+          ) : null}
+        </div>
+      </SectionFrame>
       <SectionFrame title="Active addresses">
         <div className="action-list">
           {dataset.activeAddresses.map((item) => (

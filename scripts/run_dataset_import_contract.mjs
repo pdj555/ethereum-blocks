@@ -31,6 +31,7 @@ try {
       "--outDir",
       outputDirectory,
       resolve(root, "scripts/dataset_import_contract.test.ts"),
+      resolve(root, "web/lib/anomalies.ts"),
       resolve(root, "web/lib/dataset-import-core.ts"),
       resolve(root, "web/lib/dataset.ts"),
       resolve(root, "web/lib/parser.ts"),
