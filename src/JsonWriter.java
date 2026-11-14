@@ -1,3 +1,4 @@
+import java.util.Locale;
 import java.util.Collection;
 import java.util.Map;
 
@@ -97,7 +98,7 @@ public final class JsonWriter {
                 case '\t': sb.append("\\t"); break;
                 default:
                     if (c < 0x20) {
-                        sb.append(String.format("\\u%04x", (int) c));
+                        sb.append(String.format(Locale.ROOT, "\\u%04x", (int) c));
                     } else {
                         sb.append(c);
                     }

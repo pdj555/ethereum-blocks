@@ -49,10 +49,16 @@ make cli-smoke
 - The two CSVs are read from `--data <directory>`, else the `ETHEREUM_BLOCKS_DATA` variable, else the working directory, else the directory above the compiled classes. So `java -cp /path/to/repo/bin EthereumBlockExplorer --json snapshot` works from any directory.
 - `report <file>` writes the Markdown report to that file. `report` with no file writes nothing to disk: it prints the Markdown, or returns it as `markdown` in the document under `--json`.
 - Call `java` directly when the exit code matters. The `make` targets print the same JSON, but `make` reports any failure as its own exit status 2.
-- Output has no clock or random input: the same CSVs give the same bytes.
+- Output has no clock or random input, is always UTF-8, and formats numbers and dates the same under every locale: the same CSVs give the same bytes on any machine.
+- Malformed transaction rows are skipped with a warning on stderr and counted in the snapshot as `data_contract.skipped_transaction_rows`.
+- `help` (also `--help`) answers without the dataset. With no command and nothing on stdin the CLI exits `2`; the menu needs a terminal.
 - `npm ci` is only needed for the validators: `make cli-smoke` checks every command against the schema, and `node scripts/agent_smoke.mjs` runs the commands above as written.
 
-Behaviour changes from earlier versions: failed commands used to exit `0` and print `{"error": "<text>"}`. They now exit non-zero with the error shape above, so `make address` and `make anomalies` with a bad argument fail. `--json` used to work only before the command.
+Behaviour changes from earlier versions:
+
+- Failed commands used to exit `0` and, under `--json`, print `{"error": "<text>"}`. They now exit non-zero, with the error shape above under `--json` and one line on stderr in text mode. So `make block N=<unknown>`, `make address` with a malformed address, and `make anomalies` with a bad threshold fail.
+- `report` with no file used to write `ethereum-report.md` into the working directory. It now writes nothing to disk: it prints the Markdown, or returns it as `markdown` under `--json`. `make report` still writes `ethereum-report.md`, because it names the file.
+- `--json` used to work only before the command.
 
 ## Coding Style & Naming Conventions
 

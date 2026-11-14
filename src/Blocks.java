@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -29,14 +30,11 @@ public class Blocks implements Comparable<Blocks> {
 	private static int skippedTransactionRows = 0;
 	private static String transactionLoadWarning = null;
 	private StringBuilder returnString = new StringBuilder();
-	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z");
+	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z", Locale.US);
 	private Date date;				// date in the format of "dateFormat
 	private ArrayList<Transaction> transactions = null;
 	
 	
-	/**
-	 * Resets all static state. Required for test isolation and data reload.
-	 */
 	private static File dataDirectory = null;
 
 	/** Directory that relative dataset filenames are read from; null means the working directory. */
@@ -54,6 +52,9 @@ public class Blocks implements Comparable<Blocks> {
 		return dataDirectory == null || file.isAbsolute() ? file : new File(dataDirectory, filename);
 	}
 
+	/**
+	 * Resets all static state. Required for test isolation and data reload.
+	 */
 	public static void resetState() {
 		blocks = null;
 		blockMap.clear();
@@ -278,6 +279,9 @@ public class Blocks implements Comparable<Blocks> {
 		
 		if (!file.exists()) {
 			throw new FileNotFoundException(filename);
+		}
+		if (file.isDirectory()) {
+			throw new IOException("'" + filename + "' is a directory, not a CSV file");
 		}
 		
 		if (!file.canRead()) {
@@ -585,7 +589,7 @@ public class Blocks implements Comparable<Blocks> {
 			
 			report.append(lineSeparator)
 				.append("Total cost of transactions: ")
-				.append(String.format("%.8f", totalCost))
+				.append(String.format(Locale.ROOT, "%.8f", totalCost))
 				.append(" ETH")
 				.append(lineSeparator);
 		}
@@ -605,6 +609,9 @@ public class Blocks implements Comparable<Blocks> {
 		File file = dataFile(filename);
 		if (!file.exists()) {
 			throw new FileNotFoundException(filename);
+		}
+		if (file.isDirectory()) {
+			throw new IOException("'" + filename + "' is a directory, not a CSV file");
 		}
 
 		skippedTransactionRows = 0;

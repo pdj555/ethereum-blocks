@@ -38,7 +38,7 @@ Your own data: run `make ui`, select **Load your CSVs**, and choose both exports
 | `make run` | Interactive menu |
 | `make verify` | JUnit + CLI + dependency audit + TypeScript + browser smoke |
 
-Scripts can call the CLI directly for JSON with a schema and exit codes: see [AGENTS.md](AGENTS.md#for-agents). Failed commands now exit non-zero, so `make address` and `make anomalies` with a bad argument fail instead of exiting 0.
+Scripts can call the CLI directly for JSON with a schema and exit codes: see [AGENTS.md](AGENTS.md#for-agents). Failed commands now exit non-zero in text and JSON mode, so `make block`, `make address` and `make anomalies` with a bad argument fail instead of exiting 0; and the CLI's `report` with no file prints the Markdown instead of writing ethereum-report.md (`make report` still writes it).
 
 ## Verify
 

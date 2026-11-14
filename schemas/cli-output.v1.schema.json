@@ -973,7 +973,8 @@
             "block_range_end",
             "blocks_loaded",
             "parsed_transactions",
-            "address_format"
+            "address_format",
+            "skipped_transaction_rows"
           ],
           "properties": {
             "blocks_file": {
@@ -998,6 +999,10 @@
             },
             "address_format": {
               "type": "string"
+            },
+            "skipped_transaction_rows": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         },

@@ -1,5 +1,5 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -77,8 +77,8 @@ ajv.addSchema(schema);
 const classPath = resolve("bin");
 
 function runCli(args, options = {}) {
-  const result = spawnSync("java", ["-cp", classPath, "EthereumBlockExplorer", ...args], {
-    encoding: "utf8",
+  const result = spawnSync("java", [...(options.jvm || []), "-cp", classPath, "EthereumBlockExplorer", ...args], {
+    encoding: options.encoding || "utf8",
     stdio: ["ignore", options.stdout || "pipe", "pipe"],
     cwd: options.cwd,
     env: { ...process.env, ...(options.env || {}) }
@@ -320,6 +320,66 @@ try {
   } finally {
     rmSync(elsewhere, { recursive: true, force: true });
   }
+
+  // Text mode fails with the same exit codes as --json.
+  const textMissingBlock = runCli(["block", "1"]);
+  assertCondition(textMissingBlock.status === 1, `Text 'block 1' exited ${textMissingBlock.status}, expected 1.`);
+  assertCondition(textMissingBlock.stdout === "" && textMissingBlock.stderr.includes("No block numbered 1"), "Text 'block 1' did not report the unknown block on stderr.");
+  const textBadAddress = runCli(["address", "0x1"]);
+  assertCondition(textBadAddress.status === 2, `Text 'address 0x1' exited ${textBadAddress.status}, expected 2.`);
+  assertCondition(textBadAddress.stdout === "" && textBadAddress.stderr.includes("Expected an address"), "Text 'address 0x1' did not reject the address on stderr.");
+  assertCondition(runCli(["block", "15049311"]).status === 0, "Text 'block 15049311' no longer succeeds.");
+  assertCondition(runCli(["address", defaultAddress]).status === 0, "Text address lookup no longer succeeds.");
+  expectMakeFailure(["block", "N=1"], '"code": "block_not_found"');
+
+  // No command and nothing on stdin: a usage error, not a stack trace.
+  const noInput = runCli([]);
+  assertCondition(noInput.status === 2, `No command with stdin at its end exited ${noInput.status}, expected 2.`);
+  assertCondition(!noInput.stderr.includes("Exception") && noInput.stderr.includes("No command given"), `No command with stdin at its end did not explain itself:\n${noInput.stderr}`);
+
+  // help answers in both modes, under either spelling, without the dataset.
+  const emptyData = mkdtempSync(join(tmpdir(), "cli-smoke-data-"));
+  try {
+    assertCondition(
+      expectCli(["--json", "--help"], 0, "help").stdout === expectCli(["--json", "help"], 0, "help").stdout,
+      "--json --help and --json help differ."
+    );
+    const textHelp = runCli(["--data", emptyData, "help"]);
+    assertCondition(textHelp.status === 0 && textHelp.stdout.includes("make dashboard"), "Text help needs the dataset.");
+    expectCli(["--json", "--data=", "miners"], 2, "error");
+    // A directory where a CSV should be is named as such.
+    mkdirSync(join(emptyData, blocksFile));
+    const directoryAsFile = expectCli(["--json", "--data", emptyData, "miners"], 2, "error").document.error;
+    assertCondition(directoryAsFile.code === "io_error" && directoryAsFile.message.includes("is a directory, not a CSV file"), `Directory in place of the CSV: ${directoryAsFile.message}`);
+  } finally {
+    rmSync(emptyData, { recursive: true, force: true });
+  }
+
+  // Malformed transaction rows are counted in the snapshot, not only warned about on stderr.
+  const damagedData = mkdtempSync(join(tmpdir(), "cli-smoke-damaged-"));
+  try {
+    copyFileSync(blocksFile, join(damagedData, blocksFile));
+    copyFileSync("ethereumtransactions1.csv", join(damagedData, "ethereumtransactions1.csv"));
+    appendFileSync(join(damagedData, "ethereumtransactions1.csv"), "not,a,transaction\n");
+    const damaged = expectCli(["--json", "--data", damagedData, "snapshot"], 0, "snapshot").document;
+    assertCondition(damaged.data_contract.skipped_transaction_rows === 1, "Snapshot did not count the malformed transaction row.");
+    assertCondition(expectCli(["--json", "snapshot"], 0, "snapshot").document.data_contract.skipped_transaction_rows === 0, "Bundled sample reports skipped rows.");
+  } finally {
+    rmSync(damagedData, { recursive: true, force: true });
+  }
+
+  // Output does not follow the machine: same bytes under another locale and encoding.
+  const foreign = {
+    jvm: ["-Duser.language=de", "-Duser.country=DE", "-Dfile.encoding=ISO-8859-1", "-Dstdout.encoding=ISO-8859-1"],
+    env: { LC_ALL: "C", LANG: "C" },
+    encoding: "latin1"
+  };
+  [["report"], ["--json", "report"], ["dashboard"], ["brief"], ["--json", "snapshot"], ["block", "15049311"], ["address", defaultAddress]].forEach(function (args) {
+    const home = runCli(args, { encoding: "latin1" });
+    const abroad = runCli(args, foreign);
+    assertCondition(home.status === 0 && abroad.status === 0, `${args.join(" ")} failed under a different locale.`);
+    assertCondition(home.stdout === abroad.stdout, `${args.join(" ")} printed different bytes under LC_ALL=C with a German locale.`);
+  });
 
   // Exit 4: the document could not be written.
   if (existsSync("/dev/full")) {

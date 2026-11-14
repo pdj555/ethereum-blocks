@@ -1,3 +1,4 @@
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -131,7 +132,7 @@ public final class AgentAPI {
             return result;
         }
 
-        String address = rawAddress.trim().toLowerCase();
+        String address = rawAddress.trim().toLowerCase(Locale.ROOT);
         if (!EthereumAddressValidator.isValid(address)) {
             result.put("error", "invalid_address_format");
             return result;
@@ -146,8 +147,8 @@ public final class AgentAPI {
 
         for (Blocks block : blocks) {
             for (Transaction tx : block.getTransactions()) {
-                String from = tx.getFromAddress().toLowerCase();
-                String to = tx.getToAddress().toLowerCase();
+                String from = tx.getFromAddress().toLowerCase(Locale.ROOT);
+                String to = tx.getToAddress().toLowerCase(Locale.ROOT);
                 boolean isOut = from.equals(address);
                 boolean isIn = to.equals(address);
                 if (!isIn && !isOut) continue;
@@ -439,6 +440,8 @@ public final class AgentAPI {
         contract.put("block_range_end", overview.get("block_range_end"));
         contract.put("blocks_loaded", overview.get("blocks_loaded"));
         contract.put("parsed_transactions", overview.get("parsed_transactions"));
+        // Malformed transaction rows are left out of every figure; say how many.
+        contract.put("skipped_transaction_rows", Blocks.getSkippedTransactionRowCount());
         contract.put("address_format", "0x followed by 40 hexadecimal characters");
         return contract;
     }
