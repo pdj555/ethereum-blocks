@@ -974,7 +974,8 @@
             "blocks_loaded",
             "parsed_transactions",
             "address_format",
-            "skipped_transaction_rows"
+            "skipped_transaction_rows",
+            "skipped_block_rows"
           ],
           "properties": {
             "blocks_file": {
@@ -1001,6 +1002,10 @@
               "type": "string"
             },
             "skipped_transaction_rows": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skipped_block_rows": {
               "type": "integer",
               "minimum": 0
             }

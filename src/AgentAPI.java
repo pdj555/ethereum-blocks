@@ -1,8 +1,8 @@
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -440,7 +440,8 @@ public final class AgentAPI {
         contract.put("block_range_end", overview.get("block_range_end"));
         contract.put("blocks_loaded", overview.get("blocks_loaded"));
         contract.put("parsed_transactions", overview.get("parsed_transactions"));
-        // Malformed transaction rows are left out of every figure; say how many.
+        // Malformed rows are left out of every figure; say how many.
+        contract.put("skipped_block_rows", Blocks.getSkippedBlockRowCount());
         contract.put("skipped_transaction_rows", Blocks.getSkippedTransactionRowCount());
         contract.put("address_format", "0x followed by 40 hexadecimal characters");
         return contract;

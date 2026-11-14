@@ -1,17 +1,17 @@
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -52,9 +52,15 @@ public class EthereumBlockExplorer {
         // Same bytes on every machine: numbers and dates never follow the host
         // locale, and text is UTF-8 whatever the platform default encoding is.
         Locale.setDefault(Locale.ROOT);
-        System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), true, StandardCharsets.UTF_8));
-        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8));
-        int exitCode = run(args);
+        System.setOut(new LfPrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), StandardCharsets.UTF_8));
+        System.setErr(new LfPrintStream(new FileOutputStream(FileDescriptor.err), StandardCharsets.UTF_8));
+        int exitCode;
+        try {
+            exitCode = run(args);
+        } catch (Throwable fault) {
+            // Nothing below is expected to throw; if it does, say so in the caller's format.
+            exitCode = outputError("internal_error", "Internal error: " + describeFault(fault), EXIT_INTERNAL);
+        }
         scanner.close();
         // PrintStream never throws; a closed pipe or a full device only shows up here.
         System.out.flush();
@@ -93,16 +99,19 @@ public class EthereumBlockExplorer {
             String arg = args[i];
             if (arg.equals("--json")) {
                 json = true;
-            } else if (arg.equals("--data")) {
-                if (i + 1 >= args.length) {
+            } else if (arg.equals("--data") || arg.startsWith("--data=")) {
+                // The value is the next word, or what follows "=". An empty value, another
+                // option in its place, or a second --data is a mistake, not a directory.
+                String value = arg.equals("--data") ? (i + 1 < args.length ? args[++i] : null) : arg.substring("--data=".length());
+                if (value == null || value.isBlank() || value.startsWith("--")) {
                     usageError = usageError != null ? usageError : "Expected a directory after --data.";
+                    if (value != null && value.equals("--json")) {
+                        json = true;
+                    }
+                } else if (dataDirectory != null) {
+                    usageError = usageError != null ? usageError : "--data was given more than once.";
                 } else {
-                    dataDirectory = args[++i];
-                }
-            } else if (arg.startsWith("--data=")) {
-                dataDirectory = arg.substring("--data=".length());
-                if (dataDirectory.isBlank()) {
-                    usageError = usageError != null ? usageError : "Expected a directory after --data=.";
+                    dataDirectory = value;
                 }
             } else if (arg.equals("--help") || arg.equals("-h")) {
                 command.add(0, "help");
@@ -222,6 +231,11 @@ public class EthereumBlockExplorer {
             return EXIT_USAGE;
         }
         return EXIT_FAILED;
+    }
+
+    static String describeFault(Throwable fault) {
+        String message = fault.getMessage();
+        return message == null || message.isBlank() ? fault.getClass().getSimpleName() : fault.getClass().getSimpleName() + ": " + message;
     }
 
     private static final java.util.regex.Pattern PLAIN_DECIMAL = java.util.regex.Pattern.compile("[0-9]+(\\.[0-9]+)?");
@@ -349,8 +363,7 @@ public class EthereumBlockExplorer {
                     printHelp();
             }
         } catch (Exception e) {
-            String cause = e.getMessage() == null || e.getMessage().isBlank() ? e.getClass().getSimpleName() : e.getClass().getSimpleName() + ": " + e.getMessage();
-            return outputError("internal_error", buildUnexpectedCommandError(command) + " Cause: " + cause, EXIT_INTERNAL);
+            return outputError("internal_error", buildUnexpectedCommandError(command) + " Cause: " + describeFault(e), EXIT_INTERNAL);
         }
         return EXIT_OK;
     }
@@ -449,7 +462,7 @@ public class EthereumBlockExplorer {
                     }
                 }
             } else if (val instanceof Double) {
-                System.out.printf(Locale.ROOT, "%s%s: %.8f%n", prefix, entry.getKey(), (Double) val);
+                System.out.printf(Locale.ROOT, "%s%s: %.8f\n", prefix, entry.getKey(), (Double) val);
             } else {
                 System.out.println(prefix + entry.getKey() + ": " + val);
             }
@@ -584,7 +597,7 @@ public class EthereumBlockExplorer {
             System.out.println("Miner Address: " + block.getMiner());
             System.out.println("Timestamp: " + block.getDate());
             System.out.println("Transaction Count: " + block.getTransactionCount());
-            System.out.printf(Locale.ROOT, "Average Transaction Cost: %.8f ETH%n", block.avgTransactionCost());
+            System.out.printf(Locale.ROOT, "Average Transaction Cost: %.8f ETH\n", block.avgTransactionCost());
             System.out.println("=========================");
         } else {
             System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
@@ -597,7 +610,7 @@ public class EthereumBlockExplorer {
             ArrayList<Transaction> txs = block.getTransactions();
             System.out.println("\n===== TRANSACTIONS FOR BLOCK " + blockNum + " =====");
             for (Transaction t : txs) {
-                System.out.printf(Locale.ROOT, "  [%d] %s -> %s (%.8f ETH)%n",
+                System.out.printf(Locale.ROOT, "  [%d] %s -> %s (%.8f ETH)\n",
                     t.getIndex(), t.getFromAddress(), t.getToAddress(), t.transactionCost());
             }
             System.out.println("Total: " + txs.size() + " transactions");
@@ -651,7 +664,7 @@ public class EthereumBlockExplorer {
             int blockNum = Integer.parseInt(readLine());
             Blocks block = Blocks.getBlockByNumber(blockNum);
             if (block != null) {
-                System.out.printf(Locale.ROOT, "\nAverage transaction cost for Block %d: %.8f ETH%n", blockNum, block.avgTransactionCost());
+                System.out.printf(Locale.ROOT, "\nAverage transaction cost for Block %d: %.8f ETH\n", blockNum, block.avgTransactionCost());
             } else {
                 System.out.println("\nNo block numbered " + blockNum + " was found in " + Blocks.DEFAULT_BLOCKS_FILE + ". Try a known block such as 15049311.");
             }
@@ -800,7 +813,7 @@ public class EthereumBlockExplorer {
     }
 
     static String buildHelpText() {
-        return String.join(System.lineSeparator(),
+        return String.join("\n",
             "Ethereum Block Explorer v5.0",
             "",
             "Start here:",
@@ -887,7 +900,7 @@ public class EthereumBlockExplorer {
     }
 
     static String buildMainMenuText() {
-        return String.join(System.lineSeparator(),
+        return String.join("\n",
             "",
             "========== EXPLORER MENU ==========",
             "1.  dashboard     View the dashboard",

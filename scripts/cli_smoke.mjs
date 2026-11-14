@@ -1,7 +1,7 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
@@ -77,7 +77,7 @@ ajv.addSchema(schema);
 const classPath = resolve("bin");
 
 function runCli(args, options = {}) {
-  const result = spawnSync("java", [...(options.jvm || []), "-cp", classPath, "EthereumBlockExplorer", ...args], {
+  const result = spawnSync("java", [...(options.jvm || []), "-cp", options.classPath || classPath, "EthereumBlockExplorer", ...args], {
     encoding: options.encoding || "utf8",
     stdio: ["ignore", options.stdout || "pipe", "pipe"],
     cwd: options.cwd,
@@ -361,9 +361,13 @@ try {
     copyFileSync(blocksFile, join(damagedData, blocksFile));
     copyFileSync("ethereumtransactions1.csv", join(damagedData, "ethereumtransactions1.csv"));
     appendFileSync(join(damagedData, "ethereumtransactions1.csv"), "not,a,transaction\n");
+    appendFileSync(join(damagedData, blocksFile), "too,few,columns\nnot-a-number" + ",x".repeat(17) + "\n");
     const damaged = expectCli(["--json", "--data", damagedData, "snapshot"], 0, "snapshot").document;
     assertCondition(damaged.data_contract.skipped_transaction_rows === 1, "Snapshot did not count the malformed transaction row.");
-    assertCondition(expectCli(["--json", "snapshot"], 0, "snapshot").document.data_contract.skipped_transaction_rows === 0, "Bundled sample reports skipped rows.");
+    assertCondition(damaged.data_contract.skipped_block_rows === 2, `Snapshot counted ${damaged.data_contract.skipped_block_rows} malformed block rows, expected 2.`);
+    assertCondition(damaged.overview.blocks_loaded === 100, "Malformed block rows changed the number of blocks loaded.");
+    const clean = expectCli(["--json", "snapshot"], 0, "snapshot").document.data_contract;
+    assertCondition(clean.skipped_transaction_rows === 0 && clean.skipped_block_rows === 0, "Bundled sample reports skipped rows.");
   } finally {
     rmSync(damagedData, { recursive: true, force: true });
   }
@@ -374,12 +378,53 @@ try {
     env: { LC_ALL: "C", LANG: "C" },
     encoding: "latin1"
   };
+  // Windows line endings and a platform encoding the CSVs are not written in.
+  const otherPlatform = {
+    jvm: ["-Dline.separator=\r\n", "-Dfile.encoding=UTF-16", "-Dstdout.encoding=UTF-16", "-Dstderr.encoding=UTF-16"],
+    encoding: "latin1"
+  };
+  [["report"], ["--json", "report"], ["dashboard"], ["brief"], ["help"], ["miners"], ["network"], ["--json", "snapshot"], ["--json", "block", "1"]].forEach(function (args) {
+    const home = runCli(args, { encoding: "latin1" });
+    const away = runCli(args, otherPlatform);
+    assertCondition(home.status === away.status, `${args.join(" ")} exited ${away.status} under CRLF and UTF-16 defaults, ${home.status} otherwise.`);
+    assertCondition(!away.stdout.includes("\r"), `${args.join(" ")} printed a carriage return under -Dline.separator=CRLF.`);
+    assertCondition(home.stdout === away.stdout, `${args.join(" ")} printed different bytes under CRLF and UTF-16 defaults.`);
+  });
+  const crlfError = runCli(["block", "1"], otherPlatform);
+  assertCondition(crlfError.stderr.includes("No block numbered 1") && !crlfError.stderr.replace(/^Picked up.*\r?\n/m, "").includes("\r"), "stderr followed the platform line separator or encoding.");
   [["report"], ["--json", "report"], ["dashboard"], ["brief"], ["--json", "snapshot"], ["block", "15049311"], ["address", defaultAddress]].forEach(function (args) {
     const home = runCli(args, { encoding: "latin1" });
     const abroad = runCli(args, foreign);
     assertCondition(home.status === 0 && abroad.status === 0, `${args.join(" ")} failed under a different locale.`);
     assertCondition(home.stdout === abroad.stdout, `${args.join(" ")} printed different bytes under LC_ALL=C with a German locale.`);
   });
+
+  // --data needs exactly one directory.
+  [["--data", "", "miners"], ["--data", "--json"], ["miners", "--data", "--json"], ["--data", ".", "--data", ".", "miners"], ["--data=.", "--data", ".", "miners"]].forEach(function (args) {
+    const refused = expectCli(["--json", ...args], 2, "error").document.error;
+    assertCondition(refused.code === "invalid_argument", `${args.join(" ")} was not refused as an invalid argument.`);
+  });
+
+  // Exit 3: a fault while loading, outside any command, still ends in an error document.
+  // The fault is injected by putting a broken CsvReader ahead of the real one on the class path.
+  const faultDir = mkdtempSync(join(tmpdir(), "cli-smoke-fault-"));
+  try {
+    writeFileSync(
+      join(faultDir, "CsvReader.java"),
+      'public final class CsvReader { public static String[] parseRecord(String line) { throw new StackOverflowError("injected fault"); } }\n'
+    );
+    execFileSync("javac", ["-d", faultDir, join(faultDir, "CsvReader.java")], { stdio: ["ignore", "pipe", "pipe"] });
+    const faulty = { classPath: `${faultDir}${delimiter}${classPath}` };
+    [["--json", "snapshot"], ["--json"]].forEach(function (args) {
+      const fault = expectCli(args, 3, "error", faulty).document.error;
+      assertCondition(fault.code === "internal_error" && fault.message.includes("StackOverflowError: injected fault"), `Injected fault was reported as: ${fault.message}`);
+    });
+    const textFault = runCli(["dashboard"], faulty);
+    assertCondition(textFault.status === 3 && textFault.stdout === "", `Text mode exited ${textFault.status} on an internal fault, expected 3.`);
+    assertCondition(textFault.stderr.includes("Internal error") && !textFault.stderr.includes("\tat "), `Text mode printed a stack trace:\n${textFault.stderr}`);
+  } finally {
+    rmSync(faultDir, { recursive: true, force: true });
+  }
 
   // Exit 4: the document could not be written.
   if (existsSync("/dev/full")) {
