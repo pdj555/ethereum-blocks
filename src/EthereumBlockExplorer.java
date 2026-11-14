@@ -301,6 +301,20 @@ public class EthereumBlockExplorer {
             if (args.length - 1 > maxArguments(command)) {
                 return outputError("invalid_argument", "Too many arguments for '" + command + "': it takes at most " + maxArguments(command) + ".", EXIT_USAGE);
             }
+            // Arguments are checked before the dataset, so a rejected command line
+            // exits 2 whether or not there is data to answer it.
+            if (command.equals("block") && (args.length < 2 || parseBlockNumber(args[1]) == null)) {
+                return outputError("invalid_argument", "Expected: block <blockNumber>. Try: make block N=15049311.", EXIT_USAGE);
+            }
+            if (command.equals("address") && args.length < 2) {
+                return outputError("invalid_argument", "Expected: address <0xAddress>. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.", EXIT_USAGE);
+            }
+            if (command.equals("address") && !isEthereumAddress(args[1].trim().toLowerCase(Locale.ROOT))) {
+                return outputError("invalid_address_format", describeError("invalid_address_format", null), EXIT_USAGE);
+            }
+            if (command.equals("anomalies") && args.length >= 2 && parseThreshold(args[1]) == null) {
+                return outputError("invalid_argument", "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.", EXIT_USAGE);
+            }
             if (!command.equals("help") && (blocks == null || blocks.isEmpty())) {
                 // Decided here, before any renderer is chosen, so text and --json
                 // agree for every command: a dataset with no blocks has no answer.
