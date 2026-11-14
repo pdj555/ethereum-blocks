@@ -146,7 +146,11 @@ ui-smoke: ui-build check-node
 	fi
 	@node scripts/ui_smoke.mjs
 
-cli-smoke: check-node
+cli-smoke: check-node compile
+	@if [ ! -d node_modules/ajv ]; then \
+		echo "CLI smoke dependencies missing. Run 'npm ci', then rerun 'make cli-smoke'."; \
+		exit 1; \
+	fi
 	@node scripts/cli_smoke.mjs
 
 run: compile

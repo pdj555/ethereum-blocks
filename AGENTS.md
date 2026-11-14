@@ -17,6 +17,28 @@
 
 Before browser smoke tests, run `npm ci` at the root and `npm run ui:install-browsers`.
 
+## For agents
+
+Needs a JDK and Node.js. Everything runs offline on the two CSVs in the repository root.
+
+```bash
+npm ci
+make build
+
+java -cp bin EthereumBlockExplorer --json help
+java -cp bin EthereumBlockExplorer --json snapshot
+java -cp bin EthereumBlockExplorer --json anomalies 3.5
+
+make test
+make cli-smoke
+```
+
+- `--json` prints one JSON document on stdout; warnings go to stderr. `--json help` lists every command, its argument, and which definition in `schemas/cli-output.v1.schema.json` its output matches. A failed command prints the `error` definition.
+- Exit codes: `0` ok; `1` the command ran but has no answer (unknown block, no data, unreadable dataset); `2` the command line was rejected (unknown command, missing or malformed argument).
+- Call `java` directly when the exit code matters. The `make` targets print the same JSON, but `make` reports any failure as its own exit status 2.
+- Output has no clock or random input: the same CSVs give the same bytes.
+- `npm ci` is only needed for `make cli-smoke`, which validates every command against the schema.
+
 ## Coding Style & Naming Conventions
 
 Match the surrounding Java style: `PascalCase` classes and `camelCase` methods and fields. TypeScript uses indentation with two spaces, semicolons, double quotes, `PascalCase` components, and `camelCase` helpers. Preserve strict checks and the `@/` import alias. Avoid unrelated reformatting.

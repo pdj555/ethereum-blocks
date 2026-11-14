@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -25,33 +26,42 @@ public class EthereumBlockExplorer {
     private static ArrayList<Blocks> blocks = null;
     private static boolean jsonMode = false;
 
+    /** The command succeeded. */
+    static final int EXIT_OK = 0;
+    /** The command ran but has no answer: unknown block, no data, unreadable dataset. */
+    static final int EXIT_FAILED = 1;
+    /** The command line was rejected: unknown command, missing or malformed argument. */
+    static final int EXIT_USAGE = 2;
+
     public static void main(String[] args) {
-        // Parse global flags
-        int argStart = 0;
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("--json")) {
-                jsonMode = true;
-                argStart = i + 1;
-                break;
-            }
+        jsonMode = hasJsonFlag(args);
+        String[] effectiveArgs = withoutJsonFlag(args);
+
+        if (jsonMode && effectiveArgs.length > 0 && effectiveArgs[0].equalsIgnoreCase("help")) {
+            // Describes the CLI itself, so it must answer even when the dataset is missing.
+            System.out.println(JsonWriter.toJson(buildCommandGuide()));
+            return;
         }
 
         loadData();
 
-        // Build effective args (without --json flag)
-        String[] effectiveArgs = new String[args.length - argStart];
-        System.arraycopy(args, argStart, effectiveArgs, 0, effectiveArgs.length);
-
         if (effectiveArgs.length > 0) {
-            runCommandMode(effectiveArgs);
+            int exitCode = runCommandMode(effectiveArgs);
             scanner.close();
+            if (exitCode != EXIT_OK) {
+                System.exit(exitCode);
+            }
             return;
         }
 
         if (jsonMode) {
             // No command + json mode = print overview
-            System.out.println(JsonWriter.toJson(AgentAPI.overview(blocks, 10)));
+            Map<String, Object> overview = AgentAPI.overview(blocks, 10);
+            System.out.println(JsonWriter.toJson(overview));
             scanner.close();
+            if (exitCodeFor(overview) != EXIT_OK) {
+                System.exit(exitCodeFor(overview));
+            }
             return;
         }
 
@@ -59,111 +69,159 @@ public class EthereumBlockExplorer {
         scanner.close();
     }
 
-    private static void runCommandMode(String[] args) {
+    static boolean hasJsonFlag(String[] args) {
+        for (String arg : args) {
+            if (arg.equals("--json")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The command and its arguments, wherever on the line --json was written. */
+    static String[] withoutJsonFlag(String[] args) {
+        List<String> kept = new ArrayList<>();
+        for (String arg : args) {
+            if (!arg.equals("--json")) {
+                kept.add(arg);
+            }
+        }
+        return kept.toArray(new String[0]);
+    }
+
+    /**
+     * Exit code for a result document. The API reports failure with an "error" key:
+     * a rejected argument is a usage error, anything else means the command ran
+     * and found no answer.
+     */
+    static int exitCodeFor(Map<String, Object> result) {
+        Object error = result == null ? null : result.get("error");
+        if (error == null) {
+            // The snapshot nests its failure: no top-level error, status "unavailable".
+            return result != null && "unavailable".equals(result.get("status")) ? EXIT_FAILED : EXIT_OK;
+        }
+        if ("invalid_address_format".equals(error) || "address_required".equals(error)) {
+            return EXIT_USAGE;
+        }
+        return EXIT_FAILED;
+    }
+
+    /**
+     * A z-score threshold must be a finite number above zero. NaN flags nothing
+     * and cannot be written as JSON; zero or less flags every block.
+     */
+    static Double parseThreshold(String raw) {
+        try {
+            double value = Double.parseDouble(raw.trim());
+            return Double.isFinite(value) && value > 0 ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static int runCommandMode(String[] args) {
         String command = args[0].toLowerCase();
 
         try {
             switch (command) {
                 case "dashboard":
                     if (jsonMode) {
-                        outputResult(AgentAPI.overview(blocks, 10));
+                        return outputResult(AgentAPI.overview(blocks, 10));
                     } else {
                         Insights.printDashboard(blocks, 5);
                     }
                     break;
                 case "brief":
                     if (jsonMode) {
-                        outputResult(AgentAPI.overview(blocks, 5));
+                        return outputResult(AgentAPI.overview(blocks, 5));
                     } else {
                         Insights.printActionBrief(blocks, 5);
                     }
                     break;
                 case "snapshot":
-                    outputResult(AgentAPI.agentSnapshot(blocks));
-                    break;
+                    return outputResult(AgentAPI.agentSnapshot(blocks));
                 case "report":
                     writeReport(args.length >= 2 ? args[1] : "ethereum-report.md");
                     break;
                 case "block":
                     if (args.length < 2) {
-                        outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
-                        return;
+                        return outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
                     }
                     int blockNumber;
                     try {
                         blockNumber = Integer.parseInt(args[1]);
                     } catch (NumberFormatException e) {
-                        outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
-                        return;
+                        return outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
                     }
                     if (jsonMode) {
-                        outputResult(AgentAPI.blockDetail(blocks, blockNumber));
+                        return outputResult(AgentAPI.blockDetail(blocks, blockNumber));
                     } else {
                         printBlockDetails(blockNumber);
                     }
                     break;
                 case "address":
                     if (args.length < 2) {
-                        outputError("Expected: address <0xAddress>. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.");
-                        return;
+                        return outputError("Expected: address <0xAddress>. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.");
                     }
                     if (jsonMode) {
-                        outputResult(AgentAPI.addressIntel(blocks, args[1], 10));
+                        return outputResult(AgentAPI.addressIntel(blocks, args[1], 10));
                     } else {
                         Insights.printAddressIntel(blocks, args[1], 5);
                     }
                     break;
                 case "miners":
                     if (jsonMode) {
-                        outputResult(AgentAPI.minerAnalysis(blocks, 10));
+                        return outputResult(AgentAPI.minerAnalysis(blocks, 10));
                     } else {
                         System.out.println(Blocks.calUniqMiners());
                     }
                     break;
                 case "network":
-                    outputResult(NetworkAnalyzer.analyzeNetwork(blocks, 10));
-                    break;
+                    return outputResult(NetworkAnalyzer.analyzeNetwork(blocks, 10));
                 case "anomalies":
                     double threshold = RobustStats.DEFAULT_THRESHOLD;
                     if (args.length >= 2) {
-                        try {
-                            threshold = Double.parseDouble(args[1]);
-                        } catch (NumberFormatException e) {
-                            outputError("Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.");
-                            return;
+                        Double parsed = parseThreshold(args[1]);
+                        if (parsed == null) {
+                            return outputError("Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.");
                         }
+                        threshold = parsed;
                     }
-                    outputResult(AgentAPI.detectAnomalies(blocks, threshold));
-                    break;
+                    return outputResult(AgentAPI.detectAnomalies(blocks, threshold));
                 case "help":
                     printHelp();
                     break;
                 default:
-                    outputError("Unknown command '" + command + "'. Run 'make help' to see the supported explorer commands.");
+                    return outputError("Unknown command '" + command + "'. Run 'make help' to see the supported explorer commands.");
             }
         } catch (Exception e) {
             if (!jsonMode && e.getMessage() != null && !e.getMessage().isBlank()) {
                 System.err.println("Details: " + e.getMessage());
             }
             outputError(buildUnexpectedCommandError(command));
+            return EXIT_FAILED;
         }
+        return EXIT_OK;
     }
 
-    private static void outputResult(Map<String, Object> data) {
+    private static int outputResult(Map<String, Object> data) {
         if (jsonMode) {
             System.out.println(JsonWriter.toJson(data));
         } else {
             // Pretty-print for humans
             printMap(data, 0);
         }
+        return exitCodeFor(data);
     }
 
-    private static void outputError(String msg) {
+    /** Reports a rejected command line and returns the usage exit code. */
+    private static int outputError(String msg) {
         if (jsonMode) {
-            System.out.println("{\"error\": \"" + msg.replace("\"", "\\\"") + "\"}");
+            System.out.println("{\"error\": " + JsonWriter.toJson(msg) + "}");
         } else {
             System.err.println("Error: " + msg);
         }
+        return EXIT_USAGE;
     }
 
     private static void printMap(Map<String, Object> map, int indent) {
@@ -263,7 +321,7 @@ public class EthereumBlockExplorer {
             System.exit(1);
         } catch (IOException e) {
             if (jsonMode) {
-                System.out.println("{\"error\": \"io_error\", \"message\": \"" + e.getMessage() + "\"}");
+                System.out.println("{\"error\": \"io_error\", \"message\": " + JsonWriter.toJson(String.valueOf(e.getMessage())) + "}");
             } else {
                 System.err.println("Error: Could not read the dataset files. Check '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "', then rerun your command.");
             }
@@ -503,7 +561,7 @@ public class EthereumBlockExplorer {
         String report = Insights.buildReport(blocks, 5);
         Files.writeString(Path.of(filePath), report, StandardCharsets.UTF_8);
         if (jsonMode) {
-            System.out.println("{\"status\": \"ok\", \"file\": \"" + filePath + "\"}");
+            System.out.println("{\"status\": \"ok\", \"file\": " + JsonWriter.toJson(filePath) + "}");
         } else {
             System.out.println("Saved report to: " + filePath);
         }
@@ -554,6 +612,42 @@ public class EthereumBlockExplorer {
             "  - Playwright browser binaries via 'npx playwright install --with-deps chromium'",
             "  - Python 3 to serve the browser UI with 'make ui'",
             "");
+    }
+
+    /** What `--json help` prints: the commands, their arguments, and the exit codes. */
+    static Map<String, Object> buildCommandGuide() {
+        Map<String, Object> guide = new LinkedHashMap<>();
+        guide.put("usage", "java -cp bin EthereumBlockExplorer --json <command> [argument]");
+        guide.put("schema", "schemas/cli-output.v1.schema.json");
+
+        List<Map<String, Object>> commands = new ArrayList<>();
+        commands.add(guideEntry("snapshot", null, "snapshot", "Overview, network, and anomalies in one document"));
+        commands.add(guideEntry("dashboard", null, "overview", "Dataset overview (also printed when no command is given)"));
+        commands.add(guideEntry("brief", null, "overview", "Dataset overview limited to the top five entries"));
+        commands.add(guideEntry("block", "<blockNumber>", "block", "One block"));
+        commands.add(guideEntry("address", "<0xAddress>", "address", "One address across all loaded blocks"));
+        commands.add(guideEntry("network", null, "network", "Address graph analysis"));
+        commands.add(guideEntry("anomalies", "[zScoreThreshold]", "anomalies", "Blocks with outlying cost or volume (default threshold 3.5)"));
+        commands.add(guideEntry("miners", null, "miners", "Miner breakdown and concentration"));
+        commands.add(guideEntry("report", "[file]", "report", "Write the Markdown report (default ethereum-report.md)"));
+        commands.add(guideEntry("help", null, "help", "This guide"));
+        guide.put("commands", commands);
+
+        Map<String, Object> exitCodes = new LinkedHashMap<>();
+        exitCodes.put(String.valueOf(EXIT_OK), "ok");
+        exitCodes.put(String.valueOf(EXIT_FAILED), "ran, but no answer: unknown block, no data, or unreadable dataset");
+        exitCodes.put(String.valueOf(EXIT_USAGE), "rejected command line: unknown command, missing or malformed argument");
+        guide.put("exit_codes", exitCodes);
+        return guide;
+    }
+
+    private static Map<String, Object> guideEntry(String name, String argument, String output, String description) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("name", name);
+        entry.put("argument", argument);
+        entry.put("output", output);
+        entry.put("description", description);
+        return entry;
     }
 
     static String buildMainMenuText() {

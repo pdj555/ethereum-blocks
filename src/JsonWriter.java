@@ -110,6 +110,10 @@ public final class JsonWriter {
     private static String formatNumber(Number n) {
         if (n instanceof Double || n instanceof Float) {
             double d = n.doubleValue();
+            if (Double.isNaN(d) || Double.isInfinite(d)) {
+                // JSON has no NaN or Infinity; emitting them would break every parser.
+                return "null";
+            }
             if (d == Math.floor(d) && !Double.isInfinite(d) && Math.abs(d) < 1e15) {
                 return String.valueOf((long) d);
             }

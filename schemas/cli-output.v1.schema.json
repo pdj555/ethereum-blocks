@@ -1,0 +1,982 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pdj555/ethereum-blocks/schemas/cli-output.v1.schema.json",
+  "title": "Ethereum Block Explorer --json output",
+  "description": "The single document `java -cp bin EthereumBlockExplorer --json <command>` prints on stdout. Each command prints the definition named by its `output` field in `--json help`, or `error`. Process exit codes: 0 ok, 1 the command ran but has no answer, 2 the command line was rejected.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/error"
+    },
+    {
+      "$ref": "#/$defs/overview"
+    },
+    {
+      "$ref": "#/$defs/block"
+    },
+    {
+      "$ref": "#/$defs/address"
+    },
+    {
+      "$ref": "#/$defs/network"
+    },
+    {
+      "$ref": "#/$defs/anomalies"
+    },
+    {
+      "$ref": "#/$defs/miners"
+    },
+    {
+      "$ref": "#/$defs/snapshot"
+    },
+    {
+      "$ref": "#/$defs/report"
+    },
+    {
+      "$ref": "#/$defs/help"
+    }
+  ],
+  "$defs": {
+    "error": {
+      "description": "Any failed command. Exit code 2 when the command line was rejected (a message, invalid_address_format, address_required); exit code 1 otherwise.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "block_number": {
+          "type": "integer"
+        },
+        "file": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "overview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blocks_loaded",
+        "unique_miners",
+        "total_transactions_metadata",
+        "parsed_transactions",
+        "blocks_with_parsed_tx",
+        "total_cost_eth",
+        "avg_tx_per_block",
+        "avg_cost_per_tx_eth",
+        "block_range_start",
+        "block_range_end",
+        "top_miners",
+        "concentration_risk",
+        "cost_outliers"
+      ],
+      "properties": {
+        "blocks_loaded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unique_miners": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_transactions_metadata": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parsed_transactions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocks_with_parsed_tx": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_cost_eth": {
+          "type": "number"
+        },
+        "avg_tx_per_block": {
+          "type": "number"
+        },
+        "avg_cost_per_tx_eth": {
+          "type": "number"
+        },
+        "block_range_start": {
+          "type": "integer"
+        },
+        "block_range_end": {
+          "type": "integer"
+        },
+        "top_miners": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "concentration_risk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level"
+          ],
+          "properties": {
+            "top_miner_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "top_miner_blocks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "level": {
+              "enum": [
+                "critical",
+                "high",
+                "moderate",
+                "healthy",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "cost_outliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "block",
+              "avg_cost_eth",
+              "tx_count",
+              "z_score"
+            ],
+            "properties": {
+              "block": {
+                "type": "integer"
+              },
+              "avg_cost_eth": {
+                "type": "number"
+              },
+              "tx_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "z_score": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block_number",
+        "miner",
+        "timestamp",
+        "transaction_count_metadata",
+        "parsed_transaction_count",
+        "avg_cost_eth"
+      ],
+      "properties": {
+        "block_number": {
+          "type": "integer"
+        },
+        "miner": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "transaction_count_metadata": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parsed_transaction_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "avg_cost_eth": {
+          "type": "number"
+        },
+        "total_cost_eth": {
+          "type": "number"
+        },
+        "max_tx_cost_eth": {
+          "type": "number"
+        },
+        "min_tx_cost_eth": {
+          "type": "number"
+        },
+        "unique_senders": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unique_receivers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "top_senders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "top_receivers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "address": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "address",
+            "total_interactions",
+            "inbound_count",
+            "outbound_count",
+            "inbound_eth",
+            "outbound_eth",
+            "net_flow_eth",
+            "first_block",
+            "last_block",
+            "active_blocks",
+            "top_counterparties",
+            "busiest_blocks",
+            "behavior_class"
+          ],
+          "properties": {
+            "address": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{40}$"
+            },
+            "total_interactions": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "inbound_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "outbound_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "inbound_eth": {
+              "type": "number"
+            },
+            "outbound_eth": {
+              "type": "number"
+            },
+            "net_flow_eth": {
+              "type": "number"
+            },
+            "first_block": {
+              "type": "integer"
+            },
+            "last_block": {
+              "type": "integer"
+            },
+            "active_blocks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "top_counterparties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "busiest_blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "integer"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "behavior_class": {
+              "enum": [
+                "pure_sender",
+                "pure_receiver",
+                "heavy_sender",
+                "heavy_receiver",
+                "balanced"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "address",
+            "status"
+          ],
+          "properties": {
+            "address": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{40}$"
+            },
+            "status": {
+              "const": "no_activity"
+            }
+          }
+        }
+      ]
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_addresses",
+        "total_unique_edges",
+        "graph_density",
+        "connected_components",
+        "whales",
+        "hubs",
+        "flow_concentration",
+        "strongest_connections",
+        "risk_signals"
+      ],
+      "properties": {
+        "total_addresses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_unique_edges": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "graph_density": {
+          "type": "number"
+        },
+        "connected_components": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "count",
+            "largest",
+            "sizes"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "largest": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sizes": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "whales": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "address",
+              "total_volume_eth",
+              "tx_count",
+              "role"
+            ],
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "total_volume_eth": {
+                "type": "number"
+              },
+              "tx_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "hubs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "address",
+              "unique_counterparties",
+              "total_volume_eth",
+              "role"
+            ],
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "unique_counterparties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_volume_eth": {
+                "type": "number"
+              },
+              "role": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "flow_concentration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "top_share"
+          ],
+          "properties": {
+            "top_n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "top_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "total_network_volume_eth": {
+              "type": "number"
+            },
+            "gini_coefficient": {
+              "type": "number"
+            }
+          }
+        },
+        "strongest_connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "from",
+              "to",
+              "tx_count",
+              "volume_eth"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "tx_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "volume_eth": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "risk_signals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "self_loop_addresses",
+            "self_loop_count",
+            "one_shot_addresses",
+            "one_shot_ratio",
+            "high_fan_out_addresses"
+          ],
+          "properties": {
+            "self_loop_addresses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "self_loop_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "one_shot_addresses": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "one_shot_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "high_fan_out_addresses": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "anomalies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "z_threshold",
+        "cost_anomalies",
+        "volume_anomalies"
+      ],
+      "properties": {
+        "cost_median_eth": {
+          "type": "number"
+        },
+        "cost_scale_eth": {
+          "type": "number"
+        },
+        "method": {
+          "type": "string"
+        },
+        "z_threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cost_anomalies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "block",
+              "avg_cost_eth",
+              "z_score",
+              "direction"
+            ],
+            "properties": {
+              "block": {
+                "type": "integer"
+              },
+              "avg_cost_eth": {
+                "type": "number"
+              },
+              "z_score": {
+                "type": "number"
+              },
+              "direction": {
+                "enum": [
+                  "high",
+                  "low"
+                ]
+              }
+            }
+          }
+        },
+        "volume_anomalies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "block",
+              "tx_count",
+              "z_score",
+              "direction"
+            ],
+            "properties": {
+              "block": {
+                "type": "integer"
+              },
+              "tx_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "z_score": {
+                "type": "number"
+              },
+              "direction": {
+                "enum": [
+                  "high",
+                  "low"
+                ]
+              }
+            }
+          }
+        },
+        "volume_median": {
+          "type": "number"
+        },
+        "volume_scale": {
+          "type": "number"
+        }
+      }
+    },
+    "miners": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unique_miners",
+        "total_blocks",
+        "miners",
+        "concentration_risk",
+        "hhi_index",
+        "hhi_level"
+      ],
+      "properties": {
+        "unique_miners": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_blocks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "miners": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "concentration_risk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level"
+          ],
+          "properties": {
+            "top_miner_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "top_miner_blocks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "level": {
+              "enum": [
+                "critical",
+                "high",
+                "moderate",
+                "healthy",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "hhi_index": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hhi_level": {
+          "enum": [
+            "highly_concentrated",
+            "moderately_concentrated",
+            "competitive"
+          ]
+        }
+      }
+    },
+    "snapshot": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "purpose",
+            "overview",
+            "network",
+            "anomalies",
+            "data_contract",
+            "recommended_next_actions",
+            "status"
+          ],
+          "properties": {
+            "schema": {
+              "const": "ethereum-block-explorer.agent-snapshot.v1"
+            },
+            "purpose": {
+              "type": "string"
+            },
+            "overview": {
+              "$ref": "#/$defs/overview"
+            },
+            "network": {
+              "$ref": "#/$defs/network"
+            },
+            "anomalies": {
+              "$ref": "#/$defs/anomalies"
+            },
+            "data_contract": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "blocks_file",
+                "transactions_file",
+                "block_range_start",
+                "block_range_end",
+                "blocks_loaded",
+                "parsed_transactions",
+                "address_format"
+              ],
+              "properties": {
+                "blocks_file": {
+                  "type": "string"
+                },
+                "transactions_file": {
+                  "type": "string"
+                },
+                "block_range_start": {
+                  "type": "integer"
+                },
+                "block_range_end": {
+                  "type": "integer"
+                },
+                "blocks_loaded": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "parsed_transactions": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "address_format": {
+                  "type": "string"
+                }
+              }
+            },
+            "recommended_next_actions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "status": {
+              "const": "ready"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "purpose",
+            "overview",
+            "status"
+          ],
+          "properties": {
+            "schema": {
+              "const": "ethereum-block-explorer.agent-snapshot.v1"
+            },
+            "purpose": {
+              "type": "string"
+            },
+            "overview": {
+              "$ref": "#/$defs/error"
+            },
+            "status": {
+              "const": "unavailable"
+            }
+          }
+        }
+      ]
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "file"
+      ],
+      "properties": {
+        "status": {
+          "const": "ok"
+        },
+        "file": {
+          "type": "string"
+        }
+      }
+    },
+    "help": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usage",
+        "schema",
+        "commands",
+        "exit_codes"
+      ],
+      "properties": {
+        "usage": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "argument",
+              "output",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "argument": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "output": {
+                "enum": [
+                  "overview",
+                  "snapshot",
+                  "block",
+                  "address",
+                  "network",
+                  "anomalies",
+                  "miners",
+                  "report",
+                  "help"
+                ]
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "exit_codes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "0",
+            "1",
+            "2"
+          ],
+          "properties": {
+            "0": {
+              "type": "string"
+            },
+            "1": {
+              "type": "string"
+            },
+            "2": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

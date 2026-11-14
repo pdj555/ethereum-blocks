@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -84,6 +85,58 @@ class TestEthereumBlockExplorer {
         assertFalse(readme.contains("java -cp src"));
         assertFalse(readme.contains("javac -cp src"));
         assertFalse(readme.contains("Driver.java"));
+    }
+
+    @Test
+    void testJsonFlagIsAcceptedAnywhereOnTheLine() {
+        assertTrue(EthereumBlockExplorer.hasJsonFlag(new String[] {"anomalies", "5", "--json"}));
+        assertFalse(EthereumBlockExplorer.hasJsonFlag(new String[] {"anomalies", "5"}));
+        assertArrayEquals(
+            new String[] {"anomalies", "5"},
+            EthereumBlockExplorer.withoutJsonFlag(new String[] {"anomalies", "5", "--json"}));
+        assertArrayEquals(
+            new String[] {"anomalies", "5"},
+            EthereumBlockExplorer.withoutJsonFlag(new String[] {"--json", "anomalies", "5"}));
+        assertArrayEquals(
+            new String[] {"anomalies", "5"},
+            EthereumBlockExplorer.withoutJsonFlag(new String[] {"anomalies", "--json", "5"}));
+    }
+
+    @Test
+    void testExitCodeSeparatesSuccessNoAnswerAndRejectedArguments() {
+        assertEquals(0, EthereumBlockExplorer.exitCodeFor(Map.of("blocks_loaded", 100)));
+        assertEquals(0, EthereumBlockExplorer.exitCodeFor(Map.of("address", "0x1", "status", "no_activity")));
+        assertEquals(1, EthereumBlockExplorer.exitCodeFor(Map.of("error", "block_not_found", "block_number", 1)));
+        assertEquals(1, EthereumBlockExplorer.exitCodeFor(Map.of("error", "no_data")));
+        assertEquals(1, EthereumBlockExplorer.exitCodeFor(AgentAPI.agentSnapshot(new ArrayList<>())));
+        assertEquals(2, EthereumBlockExplorer.exitCodeFor(Map.of("error", "invalid_address_format")));
+        assertEquals(2, EthereumBlockExplorer.exitCodeFor(Map.of("error", "address_required")));
+    }
+
+    @Test
+    void testThresholdMustBeFiniteAndPositive() {
+        assertEquals(3.5, EthereumBlockExplorer.parseThreshold("3.5"));
+        assertEquals(5.0, EthereumBlockExplorer.parseThreshold(" 5 "));
+        assertNull(EthereumBlockExplorer.parseThreshold("not-a-number"));
+        assertNull(EthereumBlockExplorer.parseThreshold("NaN"));
+        assertNull(EthereumBlockExplorer.parseThreshold("Infinity"));
+        assertNull(EthereumBlockExplorer.parseThreshold("0"));
+        assertNull(EthereumBlockExplorer.parseThreshold("-1"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testCommandGuideNamesEveryCommandAndExitCode() {
+        Map<String, Object> guide = EthereumBlockExplorer.buildCommandGuide();
+        List<String> names = new ArrayList<>();
+        for (Map<String, Object> command : (List<Map<String, Object>>) guide.get("commands")) {
+            names.add((String) command.get("name"));
+        }
+        assertEquals(
+            List.of("snapshot", "dashboard", "brief", "block", "address", "network", "anomalies", "miners", "report", "help"),
+            names);
+        assertEquals(List.of("0", "1", "2"), new ArrayList<>(((Map<String, Object>) guide.get("exit_codes")).keySet()));
+        assertTrue(Files.exists(Path.of((String) guide.get("schema"))), "schema file named by the guide is missing");
     }
 
     private static String runMakeHelp() throws IOException, InterruptedException {

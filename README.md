@@ -38,6 +38,8 @@ Your own data: run `make ui`, select **Load your CSVs**, and choose both exports
 | `make run` | Interactive menu |
 | `make verify` | JUnit + CLI + dependency audit + TypeScript + browser smoke |
 
+Scripts can call the CLI directly for JSON with a schema and exit codes: see [AGENTS.md](AGENTS.md#for-agents).
+
 ## Verify
 
 Requires Python 3 (`make ui`), a JDK (CLI + tests), and Node.js 24 LTS (browser build and verification).
