@@ -301,6 +301,11 @@ public class EthereumBlockExplorer {
             if (args.length - 1 > maxArguments(command)) {
                 return outputError("invalid_argument", "Too many arguments for '" + command + "': it takes at most " + maxArguments(command) + ".", EXIT_USAGE);
             }
+            if (!command.equals("help") && (blocks == null || blocks.isEmpty())) {
+                // Decided here, before any renderer is chosen, so text and --json
+                // agree for every command: a dataset with no blocks has no answer.
+                return outputError("no_data", describeError("no_data", null), EXIT_FAILED);
+            }
 
             switch (command) {
                 case "dashboard":

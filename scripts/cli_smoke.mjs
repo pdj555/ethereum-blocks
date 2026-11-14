@@ -399,6 +399,36 @@ try {
     assertCondition(home.stdout === abroad.stdout, `${args.join(" ")} printed different bytes under LC_ALL=C with a German locale.`);
   });
 
+  // A dataset with no blocks: every command fails the same way in text and in --json.
+  const noBlocks = mkdtempSync(join(tmpdir(), "cli-smoke-empty-"));
+  try {
+    writeFileSync(join(noBlocks, blocksFile), "");
+    writeFileSync(join(noBlocks, "ethereumtransactions1.csv"), "");
+    const emptyArgument = { block: "15049311", address: defaultAddress, anomalies: "3.5", report: join(noBlocks, "report.md") };
+    guide.commands
+      .filter(function (command) {
+        return command.name !== "help";
+      })
+      .forEach(function (command) {
+        [[command.name], [command.name, emptyArgument[command.name]]].forEach(function (words) {
+          if (words.includes(undefined) || ((command.name === "block" || command.name === "address") && words.length === 1)) {
+            return;
+          }
+          const asJson = expectCli(["--json", "--data", noBlocks, ...words], 1, "error").document.error;
+          assertCondition(asJson.code === "no_data" && asJson.command === command.name, `--json ${words.join(" ")} on empty CSVs reported ${asJson.code}.`);
+          const asText = runCli(["--data", noBlocks, ...words]);
+          assertCondition(asText.status === 1, `Text '${words.join(" ")}' on empty CSVs exited ${asText.status}, expected 1.`);
+          assertCondition(asText.stdout === "" && asText.stderr.includes("The dataset has no blocks."), `Text '${words.join(" ")}' on empty CSVs did not report it on stderr.`);
+        });
+      });
+    expectCli(["--json", "--data", noBlocks], 1, "error");
+    assertCondition(!existsSync(emptyArgument.report), "report wrote a file for a dataset with no blocks.");
+    assertCondition(runCli(["--data", noBlocks, "help"]).status === 0, "Text help failed on empty CSVs.");
+    expectCli(["--json", "--data", noBlocks, "help"], 0, "help");
+  } finally {
+    rmSync(noBlocks, { recursive: true, force: true });
+  }
+
   // --data needs exactly one directory.
   [["--data", "", "miners"], ["--data", "--json"], ["miners", "--data", "--json"], ["--data", ".", "--data", ".", "miners"], ["--data=.", "--data", ".", "miners"]].forEach(function (args) {
     const refused = expectCli(["--json", ...args], 2, "error").document.error;
