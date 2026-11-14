@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/pdj555/ethereum-blocks/schemas/cli-output.v1.schema.json",
   "title": "Ethereum Block Explorer --json output",
-  "description": "The single document `java -cp bin EthereumBlockExplorer --json <command>` prints on stdout. Each command prints the definition named by its `output` field in `--json help`, or `error`. Process exit codes: 0 ok, 1 the command ran but has no answer, 2 the command line was rejected.",
+  "description": "The single document `java -cp bin EthereumBlockExplorer --json <command>` prints on stdout. Each command prints the definition named by its `output` field in `--json help`, or `error`. Process exit codes: 0 ok; 1 the command ran but has no answer; 2 the command line or its inputs were rejected; 3 internal error; 4 stdout could not be written (no document).",
   "oneOf": [
     {
       "$ref": "#/$defs/error"
@@ -37,7 +37,7 @@
   ],
   "$defs": {
     "error": {
-      "description": "Any failed command. Exit code 2 when the command line was rejected (a message, invalid_address_format, address_required); exit code 1 otherwise.",
+      "description": "Every failed command prints this one shape. error.exit_code equals the process exit code.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -45,16 +45,173 @@
       ],
       "properties": {
         "error": {
-          "type": "string"
-        },
-        "block_number": {
-          "type": "integer"
-        },
-        "file": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message",
+            "command",
+            "exit_code"
+          ],
+          "properties": {
+            "code": {
+              "enum": [
+                "unknown_command",
+                "invalid_argument",
+                "invalid_address_format",
+                "address_required",
+                "data_file_not_found",
+                "io_error",
+                "report_write_failed",
+                "block_not_found",
+                "no_data",
+                "internal_error"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
+            },
+            "command": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "exit_code": {
+              "enum": [
+                1,
+                2,
+                3
+              ]
+            },
+            "block_number": {
+              "type": "integer"
+            },
+            "file": {
+              "type": "string"
+            },
+            "directory": {
+              "type": "string"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "block_not_found",
+                      "no_data"
+                    ]
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "exit_code": {
+                    "const": 1
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "internal_error"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "exit_code": {
+                    "const": 3
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "unknown_command",
+                      "invalid_argument",
+                      "invalid_address_format",
+                      "address_required",
+                      "data_file_not_found",
+                      "io_error",
+                      "report_write_failed"
+                    ]
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "exit_code": {
+                    "const": 2
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "block_not_found"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "required": [
+                  "block_number"
+                ],
+                "properties": {
+                  "block_number": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "data_file_not_found",
+                      "report_write_failed"
+                    ]
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     },
@@ -778,82 +935,99 @@
       }
     },
     "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "purpose",
+        "overview",
+        "network",
+        "anomalies",
+        "data_contract",
+        "recommended_next_actions",
+        "status"
+      ],
+      "properties": {
+        "schema": {
+          "const": "ethereum-block-explorer.agent-snapshot.v1"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "overview": {
+          "$ref": "#/$defs/overview"
+        },
+        "network": {
+          "$ref": "#/$defs/network"
+        },
+        "anomalies": {
+          "$ref": "#/$defs/anomalies"
+        },
+        "data_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "blocks_file",
+            "transactions_file",
+            "block_range_start",
+            "block_range_end",
+            "blocks_loaded",
+            "parsed_transactions",
+            "address_format"
+          ],
+          "properties": {
+            "blocks_file": {
+              "type": "string"
+            },
+            "transactions_file": {
+              "type": "string"
+            },
+            "block_range_start": {
+              "type": "integer"
+            },
+            "block_range_end": {
+              "type": "integer"
+            },
+            "blocks_loaded": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "parsed_transactions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "address_format": {
+              "type": "string"
+            }
+          }
+        },
+        "recommended_next_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "const": "ready"
+        }
+      }
+    },
+    "report": {
       "oneOf": [
         {
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "schema",
-            "purpose",
-            "overview",
-            "network",
-            "anomalies",
-            "data_contract",
-            "recommended_next_actions",
-            "status"
+            "status",
+            "file"
           ],
           "properties": {
-            "schema": {
-              "const": "ethereum-block-explorer.agent-snapshot.v1"
-            },
-            "purpose": {
-              "type": "string"
-            },
-            "overview": {
-              "$ref": "#/$defs/overview"
-            },
-            "network": {
-              "$ref": "#/$defs/network"
-            },
-            "anomalies": {
-              "$ref": "#/$defs/anomalies"
-            },
-            "data_contract": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "blocks_file",
-                "transactions_file",
-                "block_range_start",
-                "block_range_end",
-                "blocks_loaded",
-                "parsed_transactions",
-                "address_format"
-              ],
-              "properties": {
-                "blocks_file": {
-                  "type": "string"
-                },
-                "transactions_file": {
-                  "type": "string"
-                },
-                "block_range_start": {
-                  "type": "integer"
-                },
-                "block_range_end": {
-                  "type": "integer"
-                },
-                "blocks_loaded": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "parsed_transactions": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "address_format": {
-                  "type": "string"
-                }
-              }
-            },
-            "recommended_next_actions": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "status": {
-              "const": "ready"
+              "const": "ok"
+            },
+            "file": {
+              "type": "string",
+              "minLength": 1
             }
           }
         },
@@ -861,43 +1035,24 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "schema",
-            "purpose",
-            "overview",
-            "status"
+            "status",
+            "file",
+            "markdown"
           ],
           "properties": {
-            "schema": {
-              "const": "ethereum-block-explorer.agent-snapshot.v1"
-            },
-            "purpose": {
-              "type": "string"
-            },
-            "overview": {
-              "$ref": "#/$defs/error"
-            },
             "status": {
-              "const": "unavailable"
+              "const": "ok"
+            },
+            "file": {
+              "type": "null"
+            },
+            "markdown": {
+              "type": "string",
+              "minLength": 1
             }
           }
         }
       ]
-    },
-    "report": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "status",
-        "file"
-      ],
-      "properties": {
-        "status": {
-          "const": "ok"
-        },
-        "file": {
-          "type": "string"
-        }
-      }
     },
     "help": {
       "type": "object",
@@ -906,7 +1061,8 @@
         "usage",
         "schema",
         "commands",
-        "exit_codes"
+        "exit_codes",
+        "data"
       ],
       "properties": {
         "usage": {
@@ -962,7 +1118,9 @@
           "required": [
             "0",
             "1",
-            "2"
+            "2",
+            "3",
+            "4"
           ],
           "properties": {
             "0": {
@@ -973,8 +1131,17 @@
             },
             "2": {
               "type": "string"
+            },
+            "3": {
+              "type": "string"
+            },
+            "4": {
+              "type": "string"
             }
           }
+        },
+        "data": {
+          "type": "string"
         }
       }
     }

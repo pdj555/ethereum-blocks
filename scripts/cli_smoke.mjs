@@ -1,7 +1,7 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
@@ -74,10 +74,14 @@ ajv.addSchema(schema);
 
 // The entry point behind every make target. Called directly because make turns
 // any failing recipe into its own exit status 2, which hides the CLI's 1.
-function runCli(args) {
-  const result = spawnSync("java", ["-cp", "bin", "EthereumBlockExplorer", ...args], {
+const classPath = resolve("bin");
+
+function runCli(args, options = {}) {
+  const result = spawnSync("java", ["-cp", classPath, "EthereumBlockExplorer", ...args], {
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"]
+    stdio: ["ignore", options.stdout || "pipe", "pipe"],
+    cwd: options.cwd,
+    env: { ...process.env, ...(options.env || {}) }
   });
   if (result.error) {
     throw result.error;
@@ -87,8 +91,8 @@ function runCli(args) {
 
 // Runs one --json command, checks its exit code, and checks that stdout is a
 // single document matching the named definition in the committed schema.
-function expectCli(args, expectedExit, definition) {
-  const result = runCli(args);
+function expectCli(args, expectedExit, definition, options = {}) {
+  const result = runCli(args, options);
   const label = `java -cp bin EthereumBlockExplorer ${args.join(" ")}`;
   assertCondition(
     result.status === expectedExit,
@@ -110,7 +114,31 @@ function expectCli(args, expectedExit, definition) {
     ajv.validate(schema, document),
     `${label} does not match exactly one definition in ${schemaFile}:\n${JSON.stringify(ajv.errors, null, 2)}`
   );
+  if (definition === "error") {
+    assertCondition(
+      document.error.exit_code === result.status,
+      `${label} exited ${result.status} but its document says exit_code ${document.error.exit_code}.`
+    );
+  }
   return { document, stdout: result.stdout };
+}
+
+// Starts a command and closes the read end of its stdout before it can write.
+function exitCodeWithClosedPipe(args) {
+  return new Promise(function (resolvePromise, reject) {
+    const child = spawn("java", ["-cp", classPath, "EthereumBlockExplorer", ...args], {
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stderr = "";
+    child.stdout.destroy();
+    child.stderr.on("data", function (chunk) {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", function (code) {
+      resolvePromise({ code, stderr });
+    });
+  });
 }
 
 const priorReport = existsSync(reportFile) ? readFileSync(reportFile, "utf8") : null;
@@ -141,11 +169,12 @@ try {
   withTemporarilyMissingFile(blocksFile, function () {
     expectMakeFailure(
       ["run-json"],
-      ['"error": "data_file_not_found"', '"file": "ethereumP1data.csv"']
+      ['"code": "data_file_not_found"', '"file": "ethereumP1data.csv"']
     );
-    const missingData = expectCli(["--json", "snapshot"], 1, "error").document;
-    assertCondition(missingData.error === "data_file_not_found", "Missing dataset did not report data_file_not_found.");
+    const missingData = expectCli(["--json", "snapshot"], 2, "error").document.error;
+    assertCondition(missingData.code === "data_file_not_found", "Missing dataset did not report data_file_not_found.");
     assertCondition(missingData.file === blocksFile, "Missing dataset error did not name the file.");
+    assertCondition(missingData.command === "snapshot", "Missing dataset error did not name the command.");
     // The guide describes the CLI, so it must still answer without the dataset.
     expectCli(["--json", "help"], 0, "help");
   });
@@ -158,7 +187,7 @@ try {
   const address = parseJsonOutput(["address", `ADDR=${defaultAddress}`]);
   assertCondition(address.address === defaultAddress, "Address lookup returned the wrong address.");
   assertCondition(typeof address.behavior_class === "string", "Address lookup is missing behavior_class.");
-  expectMakeFailure(["address", `ADDR=${invalidAddress}`], '"error": "invalid_address_format"');
+  expectMakeFailure(["address", `ADDR=${invalidAddress}`], '"code": "invalid_address_format"');
   expectMakeFailure(
     ["address"],
     "Missing address. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f"
@@ -173,7 +202,7 @@ try {
   assertCondition(Array.isArray(anomalies.volume_anomalies), "Anomalies output is missing volume_anomalies.");
   expectMakeFailure(
     ["anomalies", "THRESHOLD=not-a-number"],
-    '{"error": "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5."}'
+    ['"code": "invalid_argument"', '"message": "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5."']
   );
 
   const miners = parseJsonOutput(["miners"]);
@@ -227,8 +256,9 @@ try {
   );
 
   // Exit 1: the command ran and has no answer.
-  const missingBlock = expectCli(["--json", "block", "1"], 1, "error").document;
-  assertCondition(missingBlock.error === "block_not_found" && missingBlock.block_number === 1, "Unknown block did not report block_not_found.");
+  const missingBlock = expectCli(["--json", "block", "1"], 1, "error").document.error;
+  assertCondition(missingBlock.code === "block_not_found" && missingBlock.block_number === 1, "Unknown block did not report block_not_found.");
+  assertCondition(missingBlock.command === "block" && missingBlock.message.length > 0, "Unknown block error lacks command or message.");
 
   // Exit 2: the command line was rejected.
   [
@@ -240,10 +270,68 @@ try {
     ["anomalies", "not-a-number"],
     ["anomalies", "NaN"],
     ["anomalies", "0"],
-    ["anomalies", "-1"]
+    ["anomalies", "-1"],
+    // Java would parse these as numbers; a caller never means them.
+    ["anomalies", "3.5f"],
+    ["anomalies", "0x1p3"],
+    ["anomalies", "1e2"],
+    ["block", "+15049311"],
+    // Arguments a command does not take are refused, not ignored.
+    ["anomalies", "3.5", "extra"],
+    ["snapshot", "extra"],
+    ["block", "15049311", "15049312"],
+    ["report", "a.md", "b.md"],
+    ["help", "extra"],
+    ["--no-such-option", "snapshot"],
+    ["snapshot", "--data"]
   ].forEach(function (args) {
     expectCli(["--json", ...args], 2, "error");
   });
+  assertCondition(
+    expectCli(["--json", "nope"], 2, "error").document.error.code === "unknown_command",
+    "Unknown command did not report unknown_command."
+  );
+
+  // report: no file means the Markdown comes back in the document, not into the working directory.
+  const hadReport = existsSync(reportFile);
+  const inlineReport = expectCli(["--json", "report"], 0, "report").document;
+  assertCondition(inlineReport.file === null && inlineReport.markdown.includes("# Ethereum Blocks: Lean Report"), "report without a file did not return the Markdown.");
+  const textReport = runCli(["report"]);
+  assertCondition(textReport.status === 0 && textReport.stdout.includes("## Action Brief"), "report without a file did not print the Markdown.");
+  assertCondition(existsSync(reportFile) === hadReport, "report without a file wrote into the working directory.");
+  // A report that cannot be written says why.
+  const unwritable = join(tmpdir(), "cli-smoke-no-such-directory", "report.md");
+  const reportFailure = expectCli(["--json", "report", unwritable], 2, "error").document.error;
+  assertCondition(reportFailure.code === "report_write_failed" && reportFailure.file === unwritable, "Unwritable report path did not report report_write_failed.");
+  assertCondition(reportFailure.message.includes("NoSuchFileException"), `Report failure lost its cause: ${reportFailure.message}`);
+
+  // The dataset is found from outside the repository root, and can be named.
+  const elsewhere = mkdtempSync(join(tmpdir(), "cli-smoke-cwd-"));
+  try {
+    assertCondition(
+      expectCli(["--json", "anomalies"], 0, "anomalies", { cwd: elsewhere }).stdout === parity,
+      "Run from another directory did not find the dataset beside the compiled classes."
+    );
+    expectCli(["--json", "--data", resolve("."), "miners"], 0, "miners", { cwd: elsewhere });
+    expectCli(["--json", "miners"], 0, "miners", { cwd: elsewhere, env: { ETHEREUM_BLOCKS_DATA: resolve(".") } });
+    const wrongDirectory = expectCli(["--json", "--data", elsewhere, "miners"], 2, "error").document.error;
+    assertCondition(wrongDirectory.code === "data_file_not_found" && wrongDirectory.directory === elsewhere, "--data to an empty directory did not report where it looked.");
+    expectCli(["--json", "miners"], 2, "error", { env: { ETHEREUM_BLOCKS_DATA: elsewhere } });
+  } finally {
+    rmSync(elsewhere, { recursive: true, force: true });
+  }
+
+  // Exit 4: the document could not be written.
+  if (existsSync("/dev/full")) {
+    [["--json", "snapshot"], ["dashboard"], ["--json", "block", "1"]].forEach(function (args) {
+      const full = runCli(args, { stdout: openSync("/dev/full", "w") });
+      assertCondition(full.status === 4, `${args.join(" ")} > /dev/full exited ${full.status}, expected 4.`);
+      assertCondition(full.stderr.includes("could not write to stdout"), "A failed write did not say so on stderr.");
+    });
+  }
+  const closedPipe = await exitCodeWithClosedPipe(["--json", "snapshot"]);
+  assertCondition(closedPipe.code === 4, `Closed pipe exited ${closedPipe.code}, expected 4.`);
+  assertCondition(!closedPipe.stderr.includes("Exception"), `Closed pipe printed a stack trace:\n${closedPipe.stderr}`);
   const usageText = runCli(["no-such-command"]);
   assertCondition(usageText.status === 2, `Unknown command without --json exited ${usageText.status}, expected 2.`);
   assertCondition(usageText.stdout === "", "Unknown command without --json wrote to stdout.");
@@ -257,25 +345,6 @@ try {
   const { method, ...withoutMethod } = goodAnomalies;
   assertCondition(typeof method === "string" && !validateAnomalies(withoutMethod), "Schema accepted anomalies without method.");
   assertCondition(!ajv.validate(schema, { unexpected: true }), "Schema accepted an unknown document.");
-
-  // The commands AGENTS.md hands to agents must run exactly as written.
-  const agentsGuide = readFileSync("AGENTS.md", "utf8");
-  const agentsBlock = agentsGuide.split("## For agents")[1].split("```bash")[1].split("```")[0];
-  const documentedCalls = agentsBlock
-    .split("\n")
-    .filter(function (line) {
-      return line.startsWith("java -cp bin EthereumBlockExplorer ");
-    });
-  assertCondition(documentedCalls.length >= 3, "AGENTS.md 'For agents' block lost its java commands.");
-  documentedCalls.forEach(function (line) {
-    const args = line.split(/\s+/).slice(4);
-    const result = runCli(args);
-    assertCondition(result.status === 0, `AGENTS.md command failed with exit ${result.status}: ${line}`);
-    assertCondition(
-      ajv.validate(schema, JSON.parse(result.stdout)),
-      `AGENTS.md command output does not match ${schemaFile}: ${line}`
-    );
-  });
 
   console.log("CLI smoke passed.");
 } finally {

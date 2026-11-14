@@ -63,26 +63,12 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install and build as AGENTS.md says
         run: |
           npm ci
           make build
 
-      - name: Read the snapshot the way a script would
-        run: |
-          java -cp bin EthereumBlockExplorer --json snapshot > snapshot.json
-          node -e '
-            const snapshot = JSON.parse(require("node:fs").readFileSync("snapshot.json", "utf8"));
-            if (snapshot.status !== "ready" || snapshot.overview.blocks_loaded !== 100) {
-              throw new Error("unexpected snapshot: " + snapshot.status);
-            }
-          '
-          set +e
-          java -cp bin EthereumBlockExplorer --json no-such-command > usage.json
-          usage_exit=$?
-          set -e
-          test "$usage_exit" -eq 2
-
-      - name: Validate every JSON command against the schema
-        run: make cli-smoke
+      - name: Run the AGENTS.md commands as written and validate their output
+        run: node scripts/agent_smoke.mjs

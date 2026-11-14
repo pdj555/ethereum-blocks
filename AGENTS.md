@@ -33,11 +33,26 @@ make test
 make cli-smoke
 ```
 
-- `--json` prints one JSON document on stdout; warnings go to stderr. `--json help` lists every command, its argument, and which definition in `schemas/cli-output.v1.schema.json` its output matches. A failed command prints the `error` definition.
-- Exit codes: `0` ok; `1` the command ran but has no answer (unknown block, no data, unreadable dataset); `2` the command line was rejected (unknown command, missing or malformed argument).
+- `--json` prints one JSON document on stdout; warnings go to stderr. `--json help` lists every command, its argument, and which definition in `schemas/cli-output.v1.schema.json` its output matches.
+- Exit codes, the same with and without `--json`:
+
+  | Code | Meaning |
+  | --- | --- |
+  | `0` | ok |
+  | `1` | ran, but no answer: unknown block, or a dataset with no blocks |
+  | `2` | the command line or its inputs were rejected: unknown command or option, missing, malformed or extra argument, dataset CSVs not found or unreadable, report path that cannot be written |
+  | `3` | internal error |
+  | `4` | stdout could not be written (reader closed the pipe, device full); one line on stderr, no document |
+
+- Every failure under `--json` prints one shape: `{"error": {"code", "message", "command", "exit_code"}}`, plus `block_number`, `file` or `directory` where they apply. `exit_code` equals the process exit code. Successful documents keep their shapes.
+- Arguments are strict: a threshold is plain digits with an optional fraction (`3.5`, not `3.5f`, `1e2` or `0x1p3`), a block number is plain digits, and an argument a command does not take is rejected.
+- The two CSVs are read from `--data <directory>`, else the `ETHEREUM_BLOCKS_DATA` variable, else the working directory, else the directory above the compiled classes. So `java -cp /path/to/repo/bin EthereumBlockExplorer --json snapshot` works from any directory.
+- `report <file>` writes the Markdown report to that file. `report` with no file writes nothing to disk: it prints the Markdown, or returns it as `markdown` in the document under `--json`.
 - Call `java` directly when the exit code matters. The `make` targets print the same JSON, but `make` reports any failure as its own exit status 2.
 - Output has no clock or random input: the same CSVs give the same bytes.
-- `npm ci` is only needed for `make cli-smoke`, which validates every command against the schema.
+- `npm ci` is only needed for the validators: `make cli-smoke` checks every command against the schema, and `node scripts/agent_smoke.mjs` runs the commands above as written.
+
+Behaviour changes from earlier versions: failed commands used to exit `0` and print `{"error": "<text>"}`. They now exit non-zero with the error shape above, so `make address` and `make anomalies` with a bad argument fail. `--json` used to work only before the command.
 
 ## Coding Style & Naming Conventions
 

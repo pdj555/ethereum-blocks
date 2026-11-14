@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,65 +29,155 @@ public class EthereumBlockExplorer {
 
     /** The command succeeded. */
     static final int EXIT_OK = 0;
-    /** The command ran but has no answer: unknown block, no data, unreadable dataset. */
+    /** The command ran but has no answer: unknown block, or a dataset with no blocks. */
     static final int EXIT_FAILED = 1;
-    /** The command line was rejected: unknown command, missing or malformed argument. */
+    /** The command line or its inputs were rejected, including a dataset or report path that cannot be used. */
     static final int EXIT_USAGE = 2;
+    /** A fault in this program. */
+    static final int EXIT_INTERNAL = 3;
+    /** Stdout could not be written. */
+    static final int EXIT_OUTPUT = 4;
+
+    /** Environment variable naming the directory that holds the two dataset CSVs. */
+    static final String DATA_DIR_ENV = "ETHEREUM_BLOCKS_DATA";
+
+    private static String currentCommand = null;
 
     public static void main(String[] args) {
-        jsonMode = hasJsonFlag(args);
-        String[] effectiveArgs = withoutJsonFlag(args);
+        int exitCode = run(args);
+        scanner.close();
+        // PrintStream never throws; a closed pipe or a full device only shows up here.
+        System.out.flush();
+        if (System.out.checkError()) {
+            System.err.println("Error: could not write to stdout.");
+            exitCode = EXIT_OUTPUT;
+        }
+        System.exit(exitCode);
+    }
 
-        if (jsonMode && effectiveArgs.length > 0 && effectiveArgs[0].equalsIgnoreCase("help")) {
-            // Describes the CLI itself, so it must answer even when the dataset is missing.
-            System.out.println(JsonWriter.toJson(buildCommandGuide()));
-            return;
+    /** A command line split into its global options and the command with its arguments. */
+    static final class CommandLine {
+        final boolean json;
+        final String dataDirectory;
+        final String[] command;
+        final String usageError;
+
+        CommandLine(boolean json, String dataDirectory, String[] command, String usageError) {
+            this.json = json;
+            this.dataDirectory = dataDirectory;
+            this.command = command;
+            this.usageError = usageError;
+        }
+    }
+
+    /**
+     * Reads --json and --data wherever they are written. Any other word that
+     * starts with "--" is rejected rather than passed on as an argument.
+     */
+    static CommandLine parseCommandLine(String[] args) {
+        boolean json = false;
+        String dataDirectory = null;
+        String usageError = null;
+        List<String> command = new ArrayList<>();
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (arg.equals("--json")) {
+                json = true;
+            } else if (arg.equals("--data")) {
+                if (i + 1 >= args.length) {
+                    usageError = usageError != null ? usageError : "Expected a directory after --data.";
+                } else {
+                    dataDirectory = args[++i];
+                }
+            } else if (arg.startsWith("--data=")) {
+                dataDirectory = arg.substring("--data=".length());
+            } else if (arg.startsWith("--")) {
+                usageError = usageError != null ? usageError : "Unknown option '" + arg + "'. The options are --json and --data <directory>.";
+            } else {
+                command.add(arg);
+            }
+        }
+        return new CommandLine(json, dataDirectory, command.toArray(new String[0]), usageError);
+    }
+
+    /**
+     * Where the dataset is read from: --data, then the ETHEREUM_BLOCKS_DATA
+     * variable, then the working directory if the blocks file is there, then
+     * the directory above the compiled classes (the repository root when run
+     * as `java -cp bin`). Returns null to mean the working directory.
+     */
+    static File resolveDataDirectory(String option, String environment, File workingDirectory, File classLocation) {
+        if (option != null && !option.isBlank()) {
+            return new File(option);
+        }
+        if (environment != null && !environment.isBlank()) {
+            return new File(environment);
+        }
+        if (new File(workingDirectory, Blocks.DEFAULT_BLOCKS_FILE).exists()) {
+            return null;
+        }
+        File besideClasses = classLocation == null ? null : classLocation.getAbsoluteFile().getParentFile();
+        if (besideClasses != null && new File(besideClasses, Blocks.DEFAULT_BLOCKS_FILE).exists()) {
+            return besideClasses;
+        }
+        return null;
+    }
+
+    private static File classLocation() {
+        try {
+            return new File(EthereumBlockExplorer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int run(String[] args) {
+        CommandLine line = parseCommandLine(args);
+        jsonMode = line.json;
+        String[] effectiveArgs = line.command;
+        currentCommand = effectiveArgs.length > 0 ? effectiveArgs[0].toLowerCase() : null;
+
+        if (line.usageError != null) {
+            return outputError("invalid_argument", line.usageError, EXIT_USAGE);
         }
 
-        loadData();
+        if (jsonMode && "help".equals(currentCommand)) {
+            if (effectiveArgs.length > 1) {
+                return outputError("invalid_argument", "help takes no argument.", EXIT_USAGE);
+            }
+            // Describes the CLI itself, so it must answer even when the dataset is missing.
+            System.out.println(JsonWriter.toJson(buildCommandGuide()));
+            return EXIT_OK;
+        }
+
+        Blocks.setDataDirectory(resolveDataDirectory(
+            line.dataDirectory, System.getenv(DATA_DIR_ENV), new File("").getAbsoluteFile(), classLocation()));
+        int loadExit = loadData();
+        if (loadExit != EXIT_OK) {
+            return loadExit;
+        }
 
         if (effectiveArgs.length > 0) {
-            int exitCode = runCommandMode(effectiveArgs);
-            scanner.close();
-            if (exitCode != EXIT_OK) {
-                System.exit(exitCode);
-            }
-            return;
+            return runCommandMode(effectiveArgs);
         }
 
         if (jsonMode) {
             // No command + json mode = print overview
-            Map<String, Object> overview = AgentAPI.overview(blocks, 10);
-            System.out.println(JsonWriter.toJson(overview));
-            scanner.close();
-            if (exitCodeFor(overview) != EXIT_OK) {
-                System.exit(exitCodeFor(overview));
-            }
-            return;
+            currentCommand = "dashboard";
+            return outputResult(AgentAPI.overview(blocks, 10));
         }
 
         runInteractiveMode();
-        scanner.close();
-    }
-
-    static boolean hasJsonFlag(String[] args) {
-        for (String arg : args) {
-            if (arg.equals("--json")) {
-                return true;
-            }
-        }
-        return false;
+        return EXIT_OK;
     }
 
     /** The command and its arguments, wherever on the line --json was written. */
     static String[] withoutJsonFlag(String[] args) {
-        List<String> kept = new ArrayList<>();
-        for (String arg : args) {
-            if (!arg.equals("--json")) {
-                kept.add(arg);
-            }
-        }
-        return kept.toArray(new String[0]);
+        return parseCommandLine(args).command;
+    }
+
+    static boolean hasJsonFlag(String[] args) {
+        return parseCommandLine(args).json;
     }
 
     /**
@@ -106,16 +197,44 @@ public class EthereumBlockExplorer {
         return EXIT_FAILED;
     }
 
+    private static final java.util.regex.Pattern PLAIN_DECIMAL = java.util.regex.Pattern.compile("[0-9]+(\\.[0-9]+)?");
+    private static final java.util.regex.Pattern PLAIN_INTEGER = java.util.regex.Pattern.compile("[0-9]+");
+
     /**
-     * A z-score threshold must be a finite number above zero. NaN flags nothing
-     * and cannot be written as JSON; zero or less flags every block.
+     * A z-score threshold is a plain decimal number above zero: digits with an
+     * optional fraction. Java's own parser also takes "NaN", "0x1p3" and "3.5f",
+     * none of which a caller means.
      */
     static Double parseThreshold(String raw) {
+        if (raw == null || !PLAIN_DECIMAL.matcher(raw).matches()) {
+            return null;
+        }
+        double value = Double.parseDouble(raw);
+        return Double.isFinite(value) && value > 0 ? value : null;
+    }
+
+    /** A block number is plain digits that fit an int. */
+    static Integer parseBlockNumber(String raw) {
+        if (raw == null || !PLAIN_INTEGER.matcher(raw).matches()) {
+            return null;
+        }
         try {
-            double value = Double.parseDouble(raw.trim());
-            return Double.isFinite(value) && value > 0 ? value : null;
+            return Integer.parseInt(raw);
         } catch (NumberFormatException e) {
             return null;
+        }
+    }
+
+    /** Most arguments each command takes after its name; a command given more is rejected. */
+    static int maxArguments(String command) {
+        switch (command) {
+            case "block":
+            case "address":
+            case "anomalies":
+            case "report":
+                return 1;
+            default:
+                return 0;
         }
     }
 
@@ -125,56 +244,64 @@ public class EthereumBlockExplorer {
         try {
             switch (command) {
                 case "dashboard":
+                case "brief":
+                case "snapshot":
+                case "report":
+                case "block":
+                case "address":
+                case "miners":
+                case "network":
+                case "anomalies":
+                case "help":
+                    break;
+                default:
+                    return outputError("unknown_command", "Unknown command '" + command + "'. Run 'make help' to see the supported explorer commands.", EXIT_USAGE);
+            }
+            if (args.length - 1 > maxArguments(command)) {
+                return outputError("invalid_argument", "Too many arguments for '" + command + "': it takes at most " + maxArguments(command) + ".", EXIT_USAGE);
+            }
+
+            switch (command) {
+                case "dashboard":
                     if (jsonMode) {
                         return outputResult(AgentAPI.overview(blocks, 10));
-                    } else {
-                        Insights.printDashboard(blocks, 5);
                     }
+                    Insights.printDashboard(blocks, 5);
                     break;
                 case "brief":
                     if (jsonMode) {
                         return outputResult(AgentAPI.overview(blocks, 5));
-                    } else {
-                        Insights.printActionBrief(blocks, 5);
                     }
+                    Insights.printActionBrief(blocks, 5);
                     break;
                 case "snapshot":
                     return outputResult(AgentAPI.agentSnapshot(blocks));
                 case "report":
-                    writeReport(args.length >= 2 ? args[1] : "ethereum-report.md");
-                    break;
+                    return writeReport(args.length >= 2 ? args[1] : null);
                 case "block":
-                    if (args.length < 2) {
-                        return outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
-                    }
-                    int blockNumber;
-                    try {
-                        blockNumber = Integer.parseInt(args[1]);
-                    } catch (NumberFormatException e) {
-                        return outputError("Expected: block <blockNumber>. Try: make block N=15049311.");
+                    Integer blockNumber = args.length < 2 ? null : parseBlockNumber(args[1]);
+                    if (blockNumber == null) {
+                        return outputError("invalid_argument", "Expected: block <blockNumber>. Try: make block N=15049311.", EXIT_USAGE);
                     }
                     if (jsonMode) {
                         return outputResult(AgentAPI.blockDetail(blocks, blockNumber));
-                    } else {
-                        printBlockDetails(blockNumber);
                     }
+                    printBlockDetails(blockNumber);
                     break;
                 case "address":
                     if (args.length < 2) {
-                        return outputError("Expected: address <0xAddress>. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.");
+                        return outputError("invalid_argument", "Expected: address <0xAddress>. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.", EXIT_USAGE);
                     }
                     if (jsonMode) {
                         return outputResult(AgentAPI.addressIntel(blocks, args[1], 10));
-                    } else {
-                        Insights.printAddressIntel(blocks, args[1], 5);
                     }
+                    Insights.printAddressIntel(blocks, args[1], 5);
                     break;
                 case "miners":
                     if (jsonMode) {
                         return outputResult(AgentAPI.minerAnalysis(blocks, 10));
-                    } else {
-                        System.out.println(Blocks.calUniqMiners());
                     }
+                    System.out.println(Blocks.calUniqMiners());
                     break;
                 case "network":
                     return outputResult(NetworkAnalyzer.analyzeNetwork(blocks, 10));
@@ -183,45 +310,91 @@ public class EthereumBlockExplorer {
                     if (args.length >= 2) {
                         Double parsed = parseThreshold(args[1]);
                         if (parsed == null) {
-                            return outputError("Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.");
+                            return outputError("invalid_argument", "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.", EXIT_USAGE);
                         }
                         threshold = parsed;
                     }
                     return outputResult(AgentAPI.detectAnomalies(blocks, threshold));
-                case "help":
-                    printHelp();
-                    break;
                 default:
-                    return outputError("Unknown command '" + command + "'. Run 'make help' to see the supported explorer commands.");
+                    printHelp();
             }
         } catch (Exception e) {
-            if (!jsonMode && e.getMessage() != null && !e.getMessage().isBlank()) {
-                System.err.println("Details: " + e.getMessage());
-            }
-            outputError(buildUnexpectedCommandError(command));
-            return EXIT_FAILED;
+            String cause = e.getMessage() == null || e.getMessage().isBlank() ? e.getClass().getSimpleName() : e.getClass().getSimpleName() + ": " + e.getMessage();
+            return outputError("internal_error", buildUnexpectedCommandError(command) + " Cause: " + cause, EXIT_INTERNAL);
         }
         return EXIT_OK;
     }
 
     private static int outputResult(Map<String, Object> data) {
+        int exitCode = exitCodeFor(data);
+        if (exitCode != EXIT_OK) {
+            Map<String, Object> failed = data;
+            if (!(data.get("error") instanceof String) && data.get("overview") instanceof Map) {
+                // An unavailable snapshot carries its error inside the overview.
+                @SuppressWarnings("unchecked")
+                Map<String, Object> overview = (Map<String, Object>) data.get("overview");
+                failed = overview;
+            }
+            String code = String.valueOf(failed.get("error"));
+            Map<String, Object> details = new LinkedHashMap<>(failed);
+            details.remove("error");
+            details.remove("status");
+            return outputError(code, describeError(code, details), exitCode, details);
+        }
         if (jsonMode) {
             System.out.println(JsonWriter.toJson(data));
         } else {
             // Pretty-print for humans
             printMap(data, 0);
         }
-        return exitCodeFor(data);
+        return EXIT_OK;
     }
 
-    /** Reports a rejected command line and returns the usage exit code. */
-    private static int outputError(String msg) {
-        if (jsonMode) {
-            System.out.println("{\"error\": " + JsonWriter.toJson(msg) + "}");
-        } else {
-            System.err.println("Error: " + msg);
+    static String describeError(String code, Map<String, Object> details) {
+        switch (code) {
+            case "block_not_found":
+                return "No block numbered " + details.get("block_number") + " is in the loaded dataset.";
+            case "invalid_address_format":
+                return "Expected an address: 0x followed by 40 hexadecimal characters.";
+            case "address_required":
+                return "Expected: address <0xAddress>.";
+            case "no_data":
+                return "The dataset has no blocks.";
+            default:
+                return code;
         }
-        return EXIT_USAGE;
+    }
+
+    /**
+     * The one shape every failed command prints under --json:
+     * {"error": {"code", "message", "command", "exit_code", ...details}}.
+     */
+    static Map<String, Object> buildErrorDocument(String code, String message, String command, int exitCode, Map<String, Object> details) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("code", code);
+        error.put("message", message);
+        error.put("command", command);
+        error.put("exit_code", exitCode);
+        if (details != null) {
+            error.putAll(details);
+        }
+        Map<String, Object> document = new LinkedHashMap<>();
+        document.put("error", error);
+        return document;
+    }
+
+    private static int outputError(String code, String message, int exitCode) {
+        return outputError(code, message, exitCode, null);
+    }
+
+    /** Reports a failed command in the caller's format and returns its exit code. */
+    private static int outputError(String code, String message, int exitCode, Map<String, Object> details) {
+        if (jsonMode) {
+            System.out.println(JsonWriter.toJson(buildErrorDocument(code, message, currentCommand, exitCode, details)));
+        } else {
+            System.err.println("Error: " + message);
+        }
+        return exitCode;
     }
 
     private static void printMap(Map<String, Object> map, int indent) {
@@ -305,32 +478,30 @@ public class EthereumBlockExplorer {
         }
     }
 
-    private static void loadData() {
+    private static int loadData() {
         try {
             Blocks.readFile(Blocks.DEFAULT_BLOCKS_FILE);
             Blocks.sortBlocksByNumber();
             blocks = Blocks.getBlocks();
             emitLoadWarnings(Blocks.getLoadWarnings());
+            return EXIT_OK;
         } catch (FileNotFoundException e) {
             String missingFile = missingDatasetFile(e);
-            if (jsonMode) {
-                System.out.println(buildMissingDataErrorJson(missingFile));
-            } else {
-                System.err.println("Error: Missing dataset file '" + missingFile + "'. Keep '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "' in the repo root, then rerun your command.");
-            }
-            System.exit(1);
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("file", missingFile);
+            details.put("directory", Blocks.dataDirectoryPath());
+            return outputError("data_file_not_found", buildMissingDataMessage(missingFile, Blocks.dataDirectoryPath()), EXIT_USAGE, details);
         } catch (IOException e) {
-            if (jsonMode) {
-                System.out.println("{\"error\": \"io_error\", \"message\": " + JsonWriter.toJson(String.valueOf(e.getMessage())) + "}");
-            } else {
-                System.err.println("Error: Could not read the dataset files. Check '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "', then rerun your command.");
-            }
-            System.exit(1);
+            return outputError(
+                "io_error",
+                "Could not read the dataset files '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE + "' in " + Blocks.dataDirectoryPath() + ": " + e.getMessage(),
+                EXIT_USAGE);
         }
     }
 
-    static String buildMissingDataErrorJson(String missingFile) {
-        return "{\"error\": \"data_file_not_found\", \"file\": \"" + missingFile + "\"}";
+    static String buildMissingDataMessage(String missingFile, String directory) {
+        return "Missing dataset file '" + missingFile + "' in " + directory + ". Keep '" + Blocks.DEFAULT_BLOCKS_FILE + "' and '" + Blocks.DEFAULT_TRANSACTIONS_FILE
+            + "' there, or name their directory with --data <directory> or the " + DATA_DIR_ENV + " variable.";
     }
 
     static String buildUnexpectedCommandError(String command) {
@@ -360,12 +531,6 @@ public class EthereumBlockExplorer {
         if (e.getMessage() != null && !e.getMessage().isBlank()) {
             System.err.println("Details: " + e.getMessage());
         }
-    }
-
-    private static void reloadData() {
-        System.out.println("Reloading " + Blocks.DEFAULT_BLOCKS_FILE + "...");
-        loadData();
-        System.out.println("Loaded " + blocks.size() + " blocks from " + Blocks.DEFAULT_BLOCKS_FILE + ".");
     }
 
     private static void printBlockDetails(int blockNum) throws IOException {
@@ -517,12 +682,7 @@ public class EthereumBlockExplorer {
     }
 
     private static void exportReport() {
-        String path = "ethereum-report.md";
-        try {
-            writeReport(path);
-        } catch (IOException e) {
-            printInteractiveError("Could not write the report to '" + path + "'", "Check file permissions, then rerun 'make report'", e);
-        }
+        writeReport("ethereum-report.md");
     }
 
     private static void viewActionBrief() {
@@ -557,14 +717,43 @@ public class EthereumBlockExplorer {
         }
     }
 
-    private static void writeReport(String filePath) throws IOException {
+    /**
+     * Writes the Markdown report to the named file. With no file it goes to
+     * stdout (inside the JSON document under --json), never silently into the
+     * working directory.
+     */
+    private static int writeReport(String filePath) {
         String report = Insights.buildReport(blocks, 5);
-        Files.writeString(Path.of(filePath), report, StandardCharsets.UTF_8);
+        Map<String, Object> document = new LinkedHashMap<>();
+        document.put("status", "ok");
+        document.put("file", filePath);
+        if (filePath == null) {
+            if (jsonMode) {
+                document.put("markdown", report);
+                System.out.println(JsonWriter.toJson(document));
+            } else {
+                System.out.print(report);
+            }
+            return EXIT_OK;
+        }
+        try {
+            Files.writeString(Path.of(filePath), report, StandardCharsets.UTF_8);
+        } catch (IOException | RuntimeException e) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("file", filePath);
+            return outputError("report_write_failed", buildReportWriteError(filePath, e), EXIT_USAGE, details);
+        }
         if (jsonMode) {
-            System.out.println("{\"status\": \"ok\", \"file\": " + JsonWriter.toJson(filePath) + "}");
+            System.out.println(JsonWriter.toJson(document));
         } else {
             System.out.println("Saved report to: " + filePath);
         }
+        return EXIT_OK;
+    }
+
+    static String buildReportWriteError(String filePath, Exception cause) {
+        String detail = cause.getMessage() == null || cause.getMessage().isBlank() ? "" : " (" + cause.getMessage() + ")";
+        return "Could not write the report to '" + filePath + "': " + cause.getClass().getSimpleName() + detail + ".";
     }
 
     static String buildHelpText() {
@@ -617,8 +806,10 @@ public class EthereumBlockExplorer {
     /** What `--json help` prints: the commands, their arguments, and the exit codes. */
     static Map<String, Object> buildCommandGuide() {
         Map<String, Object> guide = new LinkedHashMap<>();
-        guide.put("usage", "java -cp bin EthereumBlockExplorer --json <command> [argument]");
+        guide.put("usage", "java -cp bin EthereumBlockExplorer [--json] [--data <directory>] <command> [argument]");
         guide.put("schema", "schemas/cli-output.v1.schema.json");
+        guide.put("data", "The two CSVs are read from --data <directory>, else the " + DATA_DIR_ENV
+            + " variable, else the working directory, else the directory above the compiled classes.");
 
         List<Map<String, Object>> commands = new ArrayList<>();
         commands.add(guideEntry("snapshot", null, "snapshot", "Overview, network, and anomalies in one document"));
@@ -629,14 +820,16 @@ public class EthereumBlockExplorer {
         commands.add(guideEntry("network", null, "network", "Address graph analysis"));
         commands.add(guideEntry("anomalies", "[zScoreThreshold]", "anomalies", "Blocks with outlying cost or volume (default threshold 3.5)"));
         commands.add(guideEntry("miners", null, "miners", "Miner breakdown and concentration"));
-        commands.add(guideEntry("report", "[file]", "report", "Write the Markdown report (default ethereum-report.md)"));
+        commands.add(guideEntry("report", "[file]", "report", "Write the Markdown report to the file; with no file, return it in the document"));
         commands.add(guideEntry("help", null, "help", "This guide"));
         guide.put("commands", commands);
 
         Map<String, Object> exitCodes = new LinkedHashMap<>();
         exitCodes.put(String.valueOf(EXIT_OK), "ok");
-        exitCodes.put(String.valueOf(EXIT_FAILED), "ran, but no answer: unknown block, no data, or unreadable dataset");
-        exitCodes.put(String.valueOf(EXIT_USAGE), "rejected command line: unknown command, missing or malformed argument");
+        exitCodes.put(String.valueOf(EXIT_FAILED), "ran, but no answer: unknown block, or a dataset with no blocks");
+        exitCodes.put(String.valueOf(EXIT_USAGE), "rejected command line or inputs: unknown command or option, missing, malformed or extra argument, dataset or report path that cannot be used");
+        exitCodes.put(String.valueOf(EXIT_INTERNAL), "internal error");
+        exitCodes.put(String.valueOf(EXIT_OUTPUT), "stdout could not be written");
         guide.put("exit_codes", exitCodes);
         return guide;
     }

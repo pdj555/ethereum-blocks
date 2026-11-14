@@ -37,6 +37,23 @@ public class Blocks implements Comparable<Blocks> {
 	/**
 	 * Resets all static state. Required for test isolation and data reload.
 	 */
+	private static File dataDirectory = null;
+
+	/** Directory that relative dataset filenames are read from; null means the working directory. */
+	static void setDataDirectory(File directory) {
+		dataDirectory = directory;
+	}
+
+	static String dataDirectoryPath() {
+		File directory = dataDirectory == null ? new File("") : dataDirectory;
+		return directory.getAbsolutePath();
+	}
+
+	private static File dataFile(String filename) {
+		File file = new File(filename);
+		return dataDirectory == null || file.isAbsolute() ? file : new File(dataDirectory, filename);
+	}
+
 	public static void resetState() {
 		blocks = null;
 		blockMap.clear();
@@ -257,7 +274,7 @@ public class Blocks implements Comparable<Blocks> {
 		}
 		
 		// construct a file object for the file with the given name.
-		File file = new File(filename);
+		File file = dataFile(filename);
 		
 		if (!file.exists()) {
 			throw new FileNotFoundException(filename);
@@ -585,7 +602,7 @@ public class Blocks implements Comparable<Blocks> {
 			return;
 		}
 
-		File file = new File(filename);
+		File file = dataFile(filename);
 		if (!file.exists()) {
 			throw new FileNotFoundException(filename);
 		}
