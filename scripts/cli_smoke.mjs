@@ -421,6 +421,13 @@ try {
           assertCondition(asText.stdout === "" && asText.stderr.includes("The dataset has no blocks."), `Text '${words.join(" ")}' on empty CSVs did not report it on stderr.`);
         });
       });
+    // A rejected command line is still a usage error when there is no data to answer it.
+    [["block"], ["block", "abc"], ["address"], ["address", "0x1"], ["anomalies", "NaN"]].forEach(function (words) {
+      const rejected = expectCli(["--json", "--data", noBlocks, ...words], 2, "error").document.error;
+      assertCondition(rejected.code !== "no_data", `--json ${words.join(" ")} on empty CSVs reported no_data, not the rejected argument.`);
+      const asText = runCli(["--data", noBlocks, ...words]);
+      assertCondition(asText.status === 2, `Text '${words.join(" ")}' on empty CSVs exited ${asText.status}, expected 2.`);
+    });
     expectCli(["--json", "--data", noBlocks], 1, "error");
     assertCondition(!existsSync(emptyArgument.report), "report wrote a file for a dataset with no blocks.");
     assertCondition(runCli(["--data", noBlocks, "help"]).status === 0, "Text help failed on empty CSVs.");
