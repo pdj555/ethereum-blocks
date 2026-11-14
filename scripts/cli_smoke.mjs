@@ -1,5 +1,9 @@
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { delimiter, join, resolve } from "node:path";
+
+import Ajv2020 from "ajv/dist/2020.js";
 
 const blocksFile = "ethereumP1data.csv";
 const defaultAddress = "0x00000000006c3852cbef3e08e8df289169ede581";
@@ -63,6 +67,80 @@ function parseJsonOutput(args) {
   return JSON.parse(runMake(args));
 }
 
+const schemaFile = "schemas/cli-output.v1.schema.json";
+const schema = JSON.parse(readFileSync(schemaFile, "utf8"));
+const ajv = new Ajv2020({ allErrors: true, strict: true });
+ajv.addSchema(schema);
+
+// The entry point behind every make target. Called directly because make turns
+// any failing recipe into its own exit status 2, which hides the CLI's 1.
+const classPath = resolve("bin");
+
+function runCli(args, options = {}) {
+  const result = spawnSync("java", [...(options.jvm || []), "-cp", options.classPath || classPath, "EthereumBlockExplorer", ...args], {
+    encoding: options.encoding || "utf8",
+    stdio: ["ignore", options.stdout || "pipe", "pipe"],
+    cwd: options.cwd,
+    env: { ...process.env, ...(options.env || {}) }
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  return result;
+}
+
+// Runs one --json command, checks its exit code, and checks that stdout is a
+// single document matching the named definition in the committed schema.
+function expectCli(args, expectedExit, definition, options = {}) {
+  const result = runCli(args, options);
+  const label = `java -cp bin EthereumBlockExplorer ${args.join(" ")}`;
+  assertCondition(
+    result.status === expectedExit,
+    `${label} exited ${result.status}, expected ${expectedExit}.\n\nstdout:\n${result.stdout}\n\nstderr:\n${result.stderr}`
+  );
+  let document;
+  try {
+    document = JSON.parse(result.stdout);
+  } catch (error) {
+    throw new Error(`${label} did not print one JSON document: ${error.message}\n\nstdout:\n${result.stdout}`);
+  }
+  const validate = ajv.getSchema(`${schema.$id}#/$defs/${definition}`);
+  assertCondition(typeof validate === "function", `${schemaFile} has no definition named ${definition}.`);
+  assertCondition(
+    validate(document),
+    `${label} does not match ${schemaFile}#/$defs/${definition}:\n${JSON.stringify(validate.errors, null, 2)}`
+  );
+  assertCondition(
+    ajv.validate(schema, document),
+    `${label} does not match exactly one definition in ${schemaFile}:\n${JSON.stringify(ajv.errors, null, 2)}`
+  );
+  if (definition === "error") {
+    assertCondition(
+      document.error.exit_code === result.status,
+      `${label} exited ${result.status} but its document says exit_code ${document.error.exit_code}.`
+    );
+  }
+  return { document, stdout: result.stdout };
+}
+
+// Starts a command and closes the read end of its stdout before it can write.
+function exitCodeWithClosedPipe(args) {
+  return new Promise(function (resolvePromise, reject) {
+    const child = spawn("java", ["-cp", classPath, "EthereumBlockExplorer", ...args], {
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stderr = "";
+    child.stdout.destroy();
+    child.stderr.on("data", function (chunk) {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", function (code) {
+      resolvePromise({ code, stderr });
+    });
+  });
+}
+
 const priorReport = existsSync(reportFile) ? readFileSync(reportFile, "utf8") : null;
 
 try {
@@ -91,8 +169,14 @@ try {
   withTemporarilyMissingFile(blocksFile, function () {
     expectMakeFailure(
       ["run-json"],
-      ['"error": "data_file_not_found"', '"file": "ethereumP1data.csv"']
+      ['"code": "data_file_not_found"', '"file": "ethereumP1data.csv"']
     );
+    const missingData = expectCli(["--json", "snapshot"], 2, "error").document.error;
+    assertCondition(missingData.code === "data_file_not_found", "Missing dataset did not report data_file_not_found.");
+    assertCondition(missingData.file === blocksFile, "Missing dataset error did not name the file.");
+    assertCondition(missingData.command === "snapshot", "Missing dataset error did not name the command.");
+    // The guide describes the CLI, so it must still answer without the dataset.
+    expectCli(["--json", "help"], 0, "help");
   });
 
   const block = parseJsonOutput(["block", "N=15049311"]);
@@ -103,11 +187,7 @@ try {
   const address = parseJsonOutput(["address", `ADDR=${defaultAddress}`]);
   assertCondition(address.address === defaultAddress, "Address lookup returned the wrong address.");
   assertCondition(typeof address.behavior_class === "string", "Address lookup is missing behavior_class.");
-  const invalidAddressResult = parseJsonOutput(["address", `ADDR=${invalidAddress}`]);
-  assertCondition(
-    invalidAddressResult.error === "invalid_address_format",
-    "Invalid address lookup did not return invalid_address_format."
-  );
+  expectMakeFailure(["address", `ADDR=${invalidAddress}`], '"code": "invalid_address_format"');
   expectMakeFailure(
     ["address"],
     "Missing address. Try: make address ADDR=0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f"
@@ -120,10 +200,9 @@ try {
   const anomalies = parseJsonOutput(["anomalies"]);
   assertCondition(Array.isArray(anomalies.cost_anomalies), "Anomalies output is missing cost_anomalies.");
   assertCondition(Array.isArray(anomalies.volume_anomalies), "Anomalies output is missing volume_anomalies.");
-  const invalidAnomalies = parseJsonOutput(["anomalies", "THRESHOLD=not-a-number"]);
-  assertCondition(
-    invalidAnomalies.error === "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5.",
-    "Invalid anomalies threshold did not return the command-specific guidance."
+  expectMakeFailure(
+    ["anomalies", "THRESHOLD=not-a-number"],
+    ['"code": "invalid_argument"', '"message": "Expected: anomalies <zScoreThreshold>. Try: make anomalies THRESHOLD=3.5."']
   );
 
   const miners = parseJsonOutput(["miners"]);
@@ -138,6 +217,269 @@ try {
   const report = readFileSync(reportFile, "utf8");
   assertCondition(report.includes("# Ethereum Blocks: Lean Report"), "Report output is missing the report heading.");
   assertCondition(report.includes("## Action Brief"), "Report output is missing the action brief section.");
+
+  // --json contract: one schema-valid document per command, exit 0.
+  const guide = expectCli(["--json", "help"], 0, "help").document;
+  const sampleArgument = { block: "15049311", address: defaultAddress, anomalies: "3.5" };
+  const reportDir = mkdtempSync(join(tmpdir(), "cli-smoke-"));
+  try {
+    sampleArgument.report = join(reportDir, "report.md");
+    guide.commands.forEach(function (command) {
+      const args = ["--json", command.name];
+      if (sampleArgument[command.name]) {
+        args.push(sampleArgument[command.name]);
+      }
+      const first = expectCli(args, 0, command.output);
+      // Nothing in the output depends on the clock or on chance.
+      const second = expectCli(args, 0, command.output);
+      assertCondition(first.stdout === second.stdout, `--json ${command.name} printed different bytes on a second run.`);
+    });
+    assertCondition(existsSync(sampleArgument.report), "--json report did not write the requested file.");
+  } finally {
+    rmSync(reportDir, { recursive: true, force: true });
+  }
+  expectCli(["--json"], 0, "overview");
+  expectCli(["--json", "block", "15049400"], 0, "block");
+  const quietAddress = expectCli(["--json", "address", `0x${"0".repeat(39)}1`], 0, "address").document;
+  assertCondition(quietAddress.status === "no_activity", "Address with no transactions did not report no_activity.");
+
+  // The anomaly document is the one the browser is held to.
+  const parity = readFileSync("scripts/anomaly_parity.json", "utf8");
+  assertCondition(expectCli(["--json", "anomalies"], 0, "anomalies").stdout === parity, "--json anomalies no longer matches scripts/anomaly_parity.json.");
+
+  // --json is honored wherever it is written; it used to work only before the command.
+  const trailingFlag = expectCli(["anomalies", "5", "--json"], 0, "anomalies").document;
+  assertCondition(trailingFlag.z_threshold === 5, "Trailing --json dropped the command's argument.");
+  assertCondition(
+    expectCli(["anomalies", "--json", "5"], 0, "anomalies").stdout === expectCli(["--json", "anomalies", "5"], 0, "anomalies").stdout,
+    "--json placement changed the anomalies output."
+  );
+
+  // Exit 1: the command ran and has no answer.
+  const missingBlock = expectCli(["--json", "block", "1"], 1, "error").document.error;
+  assertCondition(missingBlock.code === "block_not_found" && missingBlock.block_number === 1, "Unknown block did not report block_not_found.");
+  assertCondition(missingBlock.command === "block" && missingBlock.message.length > 0, "Unknown block error lacks command or message.");
+
+  // Exit 2: the command line was rejected.
+  [
+    ["no-such-command"],
+    ["block"],
+    ["block", "not-a-number"],
+    ["address"],
+    ["address", invalidAddress],
+    ["anomalies", "not-a-number"],
+    ["anomalies", "NaN"],
+    ["anomalies", "0"],
+    ["anomalies", "-1"],
+    // Java would parse these as numbers; a caller never means them.
+    ["anomalies", "3.5f"],
+    ["anomalies", "0x1p3"],
+    ["anomalies", "1e2"],
+    ["block", "+15049311"],
+    // Arguments a command does not take are refused, not ignored.
+    ["anomalies", "3.5", "extra"],
+    ["snapshot", "extra"],
+    ["block", "15049311", "15049312"],
+    ["report", "a.md", "b.md"],
+    ["help", "extra"],
+    ["--no-such-option", "snapshot"],
+    ["snapshot", "--data"]
+  ].forEach(function (args) {
+    expectCli(["--json", ...args], 2, "error");
+  });
+  assertCondition(
+    expectCli(["--json", "nope"], 2, "error").document.error.code === "unknown_command",
+    "Unknown command did not report unknown_command."
+  );
+
+  // report: no file means the Markdown comes back in the document, not into the working directory.
+  const hadReport = existsSync(reportFile);
+  const inlineReport = expectCli(["--json", "report"], 0, "report").document;
+  assertCondition(inlineReport.file === null && inlineReport.markdown.includes("# Ethereum Blocks: Lean Report"), "report without a file did not return the Markdown.");
+  const textReport = runCli(["report"]);
+  assertCondition(textReport.status === 0 && textReport.stdout.includes("## Action Brief"), "report without a file did not print the Markdown.");
+  assertCondition(existsSync(reportFile) === hadReport, "report without a file wrote into the working directory.");
+  // A report that cannot be written says why.
+  const unwritable = join(tmpdir(), "cli-smoke-no-such-directory", "report.md");
+  const reportFailure = expectCli(["--json", "report", unwritable], 2, "error").document.error;
+  assertCondition(reportFailure.code === "report_write_failed" && reportFailure.file === unwritable, "Unwritable report path did not report report_write_failed.");
+  assertCondition(reportFailure.message.includes("NoSuchFileException"), `Report failure lost its cause: ${reportFailure.message}`);
+
+  // The dataset is found from outside the repository root, and can be named.
+  const elsewhere = mkdtempSync(join(tmpdir(), "cli-smoke-cwd-"));
+  try {
+    assertCondition(
+      expectCli(["--json", "anomalies"], 0, "anomalies", { cwd: elsewhere }).stdout === parity,
+      "Run from another directory did not find the dataset beside the compiled classes."
+    );
+    expectCli(["--json", "--data", resolve("."), "miners"], 0, "miners", { cwd: elsewhere });
+    expectCli(["--json", "miners"], 0, "miners", { cwd: elsewhere, env: { ETHEREUM_BLOCKS_DATA: resolve(".") } });
+    const wrongDirectory = expectCli(["--json", "--data", elsewhere, "miners"], 2, "error").document.error;
+    assertCondition(wrongDirectory.code === "data_file_not_found" && wrongDirectory.directory === elsewhere, "--data to an empty directory did not report where it looked.");
+    expectCli(["--json", "miners"], 2, "error", { env: { ETHEREUM_BLOCKS_DATA: elsewhere } });
+  } finally {
+    rmSync(elsewhere, { recursive: true, force: true });
+  }
+
+  // Text mode fails with the same exit codes as --json.
+  const textMissingBlock = runCli(["block", "1"]);
+  assertCondition(textMissingBlock.status === 1, `Text 'block 1' exited ${textMissingBlock.status}, expected 1.`);
+  assertCondition(textMissingBlock.stdout === "" && textMissingBlock.stderr.includes("No block numbered 1"), "Text 'block 1' did not report the unknown block on stderr.");
+  const textBadAddress = runCli(["address", "0x1"]);
+  assertCondition(textBadAddress.status === 2, `Text 'address 0x1' exited ${textBadAddress.status}, expected 2.`);
+  assertCondition(textBadAddress.stdout === "" && textBadAddress.stderr.includes("Expected an address"), "Text 'address 0x1' did not reject the address on stderr.");
+  assertCondition(runCli(["block", "15049311"]).status === 0, "Text 'block 15049311' no longer succeeds.");
+  assertCondition(runCli(["address", defaultAddress]).status === 0, "Text address lookup no longer succeeds.");
+  expectMakeFailure(["block", "N=1"], '"code": "block_not_found"');
+
+  // No command and nothing on stdin: a usage error, not a stack trace.
+  const noInput = runCli([]);
+  assertCondition(noInput.status === 2, `No command with stdin at its end exited ${noInput.status}, expected 2.`);
+  assertCondition(!noInput.stderr.includes("Exception") && noInput.stderr.includes("No command given"), `No command with stdin at its end did not explain itself:\n${noInput.stderr}`);
+
+  // help answers in both modes, under either spelling, without the dataset.
+  const emptyData = mkdtempSync(join(tmpdir(), "cli-smoke-data-"));
+  try {
+    assertCondition(
+      expectCli(["--json", "--help"], 0, "help").stdout === expectCli(["--json", "help"], 0, "help").stdout,
+      "--json --help and --json help differ."
+    );
+    const textHelp = runCli(["--data", emptyData, "help"]);
+    assertCondition(textHelp.status === 0 && textHelp.stdout.includes("make dashboard"), "Text help needs the dataset.");
+    expectCli(["--json", "--data=", "miners"], 2, "error");
+    // A directory where a CSV should be is named as such.
+    mkdirSync(join(emptyData, blocksFile));
+    const directoryAsFile = expectCli(["--json", "--data", emptyData, "miners"], 2, "error").document.error;
+    assertCondition(directoryAsFile.code === "io_error" && directoryAsFile.message.includes("is a directory, not a CSV file"), `Directory in place of the CSV: ${directoryAsFile.message}`);
+  } finally {
+    rmSync(emptyData, { recursive: true, force: true });
+  }
+
+  // Malformed transaction rows are counted in the snapshot, not only warned about on stderr.
+  const damagedData = mkdtempSync(join(tmpdir(), "cli-smoke-damaged-"));
+  try {
+    copyFileSync(blocksFile, join(damagedData, blocksFile));
+    copyFileSync("ethereumtransactions1.csv", join(damagedData, "ethereumtransactions1.csv"));
+    appendFileSync(join(damagedData, "ethereumtransactions1.csv"), "not,a,transaction\n");
+    appendFileSync(join(damagedData, blocksFile), "too,few,columns\nnot-a-number" + ",x".repeat(17) + "\n");
+    const damaged = expectCli(["--json", "--data", damagedData, "snapshot"], 0, "snapshot").document;
+    assertCondition(damaged.data_contract.skipped_transaction_rows === 1, "Snapshot did not count the malformed transaction row.");
+    assertCondition(damaged.data_contract.skipped_block_rows === 2, `Snapshot counted ${damaged.data_contract.skipped_block_rows} malformed block rows, expected 2.`);
+    assertCondition(damaged.overview.blocks_loaded === 100, "Malformed block rows changed the number of blocks loaded.");
+    const clean = expectCli(["--json", "snapshot"], 0, "snapshot").document.data_contract;
+    assertCondition(clean.skipped_transaction_rows === 0 && clean.skipped_block_rows === 0, "Bundled sample reports skipped rows.");
+  } finally {
+    rmSync(damagedData, { recursive: true, force: true });
+  }
+
+  // Output does not follow the machine: same bytes under another locale and encoding.
+  const foreign = {
+    jvm: ["-Duser.language=de", "-Duser.country=DE", "-Dfile.encoding=ISO-8859-1", "-Dstdout.encoding=ISO-8859-1"],
+    env: { LC_ALL: "C", LANG: "C" },
+    encoding: "latin1"
+  };
+  // Windows line endings and a platform encoding the CSVs are not written in.
+  const otherPlatform = {
+    jvm: ["-Dline.separator=\r\n", "-Dfile.encoding=UTF-16", "-Dstdout.encoding=UTF-16", "-Dstderr.encoding=UTF-16"],
+    encoding: "latin1"
+  };
+  [["report"], ["--json", "report"], ["dashboard"], ["brief"], ["help"], ["miners"], ["network"], ["--json", "snapshot"], ["--json", "block", "1"]].forEach(function (args) {
+    const home = runCli(args, { encoding: "latin1" });
+    const away = runCli(args, otherPlatform);
+    assertCondition(home.status === away.status, `${args.join(" ")} exited ${away.status} under CRLF and UTF-16 defaults, ${home.status} otherwise.`);
+    assertCondition(!away.stdout.includes("\r"), `${args.join(" ")} printed a carriage return under -Dline.separator=CRLF.`);
+    assertCondition(home.stdout === away.stdout, `${args.join(" ")} printed different bytes under CRLF and UTF-16 defaults.`);
+  });
+  const crlfError = runCli(["block", "1"], otherPlatform);
+  assertCondition(crlfError.stderr.includes("No block numbered 1") && !crlfError.stderr.replace(/^Picked up.*\r?\n/m, "").includes("\r"), "stderr followed the platform line separator or encoding.");
+  [["report"], ["--json", "report"], ["dashboard"], ["brief"], ["--json", "snapshot"], ["block", "15049311"], ["address", defaultAddress]].forEach(function (args) {
+    const home = runCli(args, { encoding: "latin1" });
+    const abroad = runCli(args, foreign);
+    assertCondition(home.status === 0 && abroad.status === 0, `${args.join(" ")} failed under a different locale.`);
+    assertCondition(home.stdout === abroad.stdout, `${args.join(" ")} printed different bytes under LC_ALL=C with a German locale.`);
+  });
+
+  // A dataset with no blocks: every command fails the same way in text and in --json.
+  const noBlocks = mkdtempSync(join(tmpdir(), "cli-smoke-empty-"));
+  try {
+    writeFileSync(join(noBlocks, blocksFile), "");
+    writeFileSync(join(noBlocks, "ethereumtransactions1.csv"), "");
+    const emptyArgument = { block: "15049311", address: defaultAddress, anomalies: "3.5", report: join(noBlocks, "report.md") };
+    guide.commands
+      .filter(function (command) {
+        return command.name !== "help";
+      })
+      .forEach(function (command) {
+        [[command.name], [command.name, emptyArgument[command.name]]].forEach(function (words) {
+          if (words.includes(undefined) || ((command.name === "block" || command.name === "address") && words.length === 1)) {
+            return;
+          }
+          const asJson = expectCli(["--json", "--data", noBlocks, ...words], 1, "error").document.error;
+          assertCondition(asJson.code === "no_data" && asJson.command === command.name, `--json ${words.join(" ")} on empty CSVs reported ${asJson.code}.`);
+          const asText = runCli(["--data", noBlocks, ...words]);
+          assertCondition(asText.status === 1, `Text '${words.join(" ")}' on empty CSVs exited ${asText.status}, expected 1.`);
+          assertCondition(asText.stdout === "" && asText.stderr.includes("The dataset has no blocks."), `Text '${words.join(" ")}' on empty CSVs did not report it on stderr.`);
+        });
+      });
+    expectCli(["--json", "--data", noBlocks], 1, "error");
+    assertCondition(!existsSync(emptyArgument.report), "report wrote a file for a dataset with no blocks.");
+    assertCondition(runCli(["--data", noBlocks, "help"]).status === 0, "Text help failed on empty CSVs.");
+    expectCli(["--json", "--data", noBlocks, "help"], 0, "help");
+  } finally {
+    rmSync(noBlocks, { recursive: true, force: true });
+  }
+
+  // --data needs exactly one directory.
+  [["--data", "", "miners"], ["--data", "--json"], ["miners", "--data", "--json"], ["--data", ".", "--data", ".", "miners"], ["--data=.", "--data", ".", "miners"]].forEach(function (args) {
+    const refused = expectCli(["--json", ...args], 2, "error").document.error;
+    assertCondition(refused.code === "invalid_argument", `${args.join(" ")} was not refused as an invalid argument.`);
+  });
+
+  // Exit 3: a fault while loading, outside any command, still ends in an error document.
+  // The fault is injected by putting a broken CsvReader ahead of the real one on the class path.
+  const faultDir = mkdtempSync(join(tmpdir(), "cli-smoke-fault-"));
+  try {
+    writeFileSync(
+      join(faultDir, "CsvReader.java"),
+      'public final class CsvReader { public static String[] parseRecord(String line) { throw new StackOverflowError("injected fault"); } }\n'
+    );
+    execFileSync("javac", ["-d", faultDir, join(faultDir, "CsvReader.java")], { stdio: ["ignore", "pipe", "pipe"] });
+    const faulty = { classPath: `${faultDir}${delimiter}${classPath}` };
+    [["--json", "snapshot"], ["--json"]].forEach(function (args) {
+      const fault = expectCli(args, 3, "error", faulty).document.error;
+      assertCondition(fault.code === "internal_error" && fault.message.includes("StackOverflowError: injected fault"), `Injected fault was reported as: ${fault.message}`);
+    });
+    const textFault = runCli(["dashboard"], faulty);
+    assertCondition(textFault.status === 3 && textFault.stdout === "", `Text mode exited ${textFault.status} on an internal fault, expected 3.`);
+    assertCondition(textFault.stderr.includes("Internal error") && !textFault.stderr.includes("\tat "), `Text mode printed a stack trace:\n${textFault.stderr}`);
+  } finally {
+    rmSync(faultDir, { recursive: true, force: true });
+  }
+
+  // Exit 4: the document could not be written.
+  if (existsSync("/dev/full")) {
+    [["--json", "snapshot"], ["dashboard"], ["--json", "block", "1"]].forEach(function (args) {
+      const full = runCli(args, { stdout: openSync("/dev/full", "w") });
+      assertCondition(full.status === 4, `${args.join(" ")} > /dev/full exited ${full.status}, expected 4.`);
+      assertCondition(full.stderr.includes("could not write to stdout"), "A failed write did not say so on stderr.");
+    });
+  }
+  const closedPipe = await exitCodeWithClosedPipe(["--json", "snapshot"]);
+  assertCondition(closedPipe.code === 4, `Closed pipe exited ${closedPipe.code}, expected 4.`);
+  assertCondition(!closedPipe.stderr.includes("Exception"), `Closed pipe printed a stack trace:\n${closedPipe.stderr}`);
+  const usageText = runCli(["no-such-command"]);
+  assertCondition(usageText.status === 2, `Unknown command without --json exited ${usageText.status}, expected 2.`);
+  assertCondition(usageText.stdout === "", "Unknown command without --json wrote to stdout.");
+  assertCondition(usageText.stderr.includes("Unknown command 'no-such-command'"), "Unknown command without --json did not explain itself on stderr.");
+
+  // The schema has teeth: a document with a wrong type or a missing field is refused.
+  const validateAnomalies = ajv.getSchema(`${schema.$id}#/$defs/anomalies`);
+  const goodAnomalies = JSON.parse(parity);
+  assertCondition(validateAnomalies(goodAnomalies), "Parity document does not match the anomalies definition.");
+  assertCondition(!validateAnomalies({ ...goodAnomalies, z_threshold: "3.5" }), "Schema accepted a string z_threshold.");
+  const { method, ...withoutMethod } = goodAnomalies;
+  assertCondition(typeof method === "string" && !validateAnomalies(withoutMethod), "Schema accepted anomalies without method.");
+  assertCondition(!ajv.validate(schema, { unexpected: true }), "Schema accepted an unknown document.");
 
   console.log("CLI smoke passed.");
 } finally {

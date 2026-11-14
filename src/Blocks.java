@@ -3,15 +3,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
-import java.text.SimpleDateFormat;
 
 
 public class Blocks implements Comparable<Blocks> {
@@ -27,13 +29,31 @@ public class Blocks implements Comparable<Blocks> {
 	private static final ArrayList<String> loadWarnings = new ArrayList<>();
 	private static String cachedTransactionsFile = null;
 	private static int skippedTransactionRows = 0;
+	private static int skippedBlockRows = 0;
 	private static String transactionLoadWarning = null;
 	private StringBuilder returnString = new StringBuilder();
-	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z");
+	private static SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMMM yyyy HH:mm:ss z", Locale.US);
 	private Date date;				// date in the format of "dateFormat
 	private ArrayList<Transaction> transactions = null;
 	
 	
+	private static File dataDirectory = null;
+
+	/** Directory that relative dataset filenames are read from; null means the working directory. */
+	static void setDataDirectory(File directory) {
+		dataDirectory = directory;
+	}
+
+	static String dataDirectoryPath() {
+		File directory = dataDirectory == null ? new File("") : dataDirectory;
+		return directory.getAbsolutePath();
+	}
+
+	private static File dataFile(String filename) {
+		File file = new File(filename);
+		return dataDirectory == null || file.isAbsolute() ? file : new File(dataDirectory, filename);
+	}
+
 	/**
 	 * Resets all static state. Required for test isolation and data reload.
 	 */
@@ -42,9 +62,15 @@ public class Blocks implements Comparable<Blocks> {
 		blockMap.clear();
 		transactionsByBlock.clear();
 		loadWarnings.clear();
+		skippedBlockRows = 0;
 		cachedTransactionsFile = null;
 		skippedTransactionRows = 0;
 		transactionLoadWarning = null;
+	}
+
+	/** Block rows left out while loading because they were malformed. */
+	static int getSkippedBlockRowCount() {
+		return skippedBlockRows;
 	}
 
 	static int getSkippedTransactionRowCount() {
@@ -189,7 +215,7 @@ public class Blocks implements Comparable<Blocks> {
 			uniqMinersFreq.put(miner, uniqMinersFreq.getOrDefault(miner, 0) + 1);
 		}
 
-		String lineSeparator = System.lineSeparator();
+		String lineSeparator = "\n";
 		StringBuilder report = new StringBuilder();
 		report.append("Number of unique Miners: ")
 			.append(uniqMinersFreq.size())
@@ -257,10 +283,13 @@ public class Blocks implements Comparable<Blocks> {
 		}
 		
 		// construct a file object for the file with the given name.
-		File file = new File(filename);
+		File file = dataFile(filename);
 		
 		if (!file.exists()) {
 			throw new FileNotFoundException(filename);
+		}
+		if (file.isDirectory()) {
+			throw new IOException("'" + filename + "' is a directory, not a CSV file");
 		}
 		
 		if (!file.canRead()) {
@@ -268,6 +297,7 @@ public class Blocks implements Comparable<Blocks> {
 		}
 
 		loadWarnings.clear();
+		skippedBlockRows = 0;
 		transactionLoadWarning = null;
 
 		// Use BufferedReader for better performance
@@ -275,7 +305,7 @@ public class Blocks implements Comparable<Blocks> {
 		ArrayList<Blocks> b = new ArrayList<Blocks>();
 		
 		try {
-			reader = new BufferedReader(new FileReader(file));
+			reader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));
 
 			// create the Array that will store each lines data so we can grab the required fields
 			String[] fileData = null;
@@ -292,6 +322,7 @@ public class Blocks implements Comparable<Blocks> {
 					
 					// Validate data
 					if (fileData.length < 18) {
+						skippedBlockRows++;
 						recordLoadWarning("Warning: Line " + lineNumber + " has insufficient data, skipping");
 						continue;
 					}
@@ -305,16 +336,19 @@ public class Blocks implements Comparable<Blocks> {
 					
 					// Validate parsed data
 					if (blockNumber < 0) {
+						skippedBlockRows++;
 						recordLoadWarning("Warning: Invalid block number at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					if (timestamp < 0) {
+						skippedBlockRows++;
 						recordLoadWarning("Warning: Invalid timestamp at line " + lineNumber + ", skipping");
 						continue;
 					}
 					
 					if (transactionCount < 0) {
+						skippedBlockRows++;
 						recordLoadWarning("Warning: Invalid transaction count at line " + lineNumber + ", skipping");
 						continue;
 					}
@@ -326,9 +360,11 @@ public class Blocks implements Comparable<Blocks> {
 				} catch (IOException e) {
 					throw e;
 				} catch (NumberFormatException e) {
+					skippedBlockRows++;
 					recordLoadWarning("Warning: Invalid number format at line " + lineNumber + ": " + e.getMessage());
 					continue;
 				} catch (Exception e) {
+					skippedBlockRows++;
 					recordLoadWarning("Warning: Error processing line " + lineNumber + ": " + e.getMessage());
 					continue;
 				}
@@ -528,7 +564,7 @@ public class Blocks implements Comparable<Blocks> {
 		// Use LinkedHashMap to maintain insertion order (based on first appearance)
 		Map<String, ArrayList<Transaction>> fromAddressMap = new LinkedHashMap<>();
 		Map<String, Integer> firstAppearance = new HashMap<>();
-		String lineSeparator = System.lineSeparator();
+		String lineSeparator = "\n";
 		
 		// Group transactions by from address in O(n) time
 		for (int i = 0; i < transactions.size(); i++) {
@@ -568,7 +604,7 @@ public class Blocks implements Comparable<Blocks> {
 			
 			report.append(lineSeparator)
 				.append("Total cost of transactions: ")
-				.append(String.format("%.8f", totalCost))
+				.append(String.format(Locale.ROOT, "%.8f", totalCost))
 				.append(" ETH")
 				.append(lineSeparator);
 		}
@@ -585,15 +621,18 @@ public class Blocks implements Comparable<Blocks> {
 			return;
 		}
 
-		File file = new File(filename);
+		File file = dataFile(filename);
 		if (!file.exists()) {
 			throw new FileNotFoundException(filename);
+		}
+		if (file.isDirectory()) {
+			throw new IOException("'" + filename + "' is a directory, not a CSV file");
 		}
 
 		skippedTransactionRows = 0;
 		transactionLoadWarning = null;
 		Map<Integer, TreeMap<Integer, Transaction>> indexedTransactionsByBlock = new HashMap<>();
-		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+		try (BufferedReader reader = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			String line;
 			int lineNumber = 0;
 			int firstSkippedLine = -1;

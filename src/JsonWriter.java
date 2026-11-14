@@ -1,4 +1,5 @@
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -97,7 +98,7 @@ public final class JsonWriter {
                 case '\t': sb.append("\\t"); break;
                 default:
                     if (c < 0x20) {
-                        sb.append(String.format("\\u%04x", (int) c));
+                        sb.append(String.format(Locale.ROOT, "\\u%04x", (int) c));
                     } else {
                         sb.append(c);
                     }
@@ -110,6 +111,10 @@ public final class JsonWriter {
     private static String formatNumber(Number n) {
         if (n instanceof Double || n instanceof Float) {
             double d = n.doubleValue();
+            if (Double.isNaN(d) || Double.isInfinite(d)) {
+                // JSON has no NaN or Infinity; emitting them would break every parser.
+                return "null";
+            }
             if (d == Math.floor(d) && !Double.isInfinite(d) && Math.abs(d) < 1e15) {
                 return String.valueOf((long) d);
             }

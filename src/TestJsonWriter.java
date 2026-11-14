@@ -76,4 +76,14 @@ class TestJsonWriter {
         assertTrue(json.contains("\n"));
         assertTrue(json.contains("\"key\""));
     }
+
+    @Test
+    void testNonFiniteNumbersBecomeNull() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("nan", Double.NaN);
+        map.put("up", Double.POSITIVE_INFINITY);
+        map.put("down", Double.NEGATIVE_INFINITY);
+        map.put("ok", 1.5);
+        assertEquals("{\"nan\":null,\"up\":null,\"down\":null,\"ok\":1.5}", JsonWriter.toJsonCompact(map));
+    }
 }

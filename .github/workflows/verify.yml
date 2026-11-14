@@ -43,3 +43,32 @@ jobs:
 
       - name: Run the local verification contract
         run: make verify
+
+  agent-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install and build as AGENTS.md says
+        run: |
+          npm ci
+          make build
+
+      - name: Run the AGENTS.md commands as written and validate their output
+        run: node scripts/agent_smoke.mjs

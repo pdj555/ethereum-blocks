@@ -1,9 +1,10 @@
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -67,8 +68,8 @@ public final class Insights {
         System.out.println("Blocks loaded: " + totalBlocks);
         System.out.println("Unique miners: " + minerFrequency.size());
         System.out.println("Total transactions: " + totalTransactions);
-        System.out.printf("Avg transactions / block: %.2f%n", avgTransactionsPerBlock);
-        System.out.printf("Avg tx cost / active block: %.8f ETH%n", avgCostPerActiveBlock);
+        System.out.printf(Locale.ROOT, "Avg transactions / block: %.2f\n", avgTransactionsPerBlock);
+        System.out.printf(Locale.ROOT, "Avg tx cost / active block: %.8f ETH\n", avgCostPerActiveBlock);
 
         printTopMiners(minerFrequency, topN);
         printTopBlocksByTransactionCount(blocks, topN);
@@ -93,7 +94,7 @@ public final class Insights {
             return "Address is required. Enter a 42-character Ethereum address such as 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.";
         }
 
-        String address = rawAddress.trim().toLowerCase();
+        String address = rawAddress.trim().toLowerCase(Locale.ROOT);
         if (!EthereumAddressValidator.isValid(address)) {
             return "Invalid Ethereum address. Use 0x followed by 40 hex characters, for example 0x58a5b1a1c67e984247a0c78f2875b0f9c781b64f.";
         }
@@ -109,8 +110,8 @@ public final class Insights {
 
         for (Blocks block : blocks) {
             for (Transaction tx : block.getTransactions()) {
-                String from = tx.getFromAddress().toLowerCase();
-                String to = tx.getToAddress().toLowerCase();
+                String from = tx.getFromAddress().toLowerCase(Locale.ROOT);
+                String to = tx.getToAddress().toLowerCase(Locale.ROOT);
                 boolean isOutbound = from.equals(address);
                 boolean isInbound = to.equals(address);
 
@@ -157,10 +158,10 @@ public final class Insights {
         out.append("\nAddress: ").append(address);
         out.append("\nTouches (in + out): ").append(totalTouches);
         out.append("\nInbound tx: ").append(inboundCount)
-            .append(String.format(" (%.8f ETH)", inboundEth));
+            .append(String.format(Locale.ROOT, " (%.8f ETH)", inboundEth));
         out.append("\nOutbound tx: ").append(outboundCount)
-            .append(String.format(" (%.8f ETH)", outboundEth));
-        out.append("\nNet flow (in - out): ").append(String.format("%.8f ETH", inboundEth - outboundEth));
+            .append(String.format(Locale.ROOT, " (%.8f ETH)", outboundEth));
+        out.append("\nNet flow (in - out): ").append(String.format(Locale.ROOT, "%.8f ETH", inboundEth - outboundEth));
         out.append("\nActive range: block ").append(firstBlock).append(" -> ").append(lastBlock);
 
         out.append("\n\nTop counterparties:");
@@ -242,11 +243,11 @@ public final class Insights {
         out.append("- Blocks analyzed: ").append(blocks.size()).append("\n");
         out.append("- Metadata transactions: ").append(totalTransactions).append("\n");
         out.append("- Parsed transactions: ").append(knownTransactions).append("\n");
-        out.append(String.format("- Top miner concentration: %.2f%% (%s)%n",
+        out.append(String.format(Locale.ROOT, "- Top miner concentration: %.2f%% (%s)\n",
             topMinerShare * 100,
             topMiners.isEmpty() ? "n/a" : topMiners.get(0).getKey()));
         out.append("- Busiest block: ").append(busiestBlockNumber).append(" (").append(busiestBlockTx).append(" tx)\n");
-        out.append(String.format("- Highest avg-cost block: %d (%.8f ETH)\n\n", highestCostBlockNumber, Math.max(0.0, highestAvgCost)));
+        out.append(String.format(Locale.ROOT, "- Highest avg-cost block: %d (%.8f ETH)\n\n", highestCostBlockNumber, Math.max(0.0, highestAvgCost)));
 
         out.append("Strategic signals:\n");
         if (topMinerShare >= 0.25) {
@@ -266,7 +267,7 @@ public final class Insights {
         } else {
             for (int i = 0; i < topSenders.size(); i++) {
                 Map.Entry<String, Double> sender = topSenders.get(i);
-                out.append(String.format("%d. %s (%.8f ETH)%n", i + 1, sender.getKey(), sender.getValue()));
+                out.append(String.format(Locale.ROOT, "%d. %s (%.8f ETH)\n", i + 1, sender.getKey(), sender.getValue()));
             }
         }
 
@@ -313,8 +314,8 @@ public final class Insights {
         out.append("- Blocks loaded: ").append(totalBlocks).append("\n");
         out.append("- Unique miners: ").append(minerFrequency.size()).append("\n");
         out.append("- Total transactions (metadata): ").append(totalTransactions).append("\n");
-        out.append(String.format("- Avg transactions / block: %.2f%n", avgTxPerBlock));
-        out.append(String.format("- Avg known transaction cost: %.8f ETH%n", avgKnownTxCost));
+        out.append(String.format(Locale.ROOT, "- Avg transactions / block: %.2f\n", avgTxPerBlock));
+        out.append(String.format(Locale.ROOT, "- Avg known transaction cost: %.8f ETH\n", avgKnownTxCost));
         out.append("- Unique addresses seen in loaded transactions: ").append(uniqueAddresses.size()).append("\n\n");
 
         out.append("## Top Miners\n");
@@ -333,13 +334,13 @@ public final class Insights {
         out.append("## Network Analysis\n");
         out.append("- Total addresses in graph: ").append(network.getOrDefault("total_addresses", "N/A")).append("\n");
         out.append("- Unique edges: ").append(network.getOrDefault("total_unique_edges", "N/A")).append("\n");
-        out.append(String.format("- Graph density: %.6f%n", ((Number) network.getOrDefault("graph_density", 0.0)).doubleValue()));
+        out.append(String.format(Locale.ROOT, "- Graph density: %.6f\n", ((Number) network.getOrDefault("graph_density", 0.0)).doubleValue()));
 
         @SuppressWarnings("unchecked")
         Map<String, Object> flowConc = (Map<String, Object>) network.get("flow_concentration");
         if (flowConc != null) {
-            out.append(String.format("- Top-%d flow share: %.2f%%%n", topN, ((Number) flowConc.getOrDefault("top_share", 0.0)).doubleValue() * 100));
-            out.append(String.format("- Gini coefficient: %.4f%n", ((Number) flowConc.getOrDefault("gini_coefficient", 0.0)).doubleValue()));
+            out.append(String.format(Locale.ROOT, "- Top-%d flow share: %.2f%%\n", topN, ((Number) flowConc.getOrDefault("top_share", 0.0)).doubleValue() * 100));
+            out.append(String.format(Locale.ROOT, "- Gini coefficient: %.4f\n", ((Number) flowConc.getOrDefault("gini_coefficient", 0.0)).doubleValue()));
         }
 
         return out.toString();
@@ -380,7 +381,7 @@ public final class Insights {
         System.out.println("\nTop blocks by average transaction cost:");
         for (int i = 0; i < Math.min(topN, activeBlocks.size()); i++) {
             Blocks block = activeBlocks.get(i);
-            System.out.printf("%d. Block %d  (%.8f ETH)%n", i + 1, block.getNumber(), block.avgTransactionCost());
+            System.out.printf(Locale.ROOT, "%d. Block %d  (%.8f ETH)\n", i + 1, block.getNumber(), block.avgTransactionCost());
         }
     }
 
@@ -393,7 +394,7 @@ public final class Insights {
         }
         for (int i = 0; i < outliers.size(); i++) {
             BlockCostStat stat = outliers.get(i);
-            System.out.printf("%d. Block %d  (%.8f ETH avg, %d tx)%n", i + 1, stat.getBlockNumber(), stat.getAvgCostEth(), stat.getTxCount());
+            System.out.printf(Locale.ROOT, "%d. Block %d  (%.8f ETH avg, %d tx)\n", i + 1, stat.getBlockNumber(), stat.getAvgCostEth(), stat.getTxCount());
         }
     }
 
@@ -442,7 +443,7 @@ public final class Insights {
 
         for (int i = 0; i < Math.min(topN, active.size()); i++) {
             Blocks block = active.get(i);
-            out.append(String.format("%d. Block %d (avg cost: %.8f ETH, tx: %d)%n", i + 1, block.getNumber(), block.avgTransactionCost(), block.getTransactions().size()));
+            out.append(String.format(Locale.ROOT, "%d. Block %d (avg cost: %.8f ETH, tx: %d)\n", i + 1, block.getNumber(), block.avgTransactionCost(), block.getTransactions().size()));
         }
     }
 
@@ -454,7 +455,7 @@ public final class Insights {
         }
         for (int i = 0; i < outliers.size(); i++) {
             BlockCostStat stat = outliers.get(i);
-            out.append(String.format("%d. Block %d (%.8f ETH avg, tx: %d)%n", i + 1, stat.getBlockNumber(), stat.getAvgCostEth(), stat.getTxCount()));
+            out.append(String.format(Locale.ROOT, "%d. Block %d (%.8f ETH avg, tx: %d)\n", i + 1, stat.getBlockNumber(), stat.getAvgCostEth(), stat.getTxCount()));
         }
     }
 }

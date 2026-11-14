@@ -17,6 +17,51 @@
 
 Before browser smoke tests, run `npm ci` at the root and `npm run ui:install-browsers`.
 
+## For agents
+
+Needs a JDK and Node.js. Everything runs offline on the two CSVs in the repository root.
+
+```bash
+npm ci
+make build
+
+java -cp bin EthereumBlockExplorer --json help
+java -cp bin EthereumBlockExplorer --json snapshot
+java -cp bin EthereumBlockExplorer --json anomalies 3.5
+
+make test
+make cli-smoke
+```
+
+- `--json` prints one JSON document on stdout; warnings go to stderr. `--json help` lists every command, its argument, and which definition in `schemas/cli-output.v1.schema.json` its output matches.
+- Exit codes, the same with and without `--json`:
+
+  | Code | Meaning |
+  | --- | --- |
+  | `0` | ok |
+  | `1` | ran, but no answer: unknown block, or a dataset with no blocks |
+  | `2` | the command line or its inputs were rejected: unknown command or option, missing, malformed or extra argument, dataset CSVs not found or unreadable, report path that cannot be written |
+  | `3` | internal error |
+  | `4` | stdout could not be written (reader closed the pipe, device full); one line on stderr, no document |
+
+- Every failure under `--json` prints one shape: `{"error": {"code", "message", "command", "exit_code"}}`, plus `block_number`, `file` or `directory` where they apply. `exit_code` equals the process exit code. Successful documents keep their shapes.
+- Arguments are strict: a threshold is plain digits with an optional fraction (`3.5`, not `3.5f`, `1e2` or `0x1p3`), a block number is plain digits, and an argument a command does not take is rejected.
+- `--data` takes exactly one directory: an empty value, another option in its place, or a second `--data` exits `2`. The two CSVs are read from `--data <directory>`, else the `ETHEREUM_BLOCKS_DATA` variable, else the working directory, else the directory above the compiled classes. So `java -cp /path/to/repo/bin EthereumBlockExplorer --json snapshot` works from any directory.
+- `report <file>` writes the Markdown report to that file. `report` with no file writes nothing to disk: it prints the Markdown, or returns it as `markdown` in the document under `--json`.
+- Call `java` directly when the exit code matters. The `make` targets print the same JSON, but `make` reports any failure as its own exit status 2.
+- Output has no clock or random input, is always UTF-8 with `\n` line endings, and formats numbers and dates the same under every locale; the CSVs are read as UTF-8. The same CSVs give the same bytes on any machine.
+- Malformed rows are skipped with a warning on stderr and counted in the snapshot as `data_contract.skipped_block_rows` and `data_contract.skipped_transaction_rows`.
+- `help` (also `--help`) answers without the dataset. With no command and nothing on stdin the CLI exits `2`; the menu needs a terminal.
+- `npm ci` is only needed for the validators: `make cli-smoke` checks every command against the schema, and `node scripts/agent_smoke.mjs` runs the commands above as written.
+
+Behaviour changes from earlier versions:
+
+- Failed commands used to exit `0` and, under `--json`, print `{"error": "<text>"}`. They now exit non-zero, with the error shape above under `--json` and one line on stderr in text mode. So `make block N=<unknown>`, `make address` with a malformed address, and `make anomalies` with a bad threshold fail.
+- `report` with no file used to write `ethereum-report.md` into the working directory. It now writes nothing to disk: it prints the Markdown, or returns it as `markdown` under `--json`. `make report` still writes `ethereum-report.md`, because it names the file.
+- `--json` used to work only before the command.
+- Arguments are checked strictly. Extra arguments used to be ignored, and `anomalies` took anything Java parses as a number (`3.5f`, `1e2`, `0x1p3`, `NaN`, zero, negatives); both are now usage errors (exit `2`), as is an unknown `--option`.
+- A missing dataset used to exit `1`; it now exits `2`. An internal fault used to exit `1`; it now exits `3`.
+
 ## Coding Style & Naming Conventions
 
 Match the surrounding Java style: `PascalCase` classes and `camelCase` methods and fields. TypeScript uses indentation with two spaces, semicolons, double quotes, `PascalCase` components, and `camelCase` helpers. Preserve strict checks and the `@/` import alias. Avoid unrelated reformatting.

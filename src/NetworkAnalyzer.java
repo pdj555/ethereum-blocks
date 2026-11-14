@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -37,8 +38,8 @@ public final class NetworkAnalyzer {
 
         for (Blocks block : blocks) {
             for (Transaction tx : block.getTransactions()) {
-                String from = tx.getFromAddress().toLowerCase();
-                String to = tx.getToAddress().toLowerCase();
+                String from = tx.getFromAddress().toLowerCase(Locale.ROOT);
+                String to = tx.getToAddress().toLowerCase(Locale.ROOT);
                 double cost = tx.transactionCost();
 
                 // Update edge
@@ -95,7 +96,7 @@ public final class NetworkAnalyzer {
             return result;
         }
 
-        String address = rawAddress.trim().toLowerCase();
+        String address = rawAddress.trim().toLowerCase(Locale.ROOT);
         if (!EthereumAddressValidator.isValid(address)) {
             result.put("error", "invalid_address_format");
             return result;
@@ -105,8 +106,8 @@ public final class NetworkAnalyzer {
 
         for (Blocks block : blocks) {
             for (Transaction tx : block.getTransactions()) {
-                String from = tx.getFromAddress().toLowerCase();
-                String to = tx.getToAddress().toLowerCase();
+                String from = tx.getFromAddress().toLowerCase(Locale.ROOT);
+                String to = tx.getToAddress().toLowerCase(Locale.ROOT);
                 double cost = tx.transactionCost();
                 graph.computeIfAbsent(from, k -> new HashMap<>())
                       .computeIfAbsent(to, k -> new EdgeStats())
