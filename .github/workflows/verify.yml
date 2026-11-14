@@ -43,3 +43,46 @@ jobs:
 
       - name: Run the local verification contract
         run: make verify
+
+  agent-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install and build as AGENTS.md says
+        run: |
+          npm ci
+          make build
+
+      - name: Read the snapshot the way a script would
+        run: |
+          java -cp bin EthereumBlockExplorer --json snapshot > snapshot.json
+          node -e '
+            const snapshot = JSON.parse(require("node:fs").readFileSync("snapshot.json", "utf8"));
+            if (snapshot.status !== "ready" || snapshot.overview.blocks_loaded !== 100) {
+              throw new Error("unexpected snapshot: " + snapshot.status);
+            }
+          '
+          set +e
+          java -cp bin EthereumBlockExplorer --json no-such-command > usage.json
+          usage_exit=$?
+          set -e
+          test "$usage_exit" -eq 2
+
+      - name: Validate every JSON command against the schema
+        run: make cli-smoke
