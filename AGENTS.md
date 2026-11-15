@@ -51,12 +51,12 @@ make cli-smoke
 - Call `java` directly when the exit code matters. The `make` targets print the same JSON, but `make` reports any failure as its own exit status 2.
 - Output has no clock or random input, is always UTF-8 with `\n` line endings, and formats numbers and dates the same under every locale; the CSVs are read as UTF-8. The same CSVs give the same bytes on any machine.
 - Malformed rows are skipped with a warning on stderr and counted in the snapshot as `data_contract.skipped_block_rows` and `data_contract.skipped_transaction_rows`.
-- `help` (also `--help`) answers without the dataset. With no command and nothing on stdin the CLI exits `2`; the menu needs a terminal.
+- `help` (also `--help`) answers without the dataset. With no command, no `--json`, and nothing on stdin the CLI exits `2`; the menu needs a terminal.
 - `npm ci` is only needed for the validators: `make cli-smoke` checks every command against the schema, and `node scripts/agent_smoke.mjs` runs the commands above as written.
 
-Behaviour changes from earlier versions:
+Behavior changes from earlier versions:
 
-- Failed commands used to exit `0` and, under `--json`, print `{"error": "<text>"}`. They now exit non-zero, with the error shape above under `--json` and one line on stderr in text mode. So `make block N=<unknown>`, `make address` with a malformed address, and `make anomalies` with a bad threshold fail.
+- Failed commands used to exit `0` and, under `--json`, print `{"error": "<text>"}`. They now exit nonzero, with the error shape above under `--json` and one line on stderr in text mode. So `make block N=<unknown>`, `make address` with a malformed address, and `make anomalies` with a bad threshold fail.
 - `report` with no file used to write `ethereum-report.md` into the working directory. It now writes nothing to disk: it prints the Markdown, or returns it as `markdown` under `--json`. `make report` still writes `ethereum-report.md`, because it names the file.
 - `--json` used to work only before the command.
 - Arguments are checked strictly. Extra arguments used to be ignored, and `anomalies` took anything Java parses as a number (`3.5f`, `1e2`, `0x1p3`, `NaN`, zero, negatives); both are now usage errors (exit `2`), as is an unknown `--option`.
